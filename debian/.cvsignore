@@ -1,1 +1,12 @@
 patched
+files
+html
+*.debhelper
+*.substvars
+prcs-el
+prcs-synch
+prcs-utils
+prcs-visualtree
+substvars
+tmp
+
