@@ -92,8 +92,10 @@ prcs(1)
 =head1 AUTHOR
 
 Hugo Cornelis <hugo@bbf.uia.ac.be> (prcs_checkfiles prcspatch,
-prcspatch2, prcsfind, prcsbranches, prcsguess, prcsentry, prcsstatus,
-and prcs_checkfiles)
+prcspatch2, prcsfind, prcsbranches, prcsguess, prcsentry, and
+prcs_checkfiles)
+
+Austin Donnelly <and1000@cam.ac.uk> (prcsstatus)
 
 Yann Dirson <dirson@debian.org> (prcs-mv, prcs-what-may-move,
 prcs-ttyask-move, and prcs-assist-move)
