@@ -1,0 +1,3 @@
+prcs-ediff    Used to invoke Emacs diff from PRCS.
+
+prcs-emerge   Used to invoke Emacs merge from PRCS.

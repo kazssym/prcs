@@ -1,0 +1,108 @@
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook V4.1//EN">
+
+<refentry>
+  <refentryinfo>
+    <date>2002-04-29</date>
+  </refentryinfo>
+
+  <refmeta>
+    <refentrytitle>prcs-move</refentrytitle>
+    <manvolnum>1</manvolnum>
+  </refmeta>
+
+  </refsynopsisdiv>
+    <cmdsynopsis>
+      <command>prcs-mv</>
+      <arg req><replaceable>src</></arg>
+      <arg req><replaceable>dst</></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+      <command>prcs-what-may-move</>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+      <command>prcs-ttyask-move</>
+      <arg req><replaceable>src-list</></arg>
+      <arg req><replaceable>dst-list</></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+      <command>prcs-assist-move</>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>Description</title>
+
+    <variablelist>
+      <varlistentry>
+	<term>prcs-mv</term>
+	<listitem>
+	  <para>Renames <filename><replaceable>src</></> into
+	  <filename><replaceable>dst</></>, both in the filesystem and in the
+	  <literal>prj</> file (that's for everyday work).</para>
+
+	  <para>With option <option>-p</>, only impacts prj file, and does
+	  not check anything in the filesystem (used by prcs-assist-move,
+	  usable manually for renamings that can't be guessed). </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>prcs-what-may-move</term>
+	<listitem>
+	  <para>Prints on stdout the list of files that are candidates for
+	  renaming (those that would be ADDED or DELETED by <literal>prcs
+	  populate -d</>) in a format suitable as input for
+	  <command>prcs-ttyask-move</></para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>prcs-ttyask-move</term>
+	<listitem>
+	  <para>Takes from <filename><replaceable>src-list</></> a list of
+	  candidate files for renaming, attempts to match them based on
+	  their filenames (that is, only catch dir-hierarchy reorgs), and
+	  asks the user what to do with matches (using perl
+	  <literal>Term::Readline</>).  Records those renamings in
+	  <filename><replaceable>dst-list</></> along with unchanged
+	  lines.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>prcs-assist-move</term>
+	<listitem>
+	  <para>Runs <literal>prcs-ttyask-move</> on
+	  <literal>prcs-what-may-move</> output, then <literal>prcs-mv
+	  -p</> on the files the user specified as renames.</para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+  </refsect1>
+
+  <refsect1>
+    <title>See also</title>
+
+    <para><citerefentry> <refentrytitle>prcs</> <manvolnum>1</>
+      </citerefentry>.</para>
+  </refsect1>
+
+  <refsect1>
+    <title>Author</title>
+
+    <para>Yann Dirson <email>dirson@debian.org</></para>
+
+  </refsect1>
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-shorttag:t
+sgml-minimize-attributes:t
+sgml-always-quote-attributes:nil
+End:
+-->

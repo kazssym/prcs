@@ -48,38 +48,7 @@
     </cmdsynopsis>
 
     <cmdsynopsis>
-      <command>prcsstatus</>
-    </cmdsynopsis>
-
-    <cmdsynopsis>
       <command>prcs_checkfiles</>
-    </cmdsynopsis>
-
-    <cmdsynopsis>
-      <command>prcs-mv</>
-      <arg req><replaceable>src</></arg>
-      <arg req><replaceable>dst</></arg>
-    </cmdsynopsis>
-
-    <cmdsynopsis>
-      <command>prcs-mv</>
-      <arg opt><option>-p</option></arg>
-      <arg req><replaceable>src</></arg>
-      <arg req><replaceable>dst</></arg>
-    </cmdsynopsis>
-
-    <cmdsynopsis>
-      <command>prcs-what-may-move</>
-    </cmdsynopsis>
-
-    <cmdsynopsis>
-      <command>prcs-ttyask-move</>
-      <arg req><replaceable>src</></arg>
-      <arg req><replaceable>dst</></arg>
-    </cmdsynopsis>
-
-    <cmdsynopsis>
-      <command>prcs-assist-move</>
     </cmdsynopsis>
   </refsynopsisdiv>
 
@@ -146,14 +115,6 @@
       </varlistentry>
 
       <varlistentry>
-	<term>prcsstatus</term>
-	<listitem>
-	  <para>Gives info about the status of files in a
-	  project.</para>
-	</listitem>
-      </varlistentry>
-
-      <varlistentry>
 	<term>prcs_checkfiles</term>
 	<listitem>
 	  <para>Check the file list in the prcs project file with the
@@ -161,53 +122,7 @@
 	  checks the populate-ignore list.</para>
 	</listitem>
       </varlistentry>
-
-      <varlistentry>
-	<term>prcs-mv</term>
-	<listitem>
-	  <para>Renames <filename><replaceable>src</></> into
-	  <filename><replaceable>dst</></>, both in the filesystem and in the
-	  <literal>prj</> file (that's for everyday work).</para>
-
-	  <para>With option <option>-p</>, only impact prj file, and don't
-	  check anything in the filesystem (used by prcs-assist-move,
-	  usable manually for renamings that can't be guessed). </para>
-	</listitem>
-      </varlistentry>
-
-      <varlistentry>
-	<term>prcs-what-may-move</term>
-	<listitem>
-	  <para>Prints on stdout the list of files that are candidates for
-	  renaming (those that would be ADDED or DELETED by <literal>prcs
-	  populate -d</>) in a format suitable as input for...</para>
-	</listitem>
-      </varlistentry>
-
-      <varlistentry>
-	<term>prcs-ttyask-move</term>
-	<listitem>
-	  <para>Takes from <filename><replaceable>file1</></> a list of
-	  candidate files for renaming, attempts to match them based on
-	  their filenames (that is, only catch dir-hierarchy reorgs), and
-	  asks the user what to do with matches (using perl
-	  <literal>Term::Readline</>).  Records those renamings in
-	  <filename><replaceable>file2</></> along with unchanged
-	  lines.</para>
-	</listitem>
-      </varlistentry>
-
-      <varlistentry>
-	<term>prcs-assist-move</term>
-	<listitem>
-	  <para>Runs <literal>prcs-ttyask-move</> on
-	  <literal>prcs-what-may-move</> output, then <literal>prcs-mv
-	  -p</> on the files the user specified as renames.</para>
-	</listitem>
-      </varlistentry>
     </variablelist>
-  </refsect1>
-
 
   <refsect1>
     <title>See also</title>
@@ -217,24 +132,13 @@
   </refsect1>
 
   <refsect1>
-    <title>Authors</title>
+    <title>Author</title>
 
-    <para>Hugo Cornelis <email>hugo@bbf.uia.ac.be</>.
-    (<literal>prcs_checkfiles</>, <literal>prcspatch</>,
-    <literal>prcspatch2</>, <literal>prcsfind</>, <literal>prcsbranches</>,
-    <literal>prcsguess</>, and <literal>prcsentry</>) </para>
-
-    <para>Austin Donnelly <email>and1000@cam.ac.uk</>
-    (<literal>prcsstatus</>)</para>
-
-    <para>Yann Dirson <email>dirson@debian.org</> (<literal>prcs-mv</>,
-    <literal>prcs-what-may-move</>, <literal>prcs-ttyask-move</>, and
-    <literal> prcs-assist-move</>)</para>
+    <para>Hugo Cornelis <email>hugo@bbf.uia.ac.be</>.</para>
 
     <para>This manual page was written by Rafael Laboissiere
     <email>rafael@debian.org</>, and later translated to DocBook and
-    enhanced by Yann Dirson <email>dirson@debian.org</>, for the
-    Debian GNU/Linux system (but may be used by others).</para>
+    enhanced by Yann Dirson <email>dirson@debian.org</></para>
   </refsect1>
 </refentry>
 
