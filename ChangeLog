@@ -1,3 +1,7 @@
+2002-04-23  Rafael Laboissiere  <rafael@laboissiere.net>
+
+	* configure.in: Added --disable-lex-check option.
+
 Sun Apr 19 19:04:07 1998  Josh MacDonald  <jmacd@icw.EECS.Berkeley.EDU>
 
 	* prcs.prj:
