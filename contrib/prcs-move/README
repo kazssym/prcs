@@ -1,17 +1,19 @@
-Thanks to Yann Dirson <Yann.Dirson@fr.alcove.com>
+Thanks to Yann Dirson <ydirson@altern.org>
 
 Here are a couple of tools to help dealing with file renamings.  I
 wrote them quickly, they're not feature-complete yet, and lack a
 couple of safety checks, but I used them successfully to migrate a
 small project into PRCS, and I hope they can serve as a base for
-better tools.
+better tools.  Check for FIXME items in the scripts.
 
 In short: an everyday-use tool to rename without having to perform
-manual error-prone editting of prj file, and an name-on-import-helper,
-in the spirit of what bitkeeper provides.
+manual error-prone editting of prj file, and a rename-on-import
+helper, in the spirit of what bitkeeper provides (or at least
+provided, at the time when I had not yet contributed to prcs, and was
+thus eligible to the free-use licence).
 
-All this is tty-based.  Maybe I'll try some day to make a perl-gtk gui
-to make things even more usable.
+All this is command-line- and tty-based.  Maybe I'll try some day to
+make a perl-gtk gui to make things even more usable.
 
 All this is covered by the GNU GPL, version 2, although there's no
 copyright notice yet in the files.
