@@ -1,3 +1,12 @@
+prcs (1.3.0-2) unstable; urgency=low
+
+  * Downgraded ssh dependency of prcs-synch from Recommends to Suggests.
+    This way, prcs-synch does not need to go into non-US, and there is no
+    need to split the source package. (Really closes: #109405.)
+  * Make sure that it closes: #113207.  See below.
+
+ -- Rafael Laboissiere <rafael@debian.org>  Mon, 29 Oct 2001 12:33:42 +0100
+
 prcs (1.3.0-1) unstable; urgency=low
 
   * New upstream release.
