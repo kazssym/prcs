@@ -162,8 +162,8 @@ while ($#edge >= 0) {
   }
   else {
     # Local version branches are black, merge branches are blue
-    ($fv = $from) =~ s/\..*//;
-    ($tv = $to) =~ s/\..*//;
+    ($fv = $from) =~ s/(.*)\..*/$1/;
+    ($tv = $to) =~ s/(.*)\..*/$1/;
     if ($fv eq $tv) {
       printf " color: black";
     }
