@@ -1122,13 +1122,12 @@ Used in @code{prcs execute} to indicate that the names of files to be
 processed, or the options attached to them, must not match @var{pattern}.
 @end deffn
 
-@deffn {Standard Option} -q
-@deffnx {Long Form} {-@b{-}quiet}
-Suppress normal informational messages.
+@deffn {Option} {-@b{-}pipe}
+Causes @code{prcs execute} to supply file data as the standard input.
 @end deffn
 
 @deffn {Option} -p
-@deffnx {Long Form} {-@b{-}preserve}
+@deffnx {Long Form} {-@b{-}preserve}, {-@b{-}preserve-permissions}, {-@b{-}permissions}
 Preserve permissions on files that are checked out, ignoring any
 standard protections the user may have set for newly-created files (as
 by the file mode creation mask in UNIX).
@@ -1152,6 +1151,11 @@ PRCS_PLAIN_FORMAT environment variable has the same effect (@pxref{Environment V
 Used in @code{prcs execute} to indicate that directories are to be
 listed in pre-order: directory names first, then their non-directory
 contents, then subdirectories.
+@end deffn
+
+@deffn {Standard Option} -q
+@deffnx {Long Form} {-@b{-}quiet}
+Suppress normal informational messages.
 @end deffn
 
 @deffn Option -r version
@@ -1181,7 +1185,7 @@ valid values for @var{type} are @samp{version} and @samp{date}.  The default is
 
 @deffn Option -u
 @deffnx {Long Form} {-@b{-}unlink}
-When @sc{prcs} writes a working file, it generally does so by
+When @sc{prcs} writes a working file or the project file, it generally does so by
 @c overwriting
 replacing any
 existing file of that name.  With this option, however, if the file to
@@ -1266,7 +1270,7 @@ Returns a status code of 0 if all goes well, and non-zero if there are errors.
 @deffn Command {prcs populate} [option @dots{}] [project [file-or-dir @dots{}]]
 
 @noindent
-ADDITIONAL OPTIONS: @samp{-d}
+ADDITIONAL OPTIONS: @samp{-d}, @samp{-u}, @samp{--no-keywords}
 
 Add each file in the  @var{file-or-dir} list to the Files list of
 the @file{.prj} file identified by @var{project}, without modifying the
@@ -1322,7 +1326,7 @@ non-text file, it includes the @code{:no-keywords} option for that file
 @deffn Command {prcs depopulate} [option @dots{}] [project [file-or-dir @dots{}]]
 
 @noindent
-ADDITIONAL OPTIONS:
+ADDITIONAL OPTIONS: @samp{-u}
 
 Remove each file in the  @var{file-or-dir} list from the Files list of
 the @file{.prj} file identified by @var{project}, without modifying the
@@ -1343,7 +1347,7 @@ do, it queries first if no @var{file-or-dir} is supplied.
 @deffn Command {prcs checkin} [option @dots{}] [project [file-or-dir @dots{}]]
 
 @noindent
-ADDITIONAL OPTIONS: @samp{-r}, @samp{-s}
+ADDITIONAL OPTIONS: @samp{-r}, @samp{-u}, @samp{-j}, @samp{--version-log}
 
 Create a new version of the specified project in the repository.  Copy
 all files listed in the Files attribute of the descriptor
@@ -1418,8 +1422,8 @@ Returns a status code of 0 if all goes well, and non-zero if there are errors.
 @deffn Command {prcs diff} [option @dots{}] [project [file-or-dir @dots{}]] [@t{-}@t{-} [diff-option @dots{}]]
 
 @noindent
-ADDITIONAL OPTIONS: @samp{-r} (once or twice),
-@samp{-k}, @samp{-N}, @samp{-P}
+ADDITIONAL OPTIONS: @samp{-r} (once or twice), @samp{-k}, @samp{-N},
+@samp{-P}
 
 Compare the (partial) contents of two repository versions of a project
 or of a repository version and a working version.  When
@@ -1722,7 +1726,7 @@ version creation date.
 @c BEGIN DOCSTRING changes_help_string
 @deffn Command {prcs changes} [option @dots{}] [project [file-or-dir @dots{}]]
 
-ADDITIONAL OPTIONS: @samp{-r} (once or twice)
+ADDITIONAL OPTIONS: @samp{-r} (once or twice), @samp{-l}
 
 The changes subcommand helps you find what versions modify a specific
 file or files.  For example, suppose you fixed a bug a long time ago and
@@ -1755,6 +1759,9 @@ including: addition, deletion, rename, type change, symlink change, or
 version change.  For regular files, @code{changes} also prints the
 number of lines added and removed by the modification.  If a project
 version does not modify any of the selected files, nothing is printed.
+
+When the @samp{-l} option is present, @code{changes} also prints the
+version-log associated with each version.
 
 @end deffn
 @c END DOCSTRING
@@ -1902,7 +1909,7 @@ insure that all of @sc{prcs}'s internal structure is maintained.
 @deffn Command {prcs package} project packagedfile
 
 @noindent
-ADDITIONAL OPTIONS: @samp{-r}, @samp{-z}
+ADDITIONAL OPTIONS: @samp{-z}
 
 Creates a plain file named @var{packagedfile}, containing all the data
 in @var{project}.   A value of @samp{-} for @var{packagedfile} denotes
@@ -1946,7 +1953,7 @@ note of the original project name.
 @deffn Command {prcs execute} [option @dots{}] [project [file-or-dir @dots{}]] [@t{-}@t{-} command [arg @dots{}]]
 
 @noindent
-ADDITIONAL OPTIONS: @samp{-r}, @samp{--pre}, @samp{--all}, @samp{--pipe}
+ADDITIONAL OPTIONS: @samp{-r}, @samp{-P}, @samp{--pre}, @samp{--all}, @samp{--pipe}
 `@t{-@t{-}match} @var{pattern}', `@t{-@t{-}not} @var{pattern}'
 
 Execute `@var{command} @var{arg} @dots{},' suitably modified as

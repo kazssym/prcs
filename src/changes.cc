@@ -120,7 +120,8 @@ PrVoidError get_projects (RepEntry            *rep_entry,
 static ProjectVersionData *print_project = NULL;
 static ProjectVersionData *print_parent = NULL;
 
-static void print_header (ProjectVersionData *project,
+static void print_header (ProjectDescriptor  *pdesc,
+			  ProjectVersionData *project,
 			  ProjectVersionData *parent)
 {
     if (print_project != project) {
@@ -129,6 +130,17 @@ static void print_header (ProjectVersionData *project,
 		   << time_t_to_rfc822(project->date()) << " by "
 		   << project->author() << prcsendl;
 	print_project = project;
+
+	if (option_long_format) {
+	    if(strchr(*pdesc->version_log(), '\n') != NULL || strlen(*pdesc->version_log()) > 60) {
+		prcsoutput << "Version-Log:" << prcsendl
+			   << pdesc->version_log() << prcsendl;
+	    } else {
+		prcsoutput << "Version-Log:" << setcol(COL+1)
+			   << (pdesc->version_log()->index(0) == '\0' ? "empty" : pdesc->version_log()->cast())
+			   << prcsendl;
+	    }
+	}
 
 	if (! parent) {
 	    prcsoutput << "  initial version:" << prcsendl;
@@ -174,7 +186,7 @@ static PrVoidError print_changes (RepEntry           *rep_entry,
 	}
 
 	if (! pred_fe) {
-	    print_header (project_data, parent_data);
+	    print_header (project, project_data, parent_data);
 	    prcsoutput << "    " << new_name << setcol(COL) << " added "
 		       << format_type (new_type, false) << prcsendl;
 	} else {
@@ -206,7 +218,7 @@ static PrVoidError print_changes (RepEntry           *rep_entry,
 	    }
 
 	    if (rename || lchange || tchange || vchange) {
-		print_header (project_data, parent_data);
+		print_header (project, project_data, parent_data);
 		prcsoutput << "    " << new_name << setcol(COL) << " ";
 
 		if (rename) {
@@ -250,7 +262,7 @@ static PrVoidError print_changes (RepEntry           *rep_entry,
 	    Return_if_fail (proj_fe << project->match_fileent (fe));
 
 	    if (! proj_fe) {
-		print_header (project_data, parent_data);
+		print_header (project, project_data, parent_data);
 		prcsoutput << "    " << fe->working_path () << setcol(COL) << " deleted "
 			   << format_type (fe->file_type (), false) << prcsendl;
 	    }

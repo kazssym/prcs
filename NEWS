@@ -1,6 +1,6 @@
 PRCS NEWS -- history of user-visible changes. -*- Text -*-
 $Date$
-$ReleaseVersion: 1.3.0pre1 $
+$ReleaseVersion: 1.3.0 $
 
 Please send bug reports to prcs-bugs@XCF.Berkeley.EDU.  See the file
 `README' for a description of how to report bugs.
@@ -12,7 +12,7 @@ Please send bug reports to prcs-bugs@XCF.Berkeley.EDU.  See the file
   what versions modify a certain file.  From the documentation:
 
   - Command: prcs changes [option ...] [project [file-or-dir ...]]
-     ADDITIONAL OPTIONS: `-r' (once or twice)
+     ADDITIONAL OPTIONS: `-r' (once or twice), `-l'
 
      The changes subcommand helps you find what versions modify a
      specific file or files.  For example, suppose you fixed a bug a
@@ -48,25 +48,26 @@ Please send bug reports to prcs-bugs@XCF.Berkeley.EDU.  See the file
      version does not modify any of the selected files, nothing is
      printed.
 
-* Fix a keyword-substitution bug reported by Daniel Villeneuve whereby
-  a string of the form "$Key = 4 * $Key" (i.e., some Perl code).  The
-  documentation never allowed this but the implementation was
-  incorrect.  Only a string such as "$Key$" or "$Key: ...$" will have
-  keywords replaced.
+     When the `-l' option is present, `changes' also prints the
+     version-log associated with each version.
+
+* Support for the new 'changes' command, specifically the ability to
+  print the number of lines added and removed by each modification,
+  requires a format change to the repository data file.  You must
+  upgrade each repository with a 'prcs admin rebuild' command.
 
 * Add a new --version-log= option to 'prcs checkin' to allow
   specifying the Version-Log on the command line.  You will be
   prompted if there is an existing New-Version-Log already.
 
-* Remove a declaration of abort() that was conflicting with the
-  headers in RedHat 7.x and causing compilation problems.  The
-  declaration was probably there because SunOS 4.3 headers were
-  lacking...  I guess this means SunOS 4.3 is no longer supported.
-
-* Fix for non-existant group handling in 'prcs admin access'
-
-* Fix for checkin and merge commands to preserve the project file
-  mode, reported by Dan Bonachea.
+* New contrib package 'pck', the 'Patch Control Kludge' by Chris
+  Mason.  This Perl utility is designed for those of you who get
+  headaches working in the patch-oriented world of Linux kernel
+  development.  It helps you maintain external patches in named sets
+  including order dependencies, import new versions based on patches
+  with minimal work (using partial checkout/checkin), export compound
+  differences between multiple project versions, and more described in
+  the pck.README file.
 
 * Add a new --no-keywords option to 'prcs populate' to add files with
   the :no-keywords attribute.  Remember that you can make an entire
@@ -81,21 +82,34 @@ Please send bug reports to prcs-bugs@XCF.Berkeley.EDU.  See the file
   (We probably should have a :keywords attribute to negate this
   effect, but we don't.)
 
-* Fix prcs.el to support Emacs 21, which for some reason renames
-  shared-lisp-mode-map to lisp-mode-shared-map.
-
 * Updated 'prcsutils' contrib package by Hugo Cornelis.
 
 * Updated 'visualtree' contrib package by Hugo Cornelis.
 
-* New contrib package 'pck', the 'Patch Control Kludge' by Chris
-  Mason.  This Perl utility is designed for those of you who get
-  headaches working in the patch-oriented world of Linux kernel
-  development.  It helps you maintain external patches in named sets
-  including order dependencies, import new versions based on patches
-  with minimal work (using partial checkout/checkin), export compound
-  differences between multiple project versions, and more described in
-  the pck.README file.
+* Fix a keyword-substitution bug reported by Daniel Villeneuve whereby
+  a string of the form "$Key = 4 * $Key" (i.e., some Perl code).  The
+  documentation never allowed this but the implementation was
+  incorrect.  Only a string such as "$Key$" or "$Key: ...$" will have
+  keywords replaced.
+
+* Upgrade to regex sources from glibc-2.2.4 for 64-bit support.
+
+* Remove a declaration of abort() that was conflicting with the
+  headers in RedHat 7.x and causing compilation problems.  The
+  declaration was originally there because SunOS 4.3 headers were
+  lacking.
+
+* Fix for non-existant user/group handling in 'prcs admin access'
+
+* Fix for checkin and merge commands to preserve the project file
+  mode, reported by Dan Bonachea.
+
+* Fix prcs.el to support Emacs 21, which for some reason renames
+  shared-lisp-mode-map to lisp-mode-shared-map.
+
+* PRCS checks for proper versions of RCS and GNU diffutils before
+  running--these checks were broken by GNU diffutils 2.7.2 and are now
+  fixed (reported by Keith Owens).
 
 
 ** Changes since version 1.2.15
@@ -474,7 +488,7 @@ Please send bug reports to prcs-bugs@XCF.Berkeley.EDU.  See the file
 
    (TodaysDate "Today's date is: $\Date$")
 
-  produces: $TodaysDate: Today's date is: Sun, 28 Oct 2001 00:54:02 -0700 $
+  produces: $TodaysDate: Today's date is: Sun, 28 Oct 2001 18:18:09 -0800 $
 
    (ThisWontCrash "This is bad: $\ThisWontCrash$")
 

@@ -154,9 +154,6 @@
 /* Define if using <fnmatch.h>, otherwise the supplied GNU fnmatch */
 #undef USE_SYS_FNMATCH
 
-/* The number of bytes in a ino_t.  */
-#undef SIZEOF_INO_T
-
 /* The number of bytes in a int.  */
 #undef SIZEOF_INT
 

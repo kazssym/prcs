@@ -17,4 +17,4 @@ EXTRA_DIST = \
 	prcsutils.tar.gz \
 	pck.tar.gz
 
-bin_SCRIPTS = prcs-callback
+bin_SCRIPTS = prcs-callback prcs-emerge prcs-ediff

@@ -20,7 +20,9 @@
  */
 
 /* $Format: "static const char prcs_version_id[] = \"$ProjectVersion$ $ProjectAuthor$ $ProjectDate$\";"$ */
-static const char prcs_version_id[] = "1.2-release.103 jmacd Sun, 28 Oct 2001 00:54:02 -0700";
+static const char prcs_version_id[] = "1.3-release.1 jmacd Sun, 28 Oct 2001 18:18:09 -0800";
+
+#include "fnmatch.h"
 
 #include "prcs.h"
 #include "lock.h"
@@ -47,7 +49,7 @@ extern "C" {
 const int prcs_version_number[3] = { 1, 3, 0 };
 
 /* $Format: "const char prcs_version_string[] = \"$ReleaseVersion$\";"$ */
-const char prcs_version_string[] = "1.3.0pre1";
+const char prcs_version_string[] = "1.3.0";
 
 /* The following classes are only used inside this file, and oraganize
  * several arrays of information used to select the command and
@@ -120,15 +122,15 @@ static struct CleanupHandler *cleanup_handler_list = NULL;
 static struct CleanupHandler *alarm_handler_list = NULL;
 
 static const char check_rcs_arg[] = "-V";
-static const char check_rcs_expected[] = "RCS version 5";
+static const char check_rcs_expected[] = "*RCS version 5*";
 static const CommandNamePair check_rcs = { &rcs_command, "rcs" };
 
 static const char check_diff_arg[] = "-v";
-static const char check_diff_expected[] = "diff - GNU diffutils version";
+static const char check_diff_expected[] = "*GNU diffutils*";
 static const CommandNamePair check_diff = { &gdiff_command, "gdiff" };
 
 static const char check_diff3_arg[] = "-v";
-static const char check_diff3_expected[] = "diff3 - GNU diffutils version";
+static const char check_diff3_expected[] = "*GNU diffutils*";
 static const CommandNamePair check_diff3 = { &gdiff3_command, "gdiff3" };
 
 static CommandNamePair const command_names[] = {
@@ -204,7 +206,6 @@ static struct option const long_options[] = {
   {"immediate",               no_argument, 0, 'i'},
   {"delete",                  no_argument, 0, 'd'},
   {"compress",                no_argument, 0, 'z'},
-  {"family",                  no_argument, 0, 'F'},
   {"preserve-permissions",    no_argument, 0, 'p'},
   {"preserve",                no_argument, 0, 'p'},
   {"permissions",             no_argument, 0, 'p'},
@@ -224,7 +225,7 @@ static struct option const long_options[] = {
 
 /* It looks like a bug in the optstring that EXECUTE_STR members don't
  * have ':' characters, but GNU getopt doesn't seem to mind. */
-static const char prcs_optstring[] = "+vhHLlnqfR:r:NkidzFpPruj:s"
+static const char prcs_optstring[] = "+vhHLlnqfR:r:NkidzpPruj:s"
                                      EXECUTE_STR PLAINFORMAT_STR NOKEYW_STR VLOG_STR ":" SORT_STR ":"
 #ifdef PRCS_DEVEL
 "Dt:"
@@ -243,11 +244,11 @@ static PrcsCommand commands[] = {
 
     {"diff", "", "", "@", NoFlags,
      diff_command, diff_help_string,
-     TwoRevisionArgs, InsureProjectName, "NkFP", ReallyDiffArgs, -1 },
+     TwoRevisionArgs, InsureProjectName, "NkP", ReallyDiffArgs, -1 },
 
     {"merge", "", "@", "@", NoFlags,
      merge_command, merge_help_string,
-     OneRevisionArg, InsureProjectName, "Fus", ReallyDiffArgs, -1 },
+     OneRevisionArg, InsureProjectName, "us", ReallyDiffArgs, -1 },
 
     {"delete", "", "", "@", NoDefault,
      delete_command, delete_help_string,
@@ -380,7 +381,7 @@ static PrVoidError check_system_command(CommandNamePair com,
 			<< dotendl;
     }
 
-    if(strncmp(output.cast(), expected, strlen (expected)) != 0) {
+    if (fnmatch (expected, output.cast (), FNM_NOESCAPE) != 0) {
 	pthrow prcserror << com.name
 			 << " installation is too old, please install "
 			 << expected << dotendl;

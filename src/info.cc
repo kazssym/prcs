@@ -18,13 +18,7 @@
  *
  * $Id$
  */
-extern "C" {
-#if USE_SYS_FNMATCH
-#include <fnmatch.h>
-#else
 #include "fnmatch.h"
-#endif
-}
 
 #include "prcs.h"
 #include "projdesc.h"
