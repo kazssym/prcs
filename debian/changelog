@@ -20,6 +20,8 @@ prcs (1.3.2pre1-1) unstable; urgency=low
   * debian/prcs-utils.manpages: Added man pages for Yann's suite.
   * debian/dirs: Added etc/bash_completion.d directory.
   * debian/conffiles: Added file.
+  * debian/prcs-utils.copyright: Added Yann Dirson and Austin Donnelly
+    to the list of upstream authors.
 
  --
 
