@@ -21,12 +21,12 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 # $Project: prcs $
-# $ProjectHeader: prcs 1.2-release.98 Mon, 30 Oct 2000 22:52:59 -0800 jmacd $
+# $ProjectHeader: prcs 1.3.2-release.1 Fri, 03 May 2002 20:09:57 +0400 jmacd $
 # $Id$
 #
 #   prcs front end with remote execution extensions using rsh/ssh and rsync
 #
-#   $ProjectHeader: prcs 1.2-release.98 Mon, 30 Oct 2000 22:52:59 -0800 jmacd $
+#   $ProjectHeader: prcs 1.3.2-release.1 Fri, 03 May 2002 20:09:57 +0400 jmacd $
 #   $Id$
 #
 #

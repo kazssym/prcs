@@ -20,7 +20,7 @@
  */
 
 /* $Format: "static const char prcs_version_id[] = \"$ProjectVersion$ $ProjectAuthor$ $ProjectDate$\";"$ */
-static const char prcs_version_id[] = "1.3.1-release.6 jmacd Fri, 26 Apr 2002 18:24:52 +0400";
+static const char prcs_version_id[] = "1.3.2-release.1 jmacd Fri, 03 May 2002 20:09:57 +0400";
 
 #include "fnmatch.h"
 
@@ -49,7 +49,7 @@ extern "C" {
 const int prcs_version_number[3] = { 1, 3, 2 };
 
 /* $Format: "const char prcs_version_string[] = \"$ReleaseVersion$\";"$ */
-const char prcs_version_string[] = "1.3.2pre1";
+const char prcs_version_string[] = "1.3.2";
 
 /* The following classes are only used inside this file, and oraganize
  * several arrays of information used to select the command and
