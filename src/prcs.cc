@@ -1035,20 +1035,20 @@ static bool read_command_line(int argc, char** argv)
 static void usage(char** argv)
 {
     if (illegal_option) {
-	cerr << options_summary << endl;
+	cout << options_summary << endl;
     } else if(command == NULL) {
-	cerr << "Usage: " << strip_leading_path(argv[0])
+	cout << "Usage: " << strip_leading_path(argv[0])
 	     << " command [subcommand] [option ...] "
 	    "[project [file-or-dir]]\n";
-	cerr << general_help_string;
+	cout << general_help_string;
     } else if(strcmp(command->command_name, "admin") == 0) {
 	if(subcommand == NULL) {
-	    cerr << admin_help_string;
+	    cout << admin_help_string;
 	} else {
-	    cerr << subcommand->help_string;
+	    cout << subcommand->help_string;
 	}
     } else {
-	cerr << command->help_string;
+	cout << command->help_string;
     }
 
     exit(2);
