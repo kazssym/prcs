@@ -1,7 +1,6 @@
 #!/usr/bin/perl -w
 
 use strict;
-use Data::Dumper;
 use File::Basename;
 use Term::ReadLine;
 
@@ -15,21 +14,18 @@ open NEW, ">" . $ARGV[1] or die "open: $!";
 for (<OLD>) {
   chomp;
   my @line = split (/\t/, $_);
-  if ($line[1] eq 'ADDED') {
-    $new{basename ($line[2])} = [] unless defined $new{basename ($line[2])};
-    push @{$new{basename ($line[2])}}, $line[2];
-    $newtypes{$line[2]} = $line[0];
-  } elsif ($line[2] eq 'DELETED') {
-    $old{basename ($line[1])} = [] unless defined $old{basename ($line[1])};
-    push @{$old{basename ($line[1])}}, $line[1];
-    $oldtypes{$line[1]} = $line[0];
+  if ($line[0] eq 'ADDED') {
+    $new{basename ($line[1])} = [] unless defined $new{basename ($line[1])};
+    push @{$new{basename ($line[1])}}, $line[1];
+    $newtypes{$line[1]} = $line[2];
+  } elsif ($line[1] eq 'DELETED') {
+    $old{basename ($line[0])} = [] unless defined $old{basename ($line[0])};
+    push @{$old{basename ($line[0])}}, $line[0];
+    $oldtypes{$line[0]} = $line[2];
   }
 }
 close OLD;
 
-#print Dumper(\%old), Dumper(\%new);
-
-#open TTY, "/dev/tty";
 my $term = new Term::ReadLine 'Simple Perl calc';
 my $OUT = $term->OUT;
 
@@ -60,10 +56,10 @@ foreach my $name (keys %old) {
       my $choice = $_;
 
       if ($choice == 0) {
-	print NEW $oldtypes{$oldname}, "\t", $oldname, "\tDELETED\n";
+	print NEW "$oldname\tDELETED\t", $oldtypes{$oldname}, "\n";
       } else {
-	print NEW $oldtypes{$oldname}, "\t", $oldname, "\t",
-	  $newnames[$choice - 1], "\n";
+	print NEW "$oldname\t", $newnames[$choice - 1], "\t",
+	  $oldtypes{$oldname}, "\n";
 	# remove the selected ADDED element
 	for (my $i = 0; $i <= $#{$new{$name}}; $i++) {
 	  if ($new{$name}->[$i] eq $newnames[$choice - 1]) {
@@ -73,12 +69,15 @@ foreach my $name (keys %old) {
 	}
       }
     }
+  } else {
+    # Found no candidate: keep DELETED line
+    print NEW "$name\tDELETED\t", $oldtypes{$name}, "\n";
   }
 }
 
 # Output ADDED files not selected as renamed
 foreach my $name (keys %new) {
   foreach my $newname (@{$new{$name}}) {
-    print NEW $newtypes{$newname}, "\tADDED\t", $newname, "\n";
+    print NEW "ADDED\t$newname\t", $newtypes{$newname}, "\n";
   }
 }
