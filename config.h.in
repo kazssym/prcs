@@ -304,9 +304,6 @@
 /* Define if you have the <vfork.h> header file. */
 #undef HAVE_VFORK_H
 
-/* Name of package */
-#undef PACKAGE
-
 /* Define as the return type of signal handlers (`int' or `void'). */
 #undef RETSIGTYPE
 
@@ -335,9 +332,6 @@
 
 /* Define if your <sys/time.h> declares `struct tm'. */
 #undef TM_IN_SYS_TIME
-
-/* Version number of package */
-#undef VERSION
 
 /* Define if `lex' declares `yytext' as a `char *' by default, not a `char[]'.
    */

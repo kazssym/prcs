@@ -92,7 +92,7 @@ compile-time.  'configure' prints out the variables it has detected.
 4. Running the First Time.
 
 Read at least the first several sections of the documentation.  It is
-available from http://prcs.xdelta.org or in the info files contained
+available from http://prcs.sourceforge.net or in the info files contained
 in the source distribution.  Set your environment varaible
 PRCS_REPOSITORY to the location you would like PRCS to use.  This
 directory will be created the first time you run PRCS, if it doesn't
