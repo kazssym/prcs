@@ -1,3 +1,28 @@
+prcs (1.3.2pre1-1) unstable; urgency=low
+
+  * NOT YET READY FOR RELEASE!
+  * New upstream release.  The prcsstatus script in the prcs-utils package
+    does not die anymore when PRCS_REPOSITORY is unset (closes: #144568).
+  * debian/doc-base: Contains now the doc-base entry for the HTML version
+    of the manual.
+  * debian/doc-base.prcs-tutorial: Renamed from debian/doc-base.
+    of the manual.
+  * debian/man/prcsutils.pod: Fixed typos (closes: #144580).  Added
+    synopsis for scripts contributed by Yann Dirson <dirson@debian.org>.
+  * debian/prcs-utils.files: Added files from Yann's suite.
+  * debian/rules: Install files from Yann's suite.  Call configure with
+    --diable-lex-check.  Build HTML files from texinfo documentation
+    (closes: #144567).  Removed auto-patching when usign gcc v3.x.  This
+    is done automatically upstream now.  Install contrib/bash-completion
+    script.
+  * debian/docs: Added debian/html directory.
+  * debian/control: Removed flex and added texinfo to Build-Depends.
+  * debian/prcs-utils.manpages: Added man pages for Yann's suite.
+  * debian/dirs: Added etc/bash_completion.d directory.
+  * debian/conffiles: Added file.
+
+ --
+
 prcs (1.3.1-1) unstable; urgency=low
 
   * New upstream release.

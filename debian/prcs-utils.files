@@ -6,3 +6,7 @@ usr/bin/prcsguess
 usr/bin/prcsentry
 usr/bin/prcsstatus
 usr/bin/prcs_checkfiles
+usr/bin/prcs-mv
+usr/bin/prcs-what-may-move
+usr/bin/prcs-ttyask-move
+usr/bin/prcs-assist-move

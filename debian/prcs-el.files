@@ -1,4 +1,4 @@
-etc
+etc/emacs
 usr/bin/prcs-callback
 usr/bin/prcs-emerge
 usr/bin/prcs-ediff

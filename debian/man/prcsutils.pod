@@ -1,6 +1,6 @@
 =head1 NAME
 
-B<prcsutils> - Some utilities to be used in combination with PRCS.
+B<prcs-utils> - Some utilities to be used in combination with PRCS.
 
 =head1 PROGRAMS
 
@@ -8,37 +8,36 @@ B<prcsutils> - Some utilities to be used in combination with PRCS.
 
 =item B<prcspatch>
 
-Create a patch file ignoring the project descriptor.
-patch file is generated from diffs for working project
-and goes to stdout.
+Create a patch file ignoring the project descriptor.  patch file is
+generated from diffs for working project and goes to stdout.
 
 =item B<prcspatch2>
 
-Create a patch file for project given on command line and
-two revisions given on command line.
-patch file contains differences between given revisions
-and is named after project and the two revisions.
+Create a patch file for project given on command line and two
+revisions given on command line.  patch file contains differences
+between given revisions and is named after project and the two
+revisions.
 
 =item B<prcsfind>
 
-Should be used in combination with emacs's 'M-x grep'
-replace the 'grep -n' command with a call to prcsfind
+Should be used in combination with emacs's 'M-x grep' replace the
+'grep -n' command with a call to prcsfind
 
 =item B<prcsbranches>
 
 Display the different branch names of a project.
 
-usage : $0 <project> or simply $0 when a .prj file is in cd.
+usage : prcsbranches <project> or simply prcsbranches when a .prj
+file is in cd.
 
 =item B<prcsguess>
 
-Tries to guess the project in a certain directory.
-result on stdout, return 1 if no successfull guess
-could be done, 2 in case of trouble.
+Tries to guess the project in a certain directory.  result on stdout,
+return 1 if no successfull guess could be done, 2 in case of trouble.
 
 =item B<prcsentry>
 
-Give the contents of an entry of the project descriptor
+Give the contents of an entry of the project descriptor.
 Usage:
 
     $ prcsentry Project-Description
@@ -46,13 +45,43 @@ Usage:
 
 =item B<prcsstatus>
 
-Gives info about the status of files in a project
+Gives info about the status of files in a project.
 
 =item B<prcs_checkfiles>
 
-Check the file list in the prcs project file with the files
-(not directories) in the current source tree.  Double checks
-the populate-ignore list.
+Check the file list in the prcs project file with the files (not
+directories) in the current source tree.  Double checks the
+populate-ignore list.
+
+=item B<prcs-mv> <src> <dst>
+
+Renames <src> into <dst>, both in the filesystem and in the prj file
+(that's for everyday work)
+
+=item B<prcs-mv> -p <src> <dst>
+
+The same, but only impact prj file, and don't check anything in the
+filesystem (used by prcs-assist-move, usable manually for renamings
+that can't be guessed)
+
+=item B<prcs-what-may-move>
+
+Prints on stdout the list of files that are candidates for renaming
+(those that would be ADDED or DELETED by "prcs populate -d") in a
+format suitable as input for...
+
+=item B<prcs-ttyask-move> <file1> <file2>
+
+Takes from <file1> a list of candidate files for renaming, attempts to
+match them based on their filenames (that is, only catch dir-hierarchy
+reorgs), and asks the user what to do with matches (using perl
+Term::Readline).  Records those renamings in <file2> along with
+unchanged lines.
+
+=item B<prcs-assist-move>
+
+Runs prcs-ttyask-move on prcs-what-may-move output, then "prcs-mv -p"
+on the files the user specified as renames.
 
 =back
 
@@ -62,7 +91,12 @@ prcs(1)
 
 =head1 AUTHOR
 
-Hugo Cornelis <hugo@bbf.uia.ac.be>.
+Hugo Cornelis <hugo@bbf.uia.ac.be> (prcs_checkfiles prcspatch,
+prcspatch2, prcsfind, prcsbranches, prcsguess, prcsentry, prcsstatus,
+and prcs_checkfiles)
+
+Yann Dirson <dirson@debian.org> (prcs-mv, prcs-what-may-move,
+prcs-ttyask-move, and prcs-assist-move)
 
 This manual page was written by Rafael Laboissiere <rafael@debian.org>,
 for the Debian GNU/Linux system (but may be used by others).

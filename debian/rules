@@ -21,25 +21,17 @@ debman		:= $(debshr)/man
 debinf		:= $(debshr)/info
 deblsp		:= /usr/share/emacs/site-lisp/$(package)
 debema		:= $(debusr)/lib/emacsen-common/packages
-debest		:= $(debtmp)/etc/emacs/site-start.d/
+debetc		:= $(debtmp)/etc
+debest		:= $(debetc)/emacs/site-start.d/
+debhtml		:= $(debbase)/html
 contribdir	:= contrib
 
-patch: patch-stamp
-patch-stamp:
-	dh_testdir
-	if test `dpkg --print-architecture` = hppa \
-           || dpkg --compare-versions `g++ --version` ge 3.0 ; then \
-	  if [ ! -e patch-stamp ] ; then \
-            patch -p1 < $(debbase)/prcs-1.3.1gcc3.diffs ; \
-            touch patch-stamp ; \
-          fi ; \
-        fi
-
 build: build-stamp
-build-stamp: patch
+build-stamp:
 	dh_testdir
 
-	./configure --prefix=/usr --disable-environment --disable-debug
+	./configure --prefix=/usr --disable-environment --disable-debug \
+	    --disable-lex-check
 # Use EMACS=no on the command line to avoid useless compilation of
 # .elc files
 	make EMACS=no
@@ -54,11 +46,13 @@ build-stamp: patch
           perl -pi -e \
                's|\./(prcs_tree.pl)|prcs_tree_info|;s|(/.*)+/(xvcg)|$$2|' \
                visualtree/prcs_tree_draw )
+	makeinfo --html --output $(debhtml) doc/prcs.texi
 	touch build-stamp
 
 clean:
 	dh_testdir
 	dh_testroot
+	rm -rf $(debhtml)
 	rm -f build-stamp install-stamp
 
 	if [ -f Makefile ]; then make distclean; fi
@@ -67,11 +61,6 @@ clean:
 	for p in rprcs visualtree prcsutils ; \
           do rm -rf $(contribdir)/$$p ; \
         done
-
-	if [ -e patch-stamp ] ; then \
-          patch -p1 -R < $(debbase)/prcs-1.3.1gcc3.diffs ; \
-          rm -f patch-stamp ; \
-        fi
 
 	dh_clean
 
@@ -92,19 +81,23 @@ install-stamp: build-stamp
           done ; \
           for i in prcs-callback prcs-clean prcs-emerge prcs-ediff \
                    prcs-synch visualtree/prcs_tree_info.pl \
-                   visualtree/prcs_tree_draw prcsutils/prcs*; do \
+                   visualtree/prcs_tree_draw prcsutils/prcs* \
+                   prcs-mv prcs-what-may-move prcs-ttyask-move \
+                   prcs-assist-move ; do \
             install -c --mode=0755 $$i $(debbin)/`basename $$i .pl` ; \
             $(debbase)/fix-perl-path.pl $(debbin)/`basename $$i .pl` ; \
 	  done ;\
           for i in rprcs/rprcs prcs-javadoc ; do \
             install -c --mode=0755 $$i $(debbin) ; \
           done )
+	install --mode=644 contrib/bash-completion \
+	    $(debetc)/bash_completion.d/prcs
 
 	dh_installman -A
 	dh_movefiles -i
 
 # Do this hack until Bug#17111 is fixed - R.L.
-	( cd $(debtmp) ; rm -rf etc usr/lib usr/share/emacs )
+	( cd $(debtmp) ; rm -rf usr/lib usr/share/emacs )
 	touch install-stamp
 
 binary-indep: build install
@@ -140,4 +133,4 @@ source diff:
 	@echo >&2 'source and diff are obsolete - use dpkg-source -b'; false
 
 binary: binary-indep binary-arch
-.PHONY: patch build clean binary-indep binary-arch binary
+.PHONY: build clean binary-indep binary-arch binary

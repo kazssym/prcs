@@ -8,3 +8,7 @@ debian/man/prcsguess.1
 debian/man/prcsentry.1
 debian/man/prcsstatus.1
 debian/man/prcs_checkfiles.1
+debian/man/prcs-assist-move.1
+debian/man/prcs-mv.1
+debian/man/prcs-ttyask-move.1
+debian/man/prcs-what-may-move.1
