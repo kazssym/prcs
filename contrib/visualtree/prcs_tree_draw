@@ -10,14 +10,18 @@
 #       Modified by Rafael Laboissiere <rafael@laboissiere.net>
 #       Fixed paths for ./prcs_tree_info and xvcg.
 #       Sat May 11 18:42:34 CEST 2002
+#
+#	Fixes contributed by Yann Dirson <dirson@debian.org> to support
+#	branch names containing dots.
+#	Thu Jun 13 10:04:38 CEST 2002
 
 project=${1:?"Project is required"}
 prcs info $project > /tmp/$$a
-start=${2:-`sed -ne '1{ s/[^ ]* //; s/\..*//; p; }' /tmp/$$a`}
-end=${3:-`sed -ne '${ s/[^ ]* //; s/\..*//; p; }' /tmp/$$a`}
-range=`sed -ne "/^[^ ]* $start\./,/^[^ ]* $end\./{ s/^[^ ]* //; s/\..*//; p; }" /tmp/$$a | sort -nu`
+start=${2:-`sed -ne '1{ s/[^ ]* //; s/\.[^.]* .*//; p; }' /tmp/$$a`}
+end=${3:-`sed -ne '${ s/[^ ]* //; s/\.[^.]* .*//; p; }' /tmp/$$a`}
+range=`sed -ne "/^[^ ]* $start\./,/^[^ ]* $end\./{ s/^[^ ]* //; s/\.[^.]* .*//; p; }" /tmp/$$a | sort -nu`
 echo prcs info on $project for range $range starting at $start, ending at $end
 rm /tmp/$$a
-for i in $range ; do prcs info -l -r $i $project ; echo ; done | ./prcs_tree_info > /tmp/$$a
+for i in $range ; do prcs info -l -r $i.@ $project ; echo ; done | prcs_tree_info > /tmp/$$a
 xvcg /tmp/$$a
 rm /tmp/$$a
