@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#! /usr/bin/perl 
 
 %allfiles = ( );
 
@@ -11,7 +11,7 @@ $project = $ARGV[0];
 
 print $progname,": cleaning project ",$project,"\n";
 
-open(ALLFILES, "find . -type f -print|") || die ("find failed");
+open(ALLFILES, "find . -print|") || die ("find failed");
 
 while (<ALLFILES>) {
     chop;
@@ -22,7 +22,9 @@ wait;
 
 die ("find failed") if ($? != 0);
 
-open(PRCSFILES, "prcs execute ./ |") || die ("prcs failed");
+delete $allfiles{"."};
+
+open(PRCSFILES, "prcs execute $project ./ |") || die ("prcs failed");
 
 while (<PRCSFILES>) {
     chop;
@@ -37,6 +39,12 @@ delete $allfiles{"./" . $project . ".prj"};
 delete $allfiles{"./." . $project . ".prcs_aux"};
 
 foreach $key (keys %allfiles) {
-    print $progname,": deleting ",$key,"\n";
-    unlink ($key) || warn ("unlink failed on $key");
+    if(-d $key) {
+        print $progname,": deleting directory $key:\n";
+        system "rm", "-rv", $key;
+    }
+    elsif(-e $key or -l $key) {
+        print $progname,": deleting ",$key,"\n";
+        unlink ($key) || warn ("unlink failed on $key");
+    }
 }
