@@ -1,0 +1,8 @@
+diff-command  An example of how to treat the arguments to the external
+              PRCS_DIFF_COMMAND.
+
+merge-command An example of how to treat the arguments to the extern
+              PRCS_MERGE_COMMAND.
+
+dos2unixdiff3 Maybe you need to merge without considering linefeed
+              differences?  Use this for PRCS_MERGE_COMMAND.
