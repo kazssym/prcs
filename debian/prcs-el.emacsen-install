@@ -2,10 +2,10 @@
 #
 # emacsen install script for the Debian GNU/Linux octave package
 #
-# Written by Dirk Eddelbuettel <edd@debian.org>   
+# Written by Dirk Eddelbuettel <edd@debian.org>
 #
-# Modified by Rafael Laboissiere <rafael@icp.inpg.fr> 
-# on Wed Oct 28 19:34:02 CET 1998   
+# Modified by Rafael Laboissiere <rafael@icp.inpg.fr>
+# on Wed Oct 28 19:34:02 CET 1998
 # for the prcs Debian package
 
 set -e
@@ -14,7 +14,7 @@ set -e
 flavour=$1
 
 package=prcs
-files="prcs.el prcs-hooks.el"
+files="prcs.el prcs-hooks.el prcs-ediff.el"
 source=/usr/share/emacs/site-lisp/${package}
 destination=/usr/share/${flavour}/site-lisp/${package}
 if [ `echo $flavour | cut -c-6` = xemacs ] ; then
@@ -31,11 +31,11 @@ then
     # Copy the temp .el files into the destination directory
     install -c -m 0755 -d ${destination}
     for i in $files
-    do 
+    do
 	cp $source/$i $destination
     done
 
-    # Byte compile them 
+    # Byte compile them
     # The lpath.el trick is from Davide Salvetti's auctec package
     cd ${destination}
     cat <<-EOF >path.el

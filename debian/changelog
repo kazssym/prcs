@@ -1,3 +1,36 @@
+prcs (1.3.2-5) unstable; urgency=low
+
+  * debian/rules: Added upstream file prcs-ediff.el to the prcs-el
+    package.  It was being foolishly removed, what prevented the
+    prcs-ediff command to work properly (closes: #156969).
+
+ -- Rafael Laboissiere <rafael@debian.org>  Sat, 24 Aug 2002 15:45:35 +0200
+
+prcs (1.3.2-4) unstable; urgency=low
+
+  * contrib/visualtree/prcs_tree_info.pl: Applied patch from Yann Dirson
+    <dirson@debian.org> to fix edge coloring (closes: #150372).
+  * contrib/visualtree/prcs-show-tree: Added file.  Contributed by Yann
+    Dirson <dirson@debian.org> (closes: #150373).
+  * contrib/visualtree/prcs-show-tree.1: Added file.
+  * contrib/visualtree/prcs-visualtree.1:
+    - Fixed call to xvcg in synopsis.
+    - Added documentation for prcs-show-tree.
+    - Added names of the authors.
+  * debian/rules: Install prcs-show-tree in /usr/bin.
+  * debian/prcs-visualtree.files: Added /usr/bin/prcs-show-tree.
+  * debian/prcs-visualtree.files: Added contrib/visualtree/prcs-show-tree.1.
+
+ -- Rafael Laboissiere <rafael@debian.org>  Fri, 21 Jun 2002 12:46:29 +0200
+
+prcs (1.3.2-3) unstable; urgency=low
+
+  * contrib/visualtree/prcs_tree_draw: Fixes contributed by Yann Dirson
+    <dirson@debian.org> to support branch names containing dots
+    (closes: #149809).
+
+ -- Rafael Laboissiere <rafael@debian.org>  Thu, 13 Jun 2002 10:07:02 +0200
+
 prcs (1.3.2-2) unstable; urgency=low
 
   * debian/control: Added docbook-utils to Build-Depends (closes: #146744).

@@ -45,7 +45,8 @@ contrib_perl    := contrib/misc/prcs-clean \
                    emacs/prcs-emerge \
                    emacs/prcs-ediff
 contrib_sh      := contrib/rprcs/rprcs \
-                   contrib/javadoc/prcs-javadoc
+                   contrib/javadoc/prcs-javadoc \
+                   contrib/visualtree/prcs-show-tree \
 
 build: build-stamp
 build-stamp:
@@ -87,7 +88,7 @@ install-stamp: build-stamp
 
 	make install EMACS=no DESTDIR=$(debtmp) lispdir=$(deblsp) \
 	  mandir=$(debman) infodir=$(debinf)
-	( cd $(debtmp)/$(deblsp) ; rm -f prcs-ediff.el* *.elc )
+	( cd $(debtmp)/$(deblsp) ; rm -f *.elc )
 	chmod +x $(debbase)/fix-perl-path.pl
 	for i in $(contrib_perl) ; do \
           install -c --mode=0755 $$i $(debbin)/`basename $$i .pl` ; \
