@@ -1,0 +1,973 @@
+#!/usr/bin/perl -w
+
+use 5.004;			# just in case
+use Getopt::Long;
+
+use strict;
+use integer;
+
+my $debug_level=1;
+sub debug($$) {
+  my ($lvl, $msg)=@_;
+  print STDERR $msg, "\n" if $lvl <= $debug_level;
+}
+
+=head1 NAME
+
+B<synch> - synchronize PRCS projects between repositories
+
+=head1 SYNOPSIS
+
+Synchronize between old and new repositories, both on local disk:
+
+    synch --proj=myproject --remote-repo=/somewhere/old \
+        --local-repo=/somewhere/new
+
+Synchronize over ssh:
+
+    synch --proj=myproj --ssh=alterego@nowhere.net
+
+=head1 OPTIONS
+
+Standard GNU-style options are used.
+
+=over 4
+
+=item B<--proj=>I<name> (mandatory)
+
+PRCS project name.
+
+=item B<--tmpdir=>I<directory> (optional)
+
+Scratch area, should have ample space relative to project. Defaults to F</tmp>.
+
+=item B<--debug=>I<level> (optional)
+
+Debug level, higher means more. Default 1.
+
+=item B<--local-repo=>I<directory> (optional)
+
+Local repository: this is where updates will be placed. If not specified, the
+envvar B<PRCS_REPOSITORY> is tried, then the PRCS internal configuration.
+
+=item B<--remote-repo=>I<directory> (sometimes optional)
+
+"Remote" repository, i.e. where the original versions are to be synched from.
+This is mandatory unless B<--ssh> is specified, in which case the same
+heuristics are tried as for the local repository. (If you are accustomed to
+B<$PRCS_REPOSITORY> being set for your personal environment, try
+F<~/.ssh/environment> on the remote host.)
+
+=item B<--dir=>{ B<up> | B<down> | B<both> } (optional)
+
+Controls direction of synchronization. By default, B<both> is assumed: you want
+to synchronize changes in both directions. B<up> means send changes to remote
+from local only; B<down> means get changes from remote only.
+
+=item B<--ssh=> [ I<user>B<@> ] I<host> (optional)
+
+Access the remote repository using ssh (Secure SHell). This must be installed as
+F<ssh> (and of course the remote host must be running the server).
+Give it a hostname or user@host syntax. You may do synchronization in
+any direction, but if going upstream, you need to have this script installed and
+in your default path on the remote machine as well. ssh may prompt you for
+passwords or passphrases multiple times; to avoid this annoyance, you should
+set up ssh properly so you have an authenticated identity, and use F<ssh-agent>
+to make the authentication transparent. If in doubt as to whether this is
+working, you should be able to do this and have it not prompt at all:
+
+    ssh -l user host echo looks good
+
+For a quick test, this will probably work:
+
+    ssh-agent sh -c 'ssh-add; synch ....'
+
+=item B<--ssh-opts>=I<option list> (optional)
+
+Pass extra options to F<ssh>. Normally none should be needed.
+
+=item B<--remote-tmpdir>=I<directory> (optional)
+
+Like B<--tmpdir>, but on the remote host if using ssh.
+
+=item B<--help>
+
+Display this documentation.
+
+=back
+
+=cut
+
+my ($tmpdir, $remote_tmpdir, $dir, $ssh_xtra_opts)=
+  ('/tmp', '/tmp', 'both', '');
+my ($master_loc_repo, $master_rem_repo, $master_proj,
+    $ssh, $ssh_command, $help_me);
+
+GetOptions(
+	   'tmpdir=s' => \$tmpdir,
+	   'debug=i' => \$debug_level,
+	   'local-repo=s' => \$master_loc_repo,
+	   'remote-repo=s' => \$master_rem_repo,
+	   'proj=s' => \$master_proj,
+	   'dir=s' => \$dir,
+	   'ssh=s' => \$ssh,
+	   'ssh-opts=s' => \$ssh_xtra_opts,
+	   'remote-tmpdir' => \$remote_tmpdir,
+	   'help' => \$help_me,
+	  );
+
+if ($help_me) {
+  system "perldoc $0" and die "perldoc $0 failed, read documentation by hand: $!";
+  exit 1;
+}
+
+if ($ssh) {
+  my $ssh_quiet=($debug_level ? '' : '-q');
+  # NOTE: give -C (compress) only as needed.
+  my $ssh_opts="$ssh_quiet -x -e none $ssh_xtra_opts";
+  if ($ssh =~ /^(.*)\@(.*)$/) {
+    $ssh_command="ssh $ssh_opts -l $1 $2";
+  } else {
+    $ssh_command="ssh $ssh_opts $ssh";
+  }
+  debug 2, "Invoking ssh with `$ssh_command'";
+}
+
+die "Need to specify a project name" unless $master_proj;
+die "Need to specify an (existing) remote repository with $master_proj in it"
+  unless $ssh or $master_rem_repo and -d "$master_rem_repo/$master_proj";
+
+my ($dir_up, $dir_down)=(0, 0);
+if ($dir eq 'both') {
+  $dir_up=$dir_down=1;
+} elsif ($dir eq 'up') {
+  $dir_up=1;
+} elsif ($dir eq 'down') {
+  $dir_down=1;
+} else {
+  die "Bad direction $dir";
+}
+
+unless ($master_loc_repo) {
+  unless ($master_loc_repo=$ENV{PRCS_REPOSITORY}) {
+    debug 2, 'Looking for default local repository acc. to PRCS';
+    foreach (`prcs config -q -f`) {
+      if (/Repository path is:[ \t]+(.*)$/) {
+	$master_loc_repo=$1;
+	last;
+      }
+    }
+  }
+  if ($master_loc_repo) {
+    debug 2, "Using local repository $master_loc_repo";
+  } else {
+    die "Need to specify --local-repo";
+  }
+}
+
+# Same basic thing.
+if ($ssh and not $master_rem_repo) {
+  # How I hate Unix shell quoting rules...
+  debug 2, "Looking for default remote repository acc. to environment";
+  ($master_rem_repo)=`$ssh_command echo \\\$PRCS_REPOSITORY`;
+  chomp $master_rem_repo;
+  unless ($master_rem_repo) {
+    debug 2, 'Looking for default remote repository acc. to PRCS';
+    foreach (`$ssh_command prcs config -q -f`) {
+      # chomp;
+      # debug 3, "Remote config output line: `$_'";
+      if (/Repository path is:\s+(.*)$/) {
+	$master_rem_repo=$1;
+	last;
+      }
+    }
+  }
+  if ($master_rem_repo) {
+    debug 2, "Using remote repository $master_rem_repo";
+  } else {
+    die "Need to specify --remote-repo";
+  }
+}
+
+die "Repositories must be specified with absolute paths"
+  if grep {! m:^/:} ($master_loc_repo, $master_rem_repo);
+
+die "Project does not appear to exist in local repository"
+  unless -d "$master_loc_repo/$master_proj";
+
+=head1 DESCRIPTION
+
+B<synch> tries to synchronize two PRCS repositories (actually, just a single
+project at a time). It requires a "remote" repository, which is
+assumed to have recent changes, vs. a "local" repository which is out of date
+(it has not yet seen these new versions). All versions present in both
+repositories must match up in all relevant details. B<synch> will try to
+maintain this synchronization. You could subsequently reverse positions and
+synchronize local versions into the remote repository, too. If you are doing
+this kind of bidirectional stuff, it is I<your responsibility> to ensure that
+you never check in different versions with the same name into the two
+repositories; B<synch> currently may not notice the discrepancy and may fail
+unpredictably. So, e.g., use one repository for most stuff, but reserve a
+specially-named branch or two on which all local checkins will be made; this
+is the simplest way to ensure that you do not accidentally overlap.
+
+Please use this only on projects already existing in both repositories. If
+you need to create one or another from scratch, this is easy enough to do with
+C<prcs package> and C<prcs unpackage> (not to mention faster, safer, and more
+preserving of metainformation).
+
+=head1 PREREQUISITES
+
+=over 4
+
+=item *
+
+A reasonably recent PRCS.
+
+=item *
+
+Perl 5.004.
+
+=item *
+
+The SysV utility F<tsort> in your path (most systems have this somewhere, let me know
+if this is a problem; check F</usr/ccs/bin/> in Solaris?).
+
+=item *
+
+Ssh if you are doing remote synchs, with an ssh server on the remote host.
+
+=item *
+
+A copy of this script on the remote host to do upstream synchs.
+
+=back
+
+=head1 IMPLEMENTATION
+
+I<CAVEAT USER>: Implementation relies on undocumented and possibly unstable
+aspects of PRCS. The heart is the B<update> function, which actually does
+the synchronization of remote versions into the local repository.
+
+The basic algorithm is as follows (this may be incomprehensible):
+
+For each new version to be added, go through each of its parents in
+turn. Check out the project files for both the local and remote
+varieties of that parent. In each of these pairs, go through each file
+by name, collecting its file family; ignore revision number
+correspondences for now on the assumption that they will be the same
+(they should be). The list of files should match up one-to-one, else
+error. For each filename, create a correspondence between the local
+and remote internal file families. (This correspondence should be
+retained across versions, in fact, as an extra sanity check.)
+
+Now check out the version''s remote project file. Edit it as
+follows. First, swap B<New-Foo> with B<Foo> (just edit the symbols!); this
+will have the effect of creating the correct B<New-Foo>, while blanking
+out the B<Foo> (which has no effect anyway). Second, substitute all file
+families with the corresponding local versions. If there is no
+corresponding local version, I<ipso facto> this is a new file (it did not
+appear in any of its parents), so we blank out the internal descriptor
+to indicate this. (If it was deleted, then we do not care.) Third,
+change the project version to one of the parents, say the first
+one.
+
+Fourth (the nasty part): for each file descriptor: check to see if the
+v.n. in the new remote is the same as in one of the old remotes. If
+so, then copy in the v.n. from the corresponding old local. If not,
+perform RCS subtraction and look for that in the old remotes. If
+found, use the corresponding old local. If not, signal an error. (RCS
+subtraction: if ending in I<...>.1.I<n+1>, go to I<...>.1.I<n>; if
+I<...>.I<n>.1; go to I<...>; if just 1.1, then there should have been no
+prior version, so check that.)
+
+Fifth: make a note of the original user & time of checkin.
+
+Now you can check in. Phew.
+
+=head1 INTERNAL FUNCTIONS
+
+Too many weird little functions in here.
+
+=cut
+
+=head2 C<get_prj($project, $version, $repository)>
+
+Returns the text of the project file for a given version. Cached.
+
+=cut
+
+{
+  my %cache;
+  sub get_prj($$$;) {
+    my ($proj, $vers, $repo)=@_;
+    unless ($cache{$proj}{$vers}{$repo}) {
+      debug 2, "Examining $proj version $vers in $repo...";
+      $cache{$proj}{$vers}{$repo}=
+	`prcs execute -f -q -r $vers -R $repo $proj $proj.prj -- cat {file}`;
+      die "prcs execute failed: $!" if $?;
+    }
+    $cache{$proj}{$vers}{$repo};
+  }
+}
+
+=head2 C<get_mapping($project, $project_file)>
+
+Given a project name and the text of some version of the project file,
+returns a mapping for the file descriptors. The mapping is a hash ref, from
+file names (external) to hashrefs of: the total file descriptor string as it
+appears (B<total>); the file family (B<ff>); and the RCS version number
+(B<vn>). Cached.
+
+=cut
+
+my $ws=q/(?:\s|;.*\n)+/;	# whitespace regexp
+{
+  my %cache;
+  sub get_mapping($$) {
+    my ($proj, $prj)=@_;
+    unless ($cache{$prj}) {
+      debug 2, "Parsing a project file for $proj...";
+      my %mapping;
+      while ($prj =~ m{		# file descriptor
+( \( (\S+)			# filename
+$ws
+\( ($proj/\S+) $ws ([\d.]+) $ws \d+ \) # file-family + RCS version number
+[^)]*				# maybe tags
+\) )
+}xg) {
+	my ($total, $filename, $ff, $vn)=($1, $2, $3, $4);
+	$mapping{$filename}={total => $total, ff => $ff, vn => $vn};
+      }
+      $cache{$prj}=\%mapping;
+    }
+    $cache{$prj};
+  }
+}
+
+=head2 C<remap_by_ff($mapping)>
+
+Take a mapping as from B<get_mapping> and rekey it by file family. Same as
+before but now B<ff> is replaced by B<name>.
+
+=cut
+
+# XXX: cache me
+sub remap_by_ff($;) {
+  debug 2, "Inverting a mapping...";
+  my ($mapping)=@_;
+  my %result;
+  foreach (keys %$mapping) {
+    my $name=$_;
+    my $vals=$mapping->{$name};
+    $result{$vals->{ff}}=
+      {total => $vals->{total}, vn => $vals->{vn}, name => $name};
+  }
+  \%result;
+}
+
+=head2 C<check_ff_mapping($project, $version, $remote_repo, $local_repo)>
+
+Looks for the correspondence between file families between the two repositories.
+The indicated version only is checked for this call. C<%ff_mapping> will be a
+map from project name, to remote family, to local family. If there is ever a
+mismatch (between versions) an error will be raised.
+
+=cut
+
+my %ff_mapping;			# proj => rem_ff => loc_ff
+sub check_ff_mapping($$$$) {
+  my ($proj, $vers, $rem_repo, $loc_repo)=@_;
+  debug 2, "Checking f.f. mapping from $rem_repo to $loc_repo for $proj version $vers...";
+  my $ffmap=($ff_mapping{$proj} ||= {});
+  my $rem_prj=get_prj $proj, $vers, $rem_repo;
+  my $loc_prj=get_prj $proj, $vers, $loc_repo;
+  my $rem_map=get_mapping $proj, $rem_prj;
+  my $loc_map=get_mapping $proj, $loc_prj;
+  foreach my $filename (keys %$rem_map) {
+    my $rem_ff=$rem_map->{$filename}{ff};
+    my $loc_ff=($loc_map->{$filename} || {})->{ff};
+    next unless $loc_ff;
+    my $prev_loc_ff=$ffmap->{$rem_ff};
+    if ($prev_loc_ff) {
+      die "Inconsistent file family for remote $rem_ff: either $loc_ff or $prev_loc_ff"
+	unless $loc_ff eq $prev_loc_ff;
+    } else {
+      $ffmap->{$rem_ff}=$loc_ff;
+    }
+  }
+}
+
+=head2 C<rcs_decrement($rcs_vers)>
+
+Find the RCS predecessor to this RCS number. If it is of the form I<xxx>.I<n+1>,
+then we get I<xxx>.I<n>. If of the form I<xxx>.I<n>.1, then we get I<xxx>. If
+it is 1.1, then it has no predecessor so C<undef> is returned.
+
+=cut
+
+sub rcs_decrement($;) {
+  my ($vn)=@_;
+  if ($vn =~ /^((\d+\.)+)\d+\.1$/) {
+    # Fresh RCS branch.
+    my $base=$1;
+    $base =~ s/\.$// or die "where did trailing dot go?";
+    return $base;
+  } elsif ($vn eq '1.1') {
+    return undef;
+  } elsif ($vn =~ /^((\d+\.)+)(\d+)$/) {
+    # Continuation on RCS branch.
+    my ($base, $last)=($1, $3);
+    die "oops! what v.n. is $vn?" if $last < 2;
+    return $base . ($last-1);
+  } else {
+    die "Weird v.n. $vn";
+  }
+}
+
+=head2 C<find_local_predecessor_vn($rem_vn, $rem_ff, \@rem_descs, $loc_ff, \@loc_descs)>
+
+Find the local RCS version number which presumably corresponds to the ancestor
+of the given remote one. Pass in the observed remote version number; and for
+both the local and remote repositories, the observed file family (may be
+C<undef> for local), and lists consisting of B<total>/B<vn>/B<name> hashes (as
+from B<remap_by_ff>, but for the correct file family only; C<undef> if not
+present), one for each I<parent> version, in corresponding order. The presumed
+local version number will be searched for and returned; if the file is observed
+to be fresh, C<undef> will be returned.
+
+This function is where all the nasty logic really lives.
+
+=cut
+
+sub find_local_predecessor_vn($$$$$;) {
+  my ($rem_vn, $rem_ff, $rem_descs, $loc_ff, $loc_descs)=@_;
+  debug 2, "finding local predecessor for $rem_vn in $rem_ff";
+  die "think again!" unless @$rem_descs == @$loc_descs;
+  # Main loop. Starting with observed remote v.n., and counting backwards RCS-
+  # wise, look for that v.n. in the remote ancestors. Keep track of how far back
+  # we went; normally we should get it on the first try if the file was
+  # unchanged, and after one decrement for a normal change. Possibly multiple
+  # decrements will be needed if an intervening RCS version was skipped over due
+  # to an un-rebuilt project version deletion.
+  my $test_rem_vn=$rem_vn;
+  my @orig_vers_idx;
+  my $dec_count=-1;
+  do {
+    @orig_vers_idx=grep {
+      my $idx=$_;
+      my $desc=$rem_descs->[$idx];
+      $desc and $desc->{vn} eq $test_rem_vn;
+    } 0..$#$rem_descs;
+    $test_rem_vn=rcs_decrement($test_rem_vn);
+    unless (@orig_vers_idx or defined $test_rem_vn) {
+      # We're at the end of the search. Better be a fresh one.
+      if ($loc_ff) {
+	# Huh?
+	die "no ancestors found, but not a fresh file $rem_ff vs. $loc_ff";
+      } else {
+	# OK.
+	return undef;
+      }
+    }
+    $dec_count++;
+  } until @orig_vers_idx;
+  die "Ancestors were found but there is no local f.f. here" unless $loc_ff;
+  debug 1, "had to search back $dec_count versions to find $rem_ff ancestor: hopefully this is due to a project version deletion"
+    if $dec_count > 1;
+  # OK, so we found which remote ancestor version(s) had the searched-for RCS number.
+  # Now look up the corresponding local ancestors and get their RCS numbers. The
+  # numbers should be duplicated if there are multiple originating ancestors.
+  # Return that local number.
+  my @loc_vns=map {
+    my $idx=$_;
+    my $desc=$loc_descs->[$idx];
+    die "presumed local ancestor does not exist for this f.f." unless $desc;
+    $desc->{vn};
+  } @orig_vers_idx;
+  my @uniq_loc_vns=keys %{{map {($_, 1)} @loc_vns}};
+  die "No unique local ancestor found; history is inconsistent" if @uniq_loc_vns > 1;
+  return $uniq_loc_vns[0];
+}
+
+sub system_($;) {
+  my ($cmd)=@_;
+  debug 3, "System command `$cmd'";
+  system $cmd;
+}
+
+=head2 C<update($proj, \@versions, $local_repo, $remote_repo)>
+
+Update the specified PRCS project according to the contents of a master
+repository.
+Only the specified list of versions will be updated. Each version specifier
+should be of the form C<[$version, @parents]>, i.e. a list reference giving
+first the version to update from the package file, then its parents (there
+may be multiple in the case of a merge). The function will determine which
+order to do the updates in.
+
+Expects F</tmp> to be available and have sufficient space for scratch space;
+also expects PRCS to be installed as F<prcs>, and a topological sort as
+F<tsort>.
+
+=cut
+
+sub update($$$;$;) {
+  my ($proj, $versions, $loc_repo, $rem_repo)=@_;
+  my $working="$tmpdir/prcs-synch-work-$$";
+  debug 1, "Calculating version ordering...";
+  # Use tsort to do the ordering 'cuz I'm cheap.
+  my $rtc="$tmpdir/prcs-synch-rtc-$$";
+  open RTC, ">$rtc" or die "open $rtc for write: $!";
+  my %parents;
+  foreach (@$versions) {
+    my ($vers, @parents)=@$_;
+    $parents{$vers}=\@parents;
+    foreach (@parents) {
+      print RTC "$_ $vers\n";
+    }
+  }
+  close RTC or die "open $rtc for write: $! $?";
+  my @versions=`tsort $rtc`;
+  die "tsort failed: $!" if $?;
+  unlink $rtc or die "remove $rtc failed: $!";
+  foreach (@versions) {chomp}
+  # Make sure we only pick up requested versions, not their ultimate
+  # ancestors.
+  @versions=grep {$parents{$_}} @versions;
+  debug 1, "Got @{[scalar @versions]} versions";
+  foreach my $version (@versions) {
+    my @parents=@{$parents{$version}};
+    debug 1, "Updating $version...";
+    mkdir $working, 0777 or die "create $working failed: $!";
+    system_ "cd $working; prcs checkout -f -q -R $rem_repo -r $version $proj"
+      and die "prcs checkout failed: $!";
+    # The target project file (starts w/ current remote).
+    my $dest=get_prj $proj, $version, $rem_repo;
+    # 1. Swap New-Foo w/ Foo.
+    debug 2, "New-Foo <-> Foo swap...";
+    my %newfooswap=qw(
+		      New-Version-Log Version-Log
+		      Version-Log New-Version-Log
+		      New-Merge-Parents Merge-Parents
+		      Merge-Parents New-Merge-Parents
+		     );
+    my $swapkeys=join '|', keys %newfooswap;
+    $dest =~ s/\(($swapkeys)/($newfooswap{$1}/go;
+    # 3. Set Project-Version to that of the first Parent-Version
+    # (semi-arbitrarily).
+    debug 2, "Resetting Project-Version...";
+    $dest =~ /\(Parent-Version ($proj|-\*-) (\S+) (\S+)\)/
+      or die "project file had no straightforward Parent-Version";
+    my ($p, $maj, $min)=($1, $2, $3);
+    if ($p eq '-*-') {
+      die "weird parent version" unless $maj eq '-*-' and $min eq '-*-';
+      $maj=$min=0;
+    }
+    die "weird parent version" if $maj eq '-*-' or $min eq '-*-';
+    $dest =~ s/\(Project-Version [^)]*\)/(Project-Version $proj $maj $min)/
+      or die "couldn't replace Project-Version correctly";
+    # 5. Note original login & time in the New-Version-Log.
+    debug 2, "noting original login & time";
+    $dest =~ /\(Checkin-Login\s+(\S+)\)/
+      or die "could not find original login name";
+    my $orig_login=$1;
+    $dest =~ /\(Checkin-Time\s+\x22([^\x22]+)\x22\)/
+      or die "could not find original checkin time";
+    my $orig_time=$1;
+    $dest =~ s/(\(New-Version-Log\s+\x22)/$1\[Originally by $orig_login on $orig_time]\n/
+      or die "could not make note of original login & time";
+    # 2. & 4. Swap out the internal file descriptors in impossibly hairy
+    # ways.
+    debug 2, "The hairy bits...";
+    # a. Get the mapping from remote to local file families.
+    foreach my $parent (@parents) {
+      check_ff_mapping $proj, $parent, $rem_repo, $loc_repo;
+    }
+    # b. Get the specific layouts of each project file.
+    my $map_rem_curr=get_mapping $proj, get_prj $proj, $version, $rem_repo;
+    my @ff_map_rem_pars=map {
+      remap_by_ff get_mapping $proj, get_prj $proj, $_, $rem_repo;
+    } @parents;
+    my @ff_map_loc_pars=map {
+      remap_by_ff get_mapping $proj, get_prj $proj, $_, $loc_repo;
+    } @parents;
+    # c. Go thru each file descriptor in target and replace it as required.
+    foreach my $filename (keys %$map_rem_curr) {
+      # what to look for to replace
+      my ($total, $ff, $vn)=@{$map_rem_curr->{$filename}}{qw(total ff vn)};
+      my $newdesc=$total;	# the new file descriptor
+      # Subst parts of this file descriptor.
+      my $loc_ff=$ff_mapping{$proj}{$ff}; # may be null if new file
+      # 2. Subst in new (local) file family (or empty internal descriptor).
+      if ($loc_ff) {
+	# Just swap it for corresponding local family.
+	$newdesc =~ s/\Q$ff\E/$loc_ff/
+          or die "could not find old file family $ff";
+      } else {
+	# Blank out descriptor.
+	$newdesc =~ s/\( \Q$ff\E $ws \Q$vn\E $ws \d+ \)/()/x
+          or die "could not find internal version stuff to remove";
+      }
+      # 4. Try to munge the RCS version number; see implementation notes.
+      my $new_vn=find_local_predecessor_vn $vn,
+              $ff, [map {$_->{$ff}} @ff_map_rem_pars],
+              $loc_ff, [map {$loc_ff ? $_->{$loc_ff} : undef} @ff_map_loc_pars];
+      $newdesc =~ s/\Q$vn\E/$new_vn/
+	or die "could not find old version number $vn to replace"
+	  if defined $new_vn;
+      # swap in new file descriptor where the old one was
+      $dest =~ s/\Q$total\E/$newdesc/
+        or die "could not find old file descriptor to swap out";
+    }
+    # Write out new (local-ready) project file.
+    debug 2, "Writing out new project file...";
+    open PRJ, ">$working/$proj.prj" or die "writing out $working/$proj.prj: $!";
+    print PRJ $dest;
+    close PRJ or die "close project file: $!";
+    # OK, _finally_ do the checkin.
+    debug 1, "Checking in new local version $version...";
+    system_ "cd $working; prcs checkin -f -q -R $loc_repo -r $version $proj"
+      and die "prcs checkin failed: $!";
+    # Make sure the correct minor version was checked in.
+    debug 2, "Verifying that we got the right minor version";
+    my @lines=
+      `prcs info --plain-format -f -q -R $loc_repo -r . $working/$proj.prj`;
+    die "wrong number of info lines" if @lines != 1;
+    $lines[0] =~ /^\Q$proj\E\s+(\S+)/
+      or die "could not find actual version in info `$lines[0]'";
+    my $actual_version=$1;
+    if ($version ne $actual_version) {
+      debug 1, "wanted to check in $version but got $actual_version--hold on...";
+      $version =~ /\.([^.]+)$/ or die "could not get desired minor version";
+      my $version_minor=$1;
+      $actual_version =~ /\.([^.]+)$/
+	or die "could not get actual minor version";
+      my $actual_version_minor=$1;
+      die "versions do not make sense"
+	unless $actual_version_minor < $version_minor;
+      debug 2, "killing off unwanted version $actual_version";
+      system_ "prcs delete -R $loc_repo -r $actual_version -f -q"
+	and die "could not kill off old version: $!";
+      debug 2, "rebuilding repository to make sure";
+      system_ "prcs admin rebuild -R $loc_repo -f -q $proj"
+        and die "rebuild failed: $!";
+      debug 0, "***NOTICE***: due to deletions the synch did not go through completely. Try rerunning the synch, hopefully it will work this time.";
+      exit 1;
+    }
+    # All set.
+    system_ "rm -rf $working" and warn "killing off working dir: $!";
+  }
+}
+
+=head2 C<parse_info_short($proj, $fh)>
+
+Given an input filehandle, returns a reflist to all versions present in
+that C<prcs info> listing. Project name should be specified.
+
+=cut
+
+sub parse_info_short($$) {
+  my ($proj, $fh)=@_;
+  my @results;
+  while (<$fh>) {
+    die "weird info line `$_'" unless /^\Q$proj\E (\S+\.\d+) .* by \S+$/;
+    push @results, $1;
+  }
+  \@results;
+}
+
+=head2 C<parse_info_long($proj, $fh)>
+
+Same as B<parse_info_short>, but input assumed to be from B<prcs info -l>,
+and result versions are B<update>-ready lists w/ parent information.
+
+Currently not that flexible w.r.t. PRCS output format: assumes that the
+parent versions immediately follow main line, & there is at least one extra
+line after that (e.g. Version-Log).
+
+=cut
+
+sub parse_info_long($$) {
+  my ($proj, $fh)=@_;
+  my @results;
+  while (<$fh>) {
+    next unless /^\Q$proj\E (\S+\.\d+) .* by \S+$/;
+    my $version=$1;
+    my @parents;
+    push @parents, $1 while <$fh> =~ /^Parent-Version:\s+(\S+\.\d+)$/;
+    push @results, [$version, @parents];
+  }
+  \@results;
+}
+
+=head2 C<update_based_on_versions($proj, $from_repo, \@from_vers, $to_repo, \@to_repo)>
+
+Update from one repository to another based on the versions currently present in
+each. @from_repo must be long format; @to_repo may be either long or short.
+
+=cut
+
+sub update_based_on_versions($$$$$;) {
+  my ($proj, $from_repo, $from_vers, $to_repo, $to_vers)=@_;
+  my $to_is_long=@$to_vers && ref $to_vers->[0];
+  my %to_test;
+  if (@$to_vers) {
+    if (ref $to_vers->[0]) {
+      # Long format.
+      foreach (@$to_vers) {$to_test{$_->[0]}=1}
+    } else {
+      # Short format.
+      foreach (@$to_vers) {$to_test{$_}=1}
+    }
+  }
+  my @needed=grep {!$to_test{$_->[0]}} @$from_vers;
+  my $from_count=@$from_vers;
+  my $need_count=@needed;
+  if ($need_count) {
+    debug 1, "Will update $need_count/$from_count versions now...";
+    update $proj, \@needed, $to_repo, $from_repo;
+  } else {
+    debug 1, 'Everything looks up-to-date';
+  }
+}
+
+# Main routine.
+
+# For speed, short info lists are retrieved wherever the long versions would not
+# be used; PRCS uses a fair amount of extra time to display version logs and
+# such (retrieving old project versions?). Also, over ssh, we may not want to
+# wait for the longer info to download.
+
+if ($ssh) {
+  # The trickier parts.
+
+  # First see if we can avoid doing some work. Get short info lists both locally
+  # and remotely, and possibly skip synchs in one or both directions.
+
+  debug 1, "Getting local summary";
+  open LOCAL, "prcs info -f -q --plain-format -R $master_loc_repo $master_proj |"
+    or die "quick info on local: $!";
+  my $loc_versions=parse_info_short $master_proj, \*LOCAL;
+  close LOCAL or die "quick info on local: $! $?";
+  debug 1, "Getting remote summary";
+  open REMOTE, "$ssh_command -C prcs info -f -q --plain-format -R $master_rem_repo $master_proj |"
+    or die "quick info on remote: $!";
+  my $rem_versions=parse_info_short $master_proj, \*REMOTE;
+  close REMOTE or die "quick info on local: $! $?";
+
+  if ($dir_down) {
+    my %need_test=map {($_, 1)} @$loc_versions;
+    my @needed=grep {!$need_test{$_}} @$rem_versions;
+    if (!@needed) {
+      # Well, it's not needed.
+      debug 1, "Downstream synch is already up-to-date, skipping";
+    } else {
+      # All right, suck down the whole shebang. Surely there's some clever way
+      # to get just the relevant parts of the project, but not this easily.
+      # We could just set up a pipe & maybe speed things up but the error codes
+      # would be harder to check.
+      debug 1, "Synching downstream";
+      my $tmp_package="$tmpdir/prcs-synch-inpackage-$$.pkg";
+      debug 1, "Retrieving remote project data, be patient...";
+      system_ "$ssh_command prcs package -z -f -q -R $master_rem_repo $master_proj - > $tmp_package"
+	and die "suck package: $! $?";
+      my $tmp_repo="$tmpdir/prcs-synch-repo-$$";
+      mkdir $tmp_repo, 0777 or die "mkdir $tmp_repo: $!";
+      debug 1, "Working locally now...";
+      debug 2, "Unpackaging retrieved project";
+      system_ "prcs unpackage -f -q -R $tmp_repo $tmp_package $master_proj"
+	and die "unpackage: $! $?";
+      unlink $tmp_package or die "kill off $tmp_package: $!";
+      # Need the long "remote" info now after all.
+      debug 1, "Getting real remote info";
+      open REMOTE, "prcs info -l -f -q --plain-format -R $tmp_repo $master_proj |"
+	or die "long remote info: $!";
+      my $long_rem_versions=parse_info_long $master_proj, \*REMOTE;
+      close REMOTE or die "long remote info: $! $?";
+      # Go for it.
+      debug 1, "Commencing downstream synch...";
+      update_based_on_versions $master_proj, $tmp_repo, $long_rem_versions,
+      $master_loc_repo, $loc_versions;
+      system_ "rm -rf $tmp_repo" and die "kill off $tmp_repo: $! $?";
+    }
+  }
+
+  if ($dir_up) {
+    # This part is symmetric w.r.t. above code.
+    my %need_test=map {($_, 1)} @$rem_versions;
+    my @needed=grep {!$need_test{$_}} @$loc_versions;
+    if (!@needed) {
+      debug 1, "Upstream synch is already up-to-date, skipping";
+    } else {
+      # Bah. Ship the mess out to remote host and have synch deal with it there.
+      # 14-char filesystems be damned.
+      # Same decision re. complex pipes as above.
+      debug 1, "Synching upstream";
+      my $tmp_package="$tmpdir/prcs-synch-outpackage-$$.pkg";
+      debug 1, "Packaging up local project...";
+      system_ "prcs package -f -q -z -R $master_loc_repo $master_proj $tmp_package"
+	and die "package local: $! $?";
+      my $rem_tmp_repo="$remote_tmpdir/prcs-synch-tmp-repo-$$";
+      system_ "$ssh_command mkdir $rem_tmp_repo" and die "remote mkdir: $! $?";
+      debug 1, "Sending over project data to be unpackaged, be patient...";
+      # For whatever reason, just piping data to the remote uncompress fails
+      # (PRCS claims arbitrary bad format error or maybe read failure).
+      debug 2, "Catting over package...";
+      my $rem_tmp_pkg="$remote_tmpdir/prcs-synch-inpackage-$$.pkg";
+      system_ "$ssh_command sh -c 'cat\\>$rem_tmp_pkg' < $tmp_package"
+	and die "Copy project file: $! $?";
+      debug 2, "Got package, kill local...";
+      unlink $tmp_package or die "kill $tmp_package: $!";
+      debug 2, "Remote unpackage...";
+      system_ "$ssh_command prcs unpackage -f -q -R $rem_tmp_repo $rem_tmp_pkg"
+	and die "remote unpackage: $! $?";
+      debug 2, "Kill remote package file...";
+      system_ "$ssh_command rm $rem_tmp_pkg"
+	and die "kill remote $rem_tmp_pkg: $! $?";
+      my $prog_name=$0;
+      $prog_name =~ s!^.*/!!;
+      # J.H. Xrist.
+      debug 1, "Passing control for actual synch over to remote script...";
+      system_ "$ssh_command $prog_name --proj=$master_proj --local-repo=$master_rem_repo --remote-repo=$rem_tmp_repo --tmpdir=$remote_tmpdir --debug=$debug_level --dir=down"
+	and die "Remote synch failed for one of a myriad reasons: $! $?";
+      system_ "$ssh_command rm -rf $rem_tmp_repo"
+	and die "kill remote $rem_tmp_repo: $! $?";
+    }
+  }
+
+} else {
+  # Local-disk stuff is simpler.
+
+  debug 1, 'Getting local versions...';
+  my $loc_maybe_long=($dir_up ? '-l' : '');
+  open LOCAL, "prcs info -f -q --plain-format $loc_maybe_long -R $master_loc_repo $master_proj |"
+    or die "could not get info on local versions: $!";
+  my $loc_versions=($dir_up ?
+		    parse_info_long($master_proj, \*LOCAL) :
+		    parse_info_short($master_proj, \*LOCAL));
+  close LOCAL or die "info on local versions: $! $?";
+
+  debug 1, 'Getting remote versions...';
+  my $rem_maybe_long=($dir_down ? '-l' : '');
+  open REMOTE, "prcs info -f -q --plain-format $rem_maybe_long -R $master_rem_repo $master_proj |"
+    or die "could not get info on remote versions: $!";
+  my $rem_versions=($dir_down ?
+		    parse_info_long($master_proj, \*REMOTE) :
+		    parse_info_short($master_proj, \*REMOTE));
+  close REMOTE or die "info on remote versions: $! $?";
+  
+  if ($dir_down) {
+    debug 1, 'Synchronizing downstream';
+    update_based_on_versions $master_proj, $master_rem_repo, $rem_versions,
+    $master_loc_repo, $loc_versions;
+  }
+  if ($dir_up) {
+    debug 1, 'Synchronizing upstream';
+    update_based_on_versions $master_proj, $master_loc_repo, $loc_versions,
+    $master_rem_repo, $rem_versions;
+  }
+}
+
+=head1 BUGS
+
+It is impossible to make the newly created versions have the same login and
+checkin time as the original. But this information is recorded at the
+beginning of the version log.
+
+Something about package upload seems to be capable of killing Linux PPP links
+completely! Please let me know if you have problems with a transmission stopping
+partway through (no harm should come of it, as the unpackaging should fail noisily).
+This may be a network-code bug, or an ssh bug.
+
+=head2 Deletions
+
+Version deletions will screw things up somewhat; if this causes problems, the
+synch will be stopped and you will be asked to rerun it. I<NOTE> that this only
+works if you have deleted a version (due to a mistake) before checking in any
+versions with that as its parent; trying to synch from a repository which
+contains versions derived from now-deleted versions will cause a failure!
+
+If you really need to do synching on projects containing internal deletions
+(those with nondeleted children), you have two options (both untested). If
+you know you want to do the deletion ahead of time, synch up the projects
+first, then do matching deletions in each repository. If you have already done
+the internal deletions and want to continue with (or begin) synchronization, you
+will have to manually synch up those versions with immediate deleted ancestors,
+in which case you are on your own (though it would probably not be that
+difficult if you read the implementation notes to this script).
+
+=head1 TODO
+
+Should chdir to some directory with no interesting subdirectories. Else some
+PRCS commands will be interpreted as referring to a subdirectory, rather than a
+project name, which produces mysterious errors.
+
+Should check when updating a new version to see if the v.l. already contains an
+[Originally checked in by...], and just keep that one instead of adding a new one.
+
+Upon dying, it should list all of the scratch directories it was using, for
+debugging purposes.
+
+=head2 Efficiency
+
+In the case of remote synchs, the entire project package is transmitted, which is
+surely wasteful when only a small portion of that is actually used; but this keeps
+the code much simpler and hopefully stabler than it would otherwise be. Conceivably
+it would be possible to remotely check out the required versions into a directory
+tree and .tar.gz the whole mess, relying on gzip to notice the redundancy; this
+would still not reduce waste in the case of huge projects only a few files of which
+are changing each time.
+
+Ssh is run a number of times within a remote session, at the cost of some connection
+overhead.
+
+Ssh compression and project-file compression is always turned on where it would reduce
+bandwidth requirements. This probably causes a little unnecessary overhead when
+running over a fast local network.
+
+=head2 B<--revision> option
+
+Should permit you to only synch up certain revisions or branches. This could be
+somewhat tricky, though, as it would need to ensure that the R.T.C. of versions
+requested fell within those versions plus the versions already existing in the
+destination repository: i.e. that there are no "gaps".
+
+=head2 B<--all-proj> option
+
+Would synch on all projects present in both repositories, and skip some overhead;
+substitute for B<--proj> option.
+
+=head2 Robustness
+
+Examine common versions quickly to ensure critical parts match up. Currently,
+it is expected that the user is being careful to keep branches separate. However,
+mistakes on this point might cause other sorts of errors, just not likely to be
+as apparent what is wrong.
+
+The script cannot and does not lock the repository I<between> checkins. In principle
+this would not break anything, providing you don't do anything dumb like delete project
+versions while it is running!
+
+=head2 Testing
+
+Needs to be tested in many more & more obscure circumstances than it has. (That said,
+I have been using it since late April without problems.)
+
+=head1 AUTHOR
+
+Jesse Glick B<jglick@sig.bsh.com>. Please send comments & bug reports.
+
+=head1 REVISION
+
+This is alpha-level software, use at your own risk.
+
+C<$ProjectHeader: prcs 1.3-release.1 Sun, 28 Oct 2001 18:18:09 -0800 jmacd $>
+
+Copyright (C) 1998 Strategic Interactive Group, all rights reserved. This software may
+be used under the terms of the GNU General Public License. There is no warranty of any
+kind whatsoever.
+
+=cut
+
+1;

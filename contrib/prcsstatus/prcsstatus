@@ -1,0 +1,354 @@
+#!/usr/bin/perl -w
+#
+# prcsstatus: print a consise summary on the version control status of
+# the files in the current directory downwards.
+#
+#   (c) 1999-2000 Austin Donnelly <and1000@cam.ac.uk>
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software
+#   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+
+#
+# Version 0.01 4-Apr-2000: Initial public release
+#
+
+#
+# Overview:
+# Step 1: find the .prj file(s)
+#
+# Step 2: build a list of all the files PRCS knows about
+#
+# Step 3: walk the filesystem, printing something about each file
+#   if there's something interesting to say:
+#     ? filename		unknown to PRCS
+# TODO:
+#     M filename		has been edited
+#     U filename		newer version available in repository
+#     C filename		conflict: edited local and new version in repo
+#
+# Need ignorelist.  Builtin one first, then env variable, then 
+# .ignore files.
+#
+
+require "find.pl";
+
+chomp($progname = `basename $0`);
+
+# include project control files too?
+$P='';
+$write_ignore=0;
+
+
+# die "$progname: need to set PRCS_REPOSITORY environment variable\n"
+#    unless defined($ENV{'PRCS_REPOSITORY'});
+
+#
+# Option processing
+#
+while (defined($opt = shift))
+{
+    ($opt eq "-P") && ($P='-P', next);
+    ($opt eq "-w") && ($write_ignore=1, next);
+    die "$progname: unknown option '$opt'\n" .
+	"usage: $progname [-P] [-w]\n" .
+	"	-w append unknown files to .ignore in each directory\n" .
+	"	-P don't consider project control files\n";
+}
+
+
+#
+# Step 1: Find .prj files
+#
+
+# Starting here, walk upwards until get one (or more) .prj files, or
+# hit rootdir.
+
+chomp($FINDROOT=`pwd`);
+@dirsabove = split("/", $FINDROOT);
+shift(@dirsabove);  # get rid empty component before leading "/"
+@finddir = ();  # at any time, (@dirsabove, @finddir) is the path FINDROOT
+
+while (1)
+{
+    @projfiles = glob("*.prj");
+    last if (defined(@projfiles));
+
+    # if we're already in the root dir, tough luck
+    if ($#dirsabove == -1)
+    {
+	print STDERR "$progname: can't find any .prj files in " .
+	    "$FINDROOT or above\n";
+	exit 1;
+    }
+
+    # try up one
+    chdir("..") || die "$progname: can't chdir(..): $!\n";
+    unshift(@finddir, pop(@dirsabove));
+}
+
+# Absolute path to top of tree (where the .prj files are)
+chomp($PROJROOT=`pwd`);
+# FINDDIR is path relative to PROJROOT where find is to start
+$FINDDIR = join('/', @finddir);
+$FINDDIR = "." if ($FINDDIR eq "");
+
+#print "projfiles=@projfiles,  PROJROOT=$PROJROOT,  finddir=$FINDDIR\n";
+
+
+#
+# Step 2: build list of all files in all projects
+#
+
+%workingfiles=(); # all files PRCS knows of
+
+%not_wc=();  # working  != common  (ie, edited or merged since checked out)
+%not_sc=();  # selected != common  (ie, someone else has checked in)
+%not_sw=();  # selected != working (ie, working not most current version)
+
+%onlyin=();
+
+foreach $project (@projfiles)
+{
+    # 2a: get list of files PRCS knows about
+    open(PRCSIN, "prcs execute $project 2>/dev/null |") ||
+	die "$progname: \"prcs execute $project\" exited with error code $?\n";
+
+    # read prcs output, recording filenames relative to $FINDROOT
+    while (<PRCSIN>)
+    {
+	chomp;
+	@comp = split("/", $_);
+
+	# blow away the first few components, and work out if the
+	# prefix is the same as our FINDDIR.
+	next if ($#comp < $#finddir);  # skip it if the path's not long enough
+	$prefix = join('/', splice(@comp, 0, $#finddir+1));
+	$prefix = "." if ($prefix eq "");
+	$comp = join('/', @comp);
+	$comp = "." if ($comp eq "");
+	next if ($prefix ne $FINDDIR);
+	print STDERR "$progname: warning: $comp in both " .
+	    "$workingfiles{$comp} and $project\n"
+		if (defined($workingfiles{$comp}) && ! -d "$FINDDIR/$comp");
+	$workingfiles{$comp} = $project;
+    }
+    close(PRCSIN);
+
+
+    # 2b: get list of files we've edited or merged since last checkout
+    &do_diff("", "edited", \%not_wc);
+
+
+    # 2c: get list of files that have changed in repository since checkout
+    &do_diff("-r. -r.@", "updated", \%not_sc);
+
+
+    # 2d: get list of files which aren't the same as latest from repo
+    &do_diff("-r.@", "not latest", \%not_sw);
+}
+
+
+#
+# Step 3: walk the filesystem
+#
+
+$prevdir="///"; # invalid dirname
+$ignorefile_open=0;
+
+$prune=0; # keep perl -w happy
+&find("$PROJROOT/$FINDDIR");
+
+if ($ignorefile_open)
+{
+    close(IGN);
+    $ignorefile_open = 0;
+}
+
+
+foreach $file (keys %onlyin)
+{
+    print "O $file (Only in $onlyin{$file})\n";
+}
+
+
+#	sub wanted { ... }
+#		where wanted does whatever you want.  $dir contains the
+#		current directory name, and $_ the current filename within
+#		that directory.  $name contains "$dir/$_".  You are cd'ed
+#		to $dir when the function is called.  The function may
+#		set $prune to prune the tree.
+sub wanted
+{
+    return if ($_ eq "." || $_ eq ".." || $_ eq ".ignore");
+
+    # if this is an "obsolete" directory, then don't recurse in
+    if ($_ eq "obsolete" && -d $_)
+    {
+	$prune = 1;
+	return;
+    }
+
+    # is this a new directory we're entering?
+    if ($dir ne $prevdir)
+    {
+	$prevdir = $dir;
+
+	# stop writing the previous ignore file
+	if ($ignorefile_open)
+	{
+	    close(IGN);
+	    $ignorefile_open = 0;
+	}
+
+	%ignorelist = ();
+	if (-r ".ignore")
+	{
+	    if (!open(IGNIN, "<.ignore"))
+	    {
+		warn "$progname: warning: can't open $dir/.ignore: $!\n";
+	    }
+	    else
+	    {
+		while($line = <IGNIN>)
+		{
+		    chomp($line);
+		    $ignorelist{$line} = 1;
+		}
+		close(IGNIN);
+	    }
+	}
+    }
+
+    $name =~ s!^$PROJROOT/$FINDDIR/!!;
+
+    # files PRCS doesn't know about
+    if (!defined($workingfiles{$name}) && !defined($ignorelist{$_}))
+    {
+	print "? $name\n";
+
+	if ($write_ignore)
+	{
+	    if (!$ignorefile_open)
+	    {
+		open(IGN, ">>.ignore") ||
+		    die "$progname: can't open $dir/.ignore for append: $!\n";
+		$ignorefile_open = 1;
+	    }
+	    print IGN "$_\n";
+	}
+
+	return;
+    }
+
+    # Ok, PRCS knows something, what state is the file in?
+
+    if (defined($not_wc{$name}))
+    {
+	# file has been modified in working (either by user or a merge)
+
+	if (defined($not_sw{$name}))
+	{
+	    if (defined($not_sc{$name}))
+	    {
+		# w!=c  => been edited locally, also
+		# s!=w  => working isn't the latest version, also
+		# s!=c  => someone's checked in
+		# SO: user has total mess on their hands -
+		# one of 3 cases, they've:
+		#  1) updated to latest, then edited (M)
+		#  2) updated, then someone else checked in again (U)
+		#  3) updated, then edited, and someone has checked in (C)
+		print "3 $name ($not_wc{$name})\n";
+	    }
+	    else
+	    {
+		# w!=c  => been edited locally, also
+		# s!=w  => working isn't the latest, also
+		# s==c  => no one else has checked in
+		# SO: modified, but no conflict
+		print "M $name ($not_wc{$name})\n";
+	    }
+	}
+	else
+	{
+	    # w!=c  => been edited locally, also
+	    # s==w  => working is latest version
+	    # SO: user has merged against latest, no problems
+	}
+    }
+    else
+    {
+	# file not modified in working
+
+	if (defined($not_sc{$name}))
+	{
+	    # w==c  => not edited locally, also
+	    # s!=c  => someone's checked in
+	    # SO: need to update
+	    print "U $name ($not_sc{$name})\n";
+	}
+	else
+	{
+	    # w==c  => not edited locally, also
+	    # s==c  => no checkins
+	    # SO: no changes (common case)
+	}
+    }
+}
+
+
+sub do_diff
+{
+    my ($rev_opts, $action, $hashref) = @_;
+    my (@comp, $prefix, $onlyone);
+
+    open(PRCSIN, "prcs diff $P $rev_opts $project -- -q 2>/dev/null |") ||
+	die "$progname: \"prcs diff $P $rev_opts $project -- -q\" " .
+	    "exited with error code $?\n";
+
+    # read prcs output, recording filenames relative to $FINDROOT
+    while (<PRCSIN>)
+    {
+	chomp;
+	s/^The file `//;
+	s/' differs$//;  # '` <- blame emacs
+
+	undef($onlyone);
+	$onlyone=$1 if (s/^Only in (.*): //);
+
+#	print ":$_\n";
+
+	@comp = split("/", $_);
+
+	# blow away the first few components, and work out if the
+	# prefix is the same as our FINDDIR.
+	next if ($#comp < $#finddir);  # skip it if the path's not long enough
+	$prefix = join('/', splice(@comp, 0, $#finddir+1));
+	$prefix = "." if ($prefix eq "");
+	$comp = join('/', @comp);
+	$comp = "." if ($comp eq "");
+	next if ($prefix ne $FINDDIR);
+
+	if (defined($onlyone))
+	{
+	    $onlyin{$comp} = "$project:$onlyone";
+	}
+	else
+	{
+	    print STDERR "$progname: warning: $comp $action in both " .
+		"$$hashref{$comp} and $project\n"
+		    if (defined($$hashref{$comp}) && ! -d "$FINDDIR/$comp");
+	    $$hashref{$comp} = $project;
+	}
+    }
+}
