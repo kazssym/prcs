@@ -83,7 +83,7 @@ install-stamp: build-stamp
           for i in rprcs/rprcs prcs-javadoc ; do \
             install -c --mode=0755 $$i $(debbin) ; \
           done )
-	install --mode=644 contrib/bash-completion \
+	install --mode=644 contrib/misc/bash-completion \
 	    $(debetc)/bash_completion.d/prcs
 
 	dh_installman -A
