@@ -25,9 +25,9 @@ then
     exit 1
 fi
 
-grep -v '^.*	ADDED	' $PRJ.move2 |
-    grep -v '	DELETED$' |
-    cut -d'	' -f2- |
+grep -v '^ADDED	' $PRJ.move2 |
+    grep -v '	DELETED	' |
+    cut -d'	' -f1-2 |
     while read a b
     do
 	prcs-mv -p "$a" "$b"

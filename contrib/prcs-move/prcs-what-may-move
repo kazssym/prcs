@@ -12,5 +12,5 @@ LIST=$PRJ.move
 
 prcs populate -n -d --plain-format -q "$@" |
     grep -vE 'prcs: (.* is unavailable.  Delete.|Ignoring file)' |
-    sed -e 's/^prcs: Added \(.*\) of type \(.*\)$/\2	ADDED	\1/' \
-        -e 's/^prcs: Deleted \(.*\) of type \(.*\)$/\2	\1	DELETED/'
+    sed -e 's/^prcs: Added \(.*\) of type \(.*\)$/ADDED	\1	\2/' \
+        -e 's/^prcs: Deleted \(.*\) of type \(.*\)$/\1	DELETED	\2/'
