@@ -1,4 +1,4 @@
-prcs (1.3.2pre1-1) unstable; urgency=low
+prcs (1.3.2-1) unstable; urgency=low
 
   * NOT YET READY FOR RELEASE!
   * New upstream release.  The prcsstatus script in the prcs-utils package
