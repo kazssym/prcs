@@ -1,6 +1,9 @@
 #!/bin/sh
 set -e
 
+# FIXME: should have an "undo" option
+# FIXME: should use special markers instead of ADDED/DELETED
+
 error()
 {
     echo >&2 "ERROR: `basename $0`: $*"
@@ -14,10 +17,13 @@ then
     shift
 fi
 
-[ -n "$1" -a -n "$2" ] || {
-    echo >&2 "Usage: `basename $0` [-p] new old"
+usage_error()
+{
+    echo >&2 "Usage: `basename $0` [-p] oldname newname"
     exit 1
 }
+
+[ $# = 2 -a -n "$1" -a -n "$2" ] || usage_error
 
 PRJ=`prcsguess`
 
@@ -34,6 +40,8 @@ then
 fi
 
 # FIXME: should move the entry and add a comment
+# FIXME: should check that newname is not already in used
+# FIXME: should barf when src does not exist
 
 # rename in .prj file
 NEW=`mktemp $PRJ.XXXXXX`
