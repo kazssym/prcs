@@ -2845,7 +2845,7 @@ one that does not require that we remember the names of all the
 subprojects:
 
 @example
-% prcs execute -r0.1 P --match :tag=project -- prcs checkout @{@}
+% prcs execute -r0.1 --match :tag=project P -- prcs checkout @{@}
 @end example
 
 @node Importing Project Versions, Environment Variables, Subprojects, Top
