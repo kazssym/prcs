@@ -1,3 +1,24 @@
+prcs (1.3.1-1) unstable; urgency=low
+
+  * NOT YET RELEASED!
+  * New upstream release.
+    - Help messages (prcs --help) are now sent to stdout instead of stderr
+      (closes: #88725).
+    - prcs-clean can now remove symlinks, directories (applied patch from
+      Steve Dodd <steved@loth.demon.co.uk>, closes: #65798)
+  * debian/rules: Test for hppa architecture or verion  >= 3.0 of gcc and
+    apply the patch debian/prcs1.3.1gcc3.diffs (provided by the upstream
+    author).  There is now a target called "patch".  The "clean" reverts
+    the patch, all being controlled by the presence of the "patch-stamp"
+    file.  This should close a release critical bug against prcs,
+    which was not compilable at the hppa architecture (closes: #104705).
+  * debian/control: Added patch to Build-Depends.
+  * debian/man/: Added newline to the end of several files in this
+    directory.  This avoids warnings emitted when building the .diff.gz
+    file.
+
+ -- Rafael Laboissiere <rafael@debian.org>  Tue, 12 Feb 2002 11:56:02 +0100
+
 prcs (1.3.0-4) unstable; urgency=low
 
   * debian/control: Added dependency to real Emacsen to the prcs-el
