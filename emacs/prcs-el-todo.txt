@@ -4,7 +4,7 @@ This file is associated with `prcs.el' and shares its copyright and
 disclaimers. Contact Jesse Glick <Jesse.Glick@netbeans.com> for
 information and to report bugs.
 
-$PrcsModeVersion: 1.60 on Sun, 07 Feb 1999 19:05:45 -0500 $
+$PrcsModeVersion: 1.61 on Sat, 25 Mar 2000 11:39:26 -0500 $
 
 
 * Inline Issues
@@ -45,10 +45,6 @@ deriving from View Mode, which also sets: key `p' (?) to
 proper; prcs: informational prompts; diff *** bars; &c.); settings for e.g.
 Outline and para-movement stuff, based on separators; and so forth.
 
-** Better filename escaping
-More thorough patterns for `prcs-escape-syntactic-nastiness'. E.g., handle
-pound signs in filenames (though why anyone would have such beats me).
-
 ** Nested projects
 What happens w/ nested projects? Presumably the subproject p-file usually acts
 as if it belonged to the subproject, though refreshes & the like may still
@@ -75,6 +71,12 @@ checkin (unless things have changed again since then...).
 ** XEmacs toolbar support
 Would be cute to add some toolbar hooks to XEmacs. E.g. a "PRCS" button added
 to the toolbar when in PRCS Controlled Mode at least.
+
+** Better filename escaping
+More thorough patterns for `prcs-escape-syntactic-nastiness'. Already handles
+files beginning with dots, ../ in symlinks, and filenames containing pound
+signs. These seemed to be the only commonly occurring problems. More kinds of
+exceptions could be handled if needed, though.
 
 ** `prcs-ask-about-save' <- `vc-suppress-confirm'
 But think about effect on refreshes, which should be controllable separately.

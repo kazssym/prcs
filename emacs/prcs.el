@@ -4,7 +4,7 @@
 ;;
 ;; Emacs major & minor modes for PRCS support.
 ;;
-;; $PrcsModeVersion: 1.60 on Sun, 07 Feb 1999 15:23:03 -0500 $
+;; $PrcsModeVersion: 1.61 on Sat, 25 Mar 2000 11:39:26 -0500 $
 ;;
 ;; Original implementation, Josh MacDonald. Most of this file by Jesse
 ;; Glick <Jesse.Glick@netbeans.com>; concepts also due to Zack
@@ -40,13 +40,11 @@
 ;; be PRCS Controlled (i.e. there is a project file above it
 ;; somewhere).
 
-(eval-and-compile (setq load-path (cons ".." (cons "." load-path))))
 (require 'lisp-mode)
 (require 'emerge)
 (require 'cl)
 (require 'add-log)
 (require 'prcs-hooks)
-(eval-and-compile (setq load-path (cdr (cdr load-path))))
 
 (defcustom prcs-sloppy-version-prompts nil
   "*Use fast but unsafe version prompts?
@@ -242,7 +240,11 @@ symbols are all interned privately, so simple quotes will not work.")
   `(
    (,(concat "(\\(" prcs-prj-descriptor-regex "\\)\\>")
     1 font-lock-function-name-face)
-   ("^\\s-*(\\(\\([^ \n\t;()\"]\\|\\\\.\\)+\\)\\s-+(\\(\\S-+/\\([^ \n\t;()\"]\\|\\\\.\\)+\\s-+[0-9.]+\\s-+[0-9]+\\))" (1 font-lock-type-face) (3 font-lock-string-face))
+   ;; CAUTION! Proper syntax scanning requires that neither
+   ;; string-face nor comment-face be used for things which are
+   ;; actually symbols as far as the parse goes: file names, file
+   ;; families, symlink targets. So using other faces for these.
+   ("^\\s-*(\\(\\([^ \n\t;()\"]\\|\\\\.\\)+\\)\\s-+(\\(\\S-+/\\([^ \n\t;()\"]\\|\\\\.\\)+\\s-+[0-9.]+\\s-+[0-9]+\\))" (1 font-lock-type-face) (3 font-lock-variable-name-face))
    ("^\\s-*(\\(\\([^ \n\t;()\"]\\|\\\\.\\)+\\)\\s-+(\\(\\([^ \n\t;()\"]\\|\\\\.\\)+\\)).*\\<:symlink\\>" (1 font-lock-type-face) (3 font-lock-reference-face))
    ("^\\s-*(\\(\\([^ \n\t;()\"]\\|\\\\.\\)+\\)\\s-+(\\s-*)" (1 font-lock-type-face))
    ("\\<:\\sw+\\>" 0 font-lock-keyword-face prepend)
@@ -427,6 +429,7 @@ a string, try:
 
 (defun prcs-escape-syntactic-nastiness ()
   "Escape symbols in current project buffers beginning with dot.
+Also escapes pound signs, with the assumption that they are part of a filename.
 Operates heuristically, so is not foolproof, but mistakes
 probably won't cause any harm. Skips over anything which font-lock
 claims is a comment or string."
@@ -436,17 +439,41 @@ claims is a comment or string."
       (unless (y-or-n-p (format "PRCS Major Mode wants to escape filenames in read-only buffer %s. Continue? " (buffer-file-name)))
 	(error "Cannot escape filenames for PRCS parse"))
       (setq buffer-read-only nil))
+    (message "Fontifying syntactically before escaping filenames...")
+
+    ;; The following has been modified by Rafael Laboissiere
+    ;; <rafael@debian.org> on Thu Mar 29 08:44:41 CEST 2001.
+    ;; This fixes Debian Bug##90497 reported by Jiri Masik
+    ;; <masik@pc203b.fzu.cz>.  The bug is triggered by project
+    ;; descriptors containting files whose names start by a period.
+    ;; This fix was approved by Jesse Glick <Jesse.Glick@netbeans.com> 
+    ;; 
+    ;;(font-lock-fontify-syntactically-region (point-min) (point-max))
+    (if (and (boundp 'font-lock-mode)
+	     font-lock-mode)
+	(font-lock-fontify-syntactically-region (point-min) (point-max)))
+
     (message "Escaping filenames...")
     (goto-char (point-min))
-    (while (search-forward-regexp "(\\(\\.+\\)" nil t)
-      (case (get-text-property (match-beginning 1) 'face)
-	(font-lock-comment-face)
-	(font-lock-string-face)
-	(t (goto-char (match-beginning 1))
-	   (dotimes (ignore (- (match-end 1) (match-beginning 1)))
-	     (insert ?\\)
-	     (forward-char 1))
-	   (goto-char (match-end 0)))))
+    ;; Sequence of dots after an lparen, or pound sign, outside
+    ;; comments and strings. Note that "comments and strings" includes
+    ;; only syntactically recognized ones (since we only did a
+    ;; syntactic fontification above), so pound signs escaped by
+    ;; backslashes will still be in black, so we must explicitly check
+    ;; for them. Note that the font-lock keywords must not put what
+    ;; are syntactically symbols into string or comment faces, since
+    ;; the buffer might have already been fontified.
+    (while (search-forward-regexp "\\((\\(\\.+\\)\\)\\|\\(^\\|[^\\\\]\\)\\(#\\)" nil t)
+      (let ((subexp (if (match-beginning 2) 2 4)))
+	(case (get-text-property (match-beginning subexp) 'face)
+	  (font-lock-comment-face)
+	  (font-lock-string-face)
+	  (t (goto-char (match-beginning subexp))
+	     (let ((escape-count (- (match-end subexp) (match-beginning subexp))))
+	       (dotimes (ignore escape-count)
+		 (insert ?\\)
+		 (forward-char 1))
+	       (goto-char (+ (match-end 0) escape-count)))))))
     (message "Escaping filenames...done")
     (when orig-ro (setq buffer-read-only t))
     (when (and (not orig-mod) (buffer-modified-p))

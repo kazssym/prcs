@@ -2,16 +2,14 @@
 ;; disclaimers. Contact Jesse Glick <Jesse.Glick@netbeans.com> for
 ;; information and to report bugs.
 ;;
-;; $PrcsModeVersion: 1.60 on Sun, 07 Feb 1999 15:23:03 -0500 $
+;; $PrcsModeVersion: 1.61 on Sun, 07 Feb 1999 15:23:03 -0500 $
 
-(eval-and-compile (setq load-path (cons ".." (cons "." load-path))))
 (require 'custom)
 ;; XXX would be nice but a pain to remove this requirement:
 (require 'cl)
 ;; Generally already loaded into Emacs image; need `C-x v' keymap to
 ;; already exist, `vc-follow-symlinks', `vc-follow-link':
 (require 'vc-hooks)
-(eval-and-compile (setq load-path (cdr (cdr load-path))))
 
 (autoload 'prcs-jump-to-project-file "prcs" nil t)
 (autoload 'prcs-mode "prcs" nil t)
