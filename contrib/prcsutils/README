@@ -48,9 +48,6 @@ usage : $0 <entryname>
 $ prcsentry Project-Description
 "A number of prcs related utilities."
 
-* prcsstatus :
-gives info about the status of files in a project
-
 
 * prcs_checkfiles : also written by Keith Owens ?
 Check the file list in the prcs project file with the files

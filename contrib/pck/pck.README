@@ -1,12 +1,13 @@
 
 pck == Patch Control Kludge
+author = Chris Mason
 
 pck works on patchsets and patches, where a patchset is a simple
 grouping of patches for distribution, and a patch is defined by a
 tag and its id in source control.
 
-Tags are names to help us remember a patch, they should be unique 
-across the whole project, but they are required to be unique across a given 
+Tags are names to help us remember a patch, they should be unique
+across the whole project, but they are required to be unique across a given
 patchset.
 
 pck uses an XML file as the backend for remembering the patchset
@@ -17,7 +18,7 @@ pck commands:
 All of these take the XML filename as an argument in --file.  The default
 file is PRCS_REPOSITORY/patch.info
 
-In general --patch can take either a prcs revision id, or pck tag name. 
+In general --patch can take either a prcs revision id, or pck tag name.
 It tries to find a tag first, and if that fails assumes you've provided an id.
 
 I'm using the perl Getopt::Long package for the args, so -- and - both
@@ -31,7 +32,7 @@ pck add -set foo 0.54
 --
 pck create -project name [-file file]
 
-Creates the XML file and does initial setup, only one project name is 
+Creates the XML file and does initial setup, only one project name is
 allowed per file.
 
 --
@@ -53,7 +54,7 @@ pck add -set 2.4.12 -patch 4.2
 Puts a patch into patchset 2.4.12, polls prcs for the version log of
 revision 4.2, and uses the log as the tag.  Since the version log
 in this case was reiserfs-quota-1, this does the same as the first add
-command.  If the first word in your version log is surrounded by 
+command.  If the first word in your version log is surrounded by
 colons, that word alone is used as the tag.  In other words:
 
 (New-Version-Log ":reiserfs-quota-2: fix i_blocks counting bug")
@@ -155,7 +156,7 @@ prcs diff -patch 2.4.11-pre6 -inc patch-2.4.11-pre7
 
 Compile a list of the files changed in both 2.4.11-pre6 and 2.4.11-pre7
 
-Checkout only those files from the parent of 2.4.11-pre6, or from the 
+Checkout only those files from the parent of 2.4.11-pre6, or from the
 specified parent rev on the command line.  Then copy to a second directory.
 
 Apply the patch from parent->2.4.11-pre6 to the first working directory,
@@ -176,7 +177,7 @@ pck diff -patch 2.4.11-pre6 -inc patch-2.4.11-pre7 -checkin
 The above will do all of the steps for -inc, but instead of making a diff
 it will:
 
-figure out which files are new and deleted, then feed them to 
+figure out which files are new and deleted, then feed them to
 prcs populate and prcs depopulate.
 
 Prompt the user for a version log.
@@ -211,7 +212,7 @@ To generate the new diff, pck will:
 Build a single patch with all changes appended together, and build a list
 of the affected files.
 
-Checkout the affected files from the parent of the first patch, or the 
+Checkout the affected files from the parent of the first patch, or the
 parentid supplied, then make a copy to a second directory.
 
 Apply the big patch to one of the directories.

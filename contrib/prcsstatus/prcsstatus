@@ -3,7 +3,7 @@
 # prcsstatus: print a consise summary on the version control status of
 # the files in the current directory downwards.
 #
-#   (c) 1999-2000 Austin Donnelly <and1000@cam.ac.uk>
+#   (c) 1999-2002 Austin Donnelly <Austin_Donnelly@yahoo.co.uk>
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
 #   the Free Software Foundation; either version 2 of the License, or
@@ -20,6 +20,10 @@
 
 #
 # Version 0.01 4-Apr-2000: Initial public release
+#
+# Version 0.02 29-Apr-2002:
+#  * Fix for Debian Bug#144568: prcsstatus: no default for PRCS_REPOSITORY
+#  * Updated my email address.
 #
 
 #
@@ -49,8 +53,6 @@ $P='';
 $write_ignore=0;
 
 
-# die "$progname: need to set PRCS_REPOSITORY environment variable\n"
-#    unless defined($ENV{'PRCS_REPOSITORY'});
 
 #
 # Option processing

@@ -1,0 +1,10 @@
+prcs-synch    This script synchronizes two remote repositories
+              provided they have not altered the same branches,
+              supporting disconnected use.  Thanks to Jesse Glick.
+
+bash-completion A bash completion script written by Rafael Laboissiere.
+              Instructions are contained at the top of the file.
+
+prcs-clean    A perl script to remove any files not part of a PRCS
+              project.
+
