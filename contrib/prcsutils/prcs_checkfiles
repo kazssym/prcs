@@ -1,0 +1,13 @@
+#!/bin/sh
+#       Check the file list in the prcs project file with the files
+#       (not directories) in the current source tree.  Double checks
+#       the populate-ignore list.
+if [ ! -r *prj ]
+then
+	echo no .prj file
+	exit 1
+fi
+set -e
+find -type f | egrep -v '\.prcs_aux|\.prj' | sort > /var/tmp/$$a
+grep '^  (' *prj | sed -e 's/^  (/.\//; s/ .*//' | sort | diff - /var/tmp/$$a
+rm /var/tmp/$$a

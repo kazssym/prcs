@@ -1,0 +1,8 @@
+package versiontree
+
+interface SelectedVersionListener {
+  abstract void snapshotSelected {Snapshot.selected}
+  abstract void snapshotUnSelected {Snapshot.selected}
+  abstract void branchSelected {Branch.selected}
+  abstract void branchUnSelected {Branch.selected}
+}

@@ -1,0 +1,4 @@
+#! /bin/sh
+pfedir=/home/hugo/PRCSUtils/pfe-1.0
+
+$pfedir/tre $pfedir/vertree.pot $@

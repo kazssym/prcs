@@ -1,0 +1,17 @@
+This is the announcement for the first public release of PFE, version 1.0.
+
+What Is PFE?
+
+PFE is a set of tools providing a friendly front end to PRCS. With this
+alpha release there is a version tree tool, which creates a tree of versions
+and branches from the project in the current directory.
+
+Please visit the PFE website at 
+
+http://www.geocities.com/SiliconValley/Ridge/2549/pfe/.
+
+Here you will find the distribution tar file, much more detailed
+documentation, and screenshots.
+
+john stump
+sep 1998

@@ -1,0 +1,1707 @@
+#!/bin/sh
+#
+# rprcs
+#
+# RPRCS - The Remote Project Revision Control System
+# Copyright (C) 1999  Hugo Cornelis
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with prcs, The Project Revision Control System available at
+# http://www.xcf.berkeley.edu ; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+# $Project: prcs $
+# $ProjectHeader: prcs 1.2-release.98 Mon, 30 Oct 2000 22:52:59 -0800 jmacd $
+# $Id$
+#
+#   prcs front end with remote execution extensions using rsh/ssh and rsync
+#
+#   $ProjectHeader: prcs 1.2-release.98 Mon, 30 Oct 2000 22:52:59 -0800 jmacd $
+#   $Id$
+#
+#
+# use:
+#
+#	rprcs subcommand [options ...] [operand ...]
+#
+#
+# assumptions and warnings
+#
+#	0. Because not all branches are mirrored, the repositories are not
+#		equal (e.g. the files could have the same RCS revisions, but
+#		still be different, because they come from a different
+#		host/repository). For the moment there is no keyword available
+#		to uniquely identify a file. Such a keyword would probably
+#		contain the repository's hostname the file came from.
+#	1. Project-Version info in project descriptor on one line
+#		and unique in the file
+#	2. Parent-Version info in project descriptor on one line
+#		and unique in the file
+#	3. dots in hostnames not escaped, could match any character in
+#		regexp's
+#	5. usage of $PRCS_REPOSITORY or $HOME/PRCS if not set
+#	6. use of side effect project.prj == project
+#	7. use of directory /tmp/.prcs at remote host
+#	8. pattern for files in project descriptor is given as
+#		no other lines in the project descriptor matches this pattern
+#	9. uses an rsync include file name <PROJECT>.rsyncincludefile
+#	10. New-Version-Log in the project descriptor must not be preceded
+#		with any other lisp statement.
+#	11. .<project>.prj is used as temporary storage
+#	12. Uses $PRCS_REPOSITORY on local side and remote side.
+#		It must be explicitly set.
+#	13. uses file with project versions to sync : <project>.ancestry
+#	14. '(Merge-Parents', '(New-Merge-Parents' on one line
+#
+# uses
+#
+#	1. bash
+#	2. sed
+#	3. (g)awk
+#	4. rsync
+#	5. prcs
+#	6. uname -n
+#	7. id -un
+#	8. wc
+#	9. grep
+#	10. cat
+#	11. uniq
+#	12. tac
+#
+
+# set rsync logging format
+
+#RSYNC_LOG_FORMAT="--log-format \"%o %h [%a] %m (%u) %f %l (%b) (%c)\""
+RSYNC_LOG_FORMAT=
+
+# set rsh command
+
+RPRCS_RSH=${RPRCS_RSH-${RSYNC_RSH-rsh}}
+
+PRCSUSER=${PRCSUSER-prcs}
+
+# set awk command
+
+AWK=gawk
+
+# if no rprcs database
+
+if [ "$RPRCS_DATABASE" = "" ]; then
+
+    # set base to default
+
+    RPRCS_DATABASE=$HOME/RPRCS
+
+    # test for existence
+
+    if [ ! -d $RPRCS_DATABASE -a ! -L $RPRCS_DATABASE ]; then
+
+	# create directory for database
+
+	mkdir 2>/dev/null $RPRCS_DATABASE
+
+	# if failed
+
+	if [ ! -d $RPRCS_DATABASE ]; then
+
+	    # give diag's
+
+	    echo "$0: Unable to find rprcs database"
+
+	    # exit failure
+
+	    exit 1
+	fi
+
+	# give diag's
+
+	echo "$0: Created rprcs database $RPRCS_DATABASE"
+    fi
+fi
+
+# set file with branch mappings for client
+
+HOSTSFILE=hosts.txt
+
+# update mapping file
+
+touch 2>/dev/null $RPRCS_DATABASE/$HOSTSFILE
+
+# test for existence of mapping file
+
+if [ ! -f $RPRCS_DATABASE/$HOSTSFILE ]; then
+
+    # give diagnostics
+
+    echo "Unable to find host/branch mapping file"
+
+    # exit failure
+
+    exit 1
+fi
+
+# set file with branch descriptions for server
+
+BRANCHFILE=branches.txt
+
+# set file with user information
+
+USERFILE=users.txt
+
+# set prcs user on remote side
+
+#
+# function to acquire a lock on a branch, create tmp subdirs for project/branch
+#
+# $1: PRCSHOST
+# $2: PROJECT
+# $3: PROJECTMAJOR
+# $4: raw lock file contents
+#
+
+AcquireLock ()
+{
+    # create temp. dir at remote host for checkout
+
+    $RPRCS_RSH -l $PRCSUSER $1 "mkdir 2>/dev/null /tmp/.prcs ; mkdir 2>/dev/null /tmp/.prcs/$2 ; mkdir 2>/dev/null /tmp/.prcs/$2/$3"
+
+    # try to obtain readable lock with given contents
+
+    $RPRCS_RSH -l $PRCSUSER $1 "( umask 377 ; echo >/tmp/.prcs/$2/$3.lock \"$4\" )"
+
+    # if lock file has given contents
+
+    if [ "`$RPRCS_RSH -l $PRCSUSER $1 cat /tmp/.prcs/$2/$3.lock`" = "$4" ]; then
+
+	#echo "lock match : $4"
+	#$RPRCS_RSH -l $PRCSUSER $1 cat /tmp/.prcs/$2/$3.lock
+
+	# return success
+
+	return 0
+
+    # else
+
+    else
+
+	#echo "locking failed"
+
+	# return failure
+
+	return 1
+    fi
+}
+
+
+#
+# function to release a lock on a branch
+#
+# $1: PRCSHOST
+# $2: PROJECT
+# $3: PROJECTMAJOR
+# $4: lock file contents
+#
+
+ReleaseLock ()
+{
+    # if lock file has given contents
+
+    if [ "`$RPRCS_RSH -l $PRCSUSER $1 cat /tmp/.prcs/$2/$3.lock`" = "$4" ]; then
+
+	# remove the lock
+
+	$RPRCS_RSH -l $PRCSUSER $1 rm -f /tmp/.prcs/$2/$3.lock
+
+	# return success
+
+	return 0
+
+    # else
+
+    else
+
+	# give diag's
+
+	echo "$0: Lock file has changed, some operations may have failed."
+
+	# return failure
+
+	return 1
+    fi
+}
+
+
+#
+# copy files section from project descriptor to seperate file
+#
+# $1: PROJECT.prj
+# $2: PROJECT.files
+#
+
+function FilesSectionCopy ()
+{
+    # copy all files entries
+
+    #! don't mess up the order of regexp's
+
+    #! assumes all file entries are enclosed between '^(Files' and '^)$'
+
+    $AWK <$1 >$2 '
+		    BEGIN { x = 0 }
+		    /^\)$/ { x = 0 }
+		    { if (x) print $0 }
+		    /^\(Files/ { x = 1 }
+		'
+
+}
+
+
+#
+# merge RCS revisions from files section from project descriptor
+#
+# $1: local files section
+# $2: remote files section
+# $3: PROJECT.prj
+#
+
+function FilesSectionMerge ()
+{
+    # awk
+
+    $AWK '
+	# begin section
+
+	BEGIN {
+
+	    # while lines from local files section
+
+	    while ((getline < ARGV[1]) > 0)
+	    {
+		# if line like file description
+
+		if ($0 ~ /^[[:space:]]*\([^(]*\([^[:space:]]*[[:space:]]*[^[:space:]]*[[:space:]]*[^)]*\)[[:space:]]*\)[[:space:]]*$/)
+		{
+		    # put file description in files array
+
+		    files[$1]=$0
+		}
+	    }
+
+	    # while lines from project descriptor
+
+	    while ((getline < ARGV[3]) > 0)
+	    {
+		# if line like beginning of files section
+
+		if ($0 ~ /^\(Files/)
+		{
+		    # print line to output
+
+		    print $0
+
+		    # break reading loop
+
+		    break
+		}
+
+		# else
+
+		else
+		{
+		    # print line to output
+
+		    print
+		}
+	    }
+
+	    # while lines from remote files section
+
+	    while ((getline < ARGV[2]) > 0)
+	    {
+		# if line like file description
+
+		if ($0 ~ /^[[:space:]]*\([^(]*\([^[:space:]]*[[:space:]]*[^[:space:]]*[[:space:]]*[^)]*\)[[:space:]]*\)[[:space:]]*$/)
+		{
+		    # if file present in files array
+
+		    if (files[$1] != "")
+		    {
+			# output old file description
+
+			print files[$1]
+		    }
+
+		    # else
+
+		    else
+		    {
+			# output file with empty internal file family
+
+			print "  ", $1, " () )"
+		    }
+		}
+
+		# else
+
+		else
+		{
+		    # output line without file description
+
+		    print $0
+		}
+	    }
+
+	    # while lines from project descriptor
+
+	    while ((getline < ARGV[3]) > 0)
+	    {
+		# if line is terminating file section
+
+		if ($0 ~ /^\)$/)
+		{
+		    # print line to output
+
+		    print $0
+
+		    # break reading loop
+
+		    break
+		}
+	    }
+
+	    # while lines from project descriptor
+
+	    while ((getline < ARGV[3]) > 0)
+	    {
+		# print line to output
+
+		print $0
+	    }
+
+	    #! I had to use a double quote instead of a single quote
+	    #! to prevent bash from misinterpretation when copying and pasting
+	    #! this function into an xterm window.
+	    #! I would expect that a single quote in a comment would be
+	    #! ignored
+
+	    # unset args so they won"t be read by awk
+
+	    ARGV[1]="" ;
+	    ARGV[2]="" ;
+	    ARGV[3]="" ;
+	}
+	' \
+	$1 $2 $3
+}
+
+
+#
+# check permission on branch : new branch permission
+#
+# $1: PRCSHOST
+# $2: PROJECT
+# $3: PROJECTMAJOR
+#
+
+function HasBranchPermission ()
+{
+    local branchline
+    local branchperm
+
+    # get permission line for this project/branch from server site
+
+    branchline=`$RPRCS_RSH -l $PRCSUSER $1 "grep \"[[:space:]]$2[[:space:]]\" \\\${PRCS_REPOSITORY-\\\$HOME/PRCS}/$BRANCHFILE | grep \"[[:space:]]$3[[:space:]]\"" | grep "^\`id -un\`@\`uname -n\`"`
+
+    # get permissions
+
+    branchperm=`echo $branchline | cut -f 5 -d " "`
+
+    # if no branch permission
+
+    if [ "`echo $branchperm | grep b`" = "" ]; then
+
+	# give diag's
+
+	echo "$0: You don't have branch permission on branch $3"
+
+	# return failure
+
+	return 1
+
+    # else
+
+    else
+
+	# return success
+
+	return 1
+    fi
+}
+
+
+#
+# check permission repo : create new project
+#
+# $1: PRCSHOST
+# $2: USER
+# $3: HOST
+#
+
+function HasProjectPermission ()
+{
+    local userline
+    local userperm
+
+    #echo $RPRCS_RSH -l $PRCSUSER $1 "grep $2@$3 \\\$PRCS_REPOSITORY/$USERFILE"
+
+    # get permission line for user
+
+    userline=`$RPRCS_RSH -l $PRCSUSER $1 "grep $2@$3 \\\${PRCS_REPOSITORY-\\\$HOME/PRCS}/$USERFILE"`
+
+    #echo "userline=$userline"
+
+    # get permissions
+
+    userperm=`echo $userline | cut -f 2 -d " "`
+
+    #echo "userperm=$userperm"
+
+    # if no creation permission
+
+    if [ "`echo $userperm | grep c`" = "" ]; then
+
+	# give diag's
+
+	echo "$0: You ($2@$3) don't have permission to create projects"
+
+	# return failure
+
+	return 1
+
+    # else
+
+    else
+
+	# return success
+
+	return 0
+    fi
+}
+
+
+#
+# check permission on branch : read permission
+#
+# $1: PRCSHOST
+# $2: PROJECT
+# $3: PROJECTMAJOR
+#
+
+function HasReadPermission ()
+{
+    local branchline
+    local branchperm
+
+    # get permission line for this project/branch from server site
+
+    #! \\\$PRCS_REPOSITORY is repository at remote site
+    #! perhaps better to put the thing between single quotes ?
+
+    branchline=`$RPRCS_RSH -l $PRCSUSER $1 "grep \"[[:space:]]$2[[:space:]]\" \\\${PRCS_REPOSITORY-\\\HOME/PRCS}/$BRANCHFILE | grep \"[[:space:]]$3[[:space:]]\"" | grep "^\`id -un\`@\`uname -n\`"`
+
+    # get permissions
+
+    branchperm=`echo $branchline | cut -f 5 -d " "`
+
+    # if no read permission
+
+    if [ "`echo $branchperm | grep r`" = "" ]; then
+
+	# give diag's
+
+	echo "$0: You don't have read permission to checkout branch $3"
+
+	# return failure
+
+	return 1
+
+    # else
+
+    else
+
+	# return success
+
+	return 1
+    fi
+}
+
+
+#
+# check permission on branch : write permission
+#
+# $1: PRCSHOST
+# $2: PROJECT
+# $3: PROJECTMAJOR
+#
+
+function HasWritePermission ()
+{
+    local branchline
+    local branchperm
+
+    # get permission line for this project/branch from server site
+
+    branchline=`$RPRCS_RSH -l $PRCSUSER $1 "grep \"[[:space:]]$2[[:space:]]\" \\\${PRCS_REPOSITORY-\\\$HOME/PRCS}/$BRANCHFILE | grep \"[[:space:]]$3[[:space:]]\"" | grep "^\`id -un\`@\`uname -n\`"`
+
+    # get permissions
+
+    #! for some reason the tab's from the branchfile are converted to
+    #! spaces, so we use a space as field delimiter
+
+    branchperm=`echo $branchline | cut -f 5 -d " "`
+
+    # if no write permission
+
+    if [ "`echo $branchperm | grep w`" = "" ]; then
+
+	# give diag's
+
+	echo "$0: You don't have write permission on branch $3 from $2"
+
+	# return failure
+
+	return 1
+    fi
+
+    # return success
+
+    return 0
+}
+
+
+#
+# switch Merge-Parents and New-Merge-Parents
+#
+# $1: PROJECT.prj
+#
+
+function MergeParentsSwitch ()
+{
+    # switch selected text
+
+    sed <$1 -e "s/^.Merge-Parents/(Old-Merge-Parents/g" | sed -e "s/^.New-Merge-Parents/(Merge-Parents/g" | sed >$1.parented -e "s/^.Old-Merge-Parents/(New-Merge-Parents/g" && mv $1.parented $1
+
+    # return success
+
+    return 0
+}
+
+
+#
+# get hostname from hosts file given repository, project/branch
+#
+# $1: PRCS_REPOSITORY
+# $2: PROJECT
+# $3: PROJECTMAJOR
+#
+# $PRCSHOST
+#
+
+function HostFromProjectBranch ()
+{
+    local branchline
+
+    #echo "finding in $1 : $2/$3"
+
+    # if more than one registered project/branch
+
+    #if [ "`grep \"[[:space:]]$2[[:space:]]\" $RPRCS_DATABASE/$HOSTSFILE | tee project.hosts | grep \"[[:space:]]$3[[:space:]]\" | tee branch.hosts | wc -l`" -ne "1" ]; then
+
+    if [ "`grep \"[[:space:]]$2[[:space:]]\" $RPRCS_DATABASE/$HOSTSFILE | grep \"[[:space:]]$3[[:space:]]\" | wc -l`" -ne "1" ]; then
+
+	# internal error
+
+	# give diag's
+
+	branchline="$0: Found `grep \"[[:space:]]$2[[:space:]]\" $RPRCS_DATABASE/$HOSTSFILE | grep \"[[:space:]]$3[[:space:]]\" | wc -l` sites managing $2/$3"
+
+	echo $branchline
+
+	echo "`grep \"[[:space:]]$2[[:space:]]\" $RPRCS_DATABASE/$HOSTSFILE | grep \"[[:space:]]$3[[:space:]]\"`"
+
+	# return failure
+
+	return 1
+    fi
+
+    # get line containing the branch
+
+    branchline="`grep \"[[:space:]]$2[[:space:]]\" $RPRCS_DATABASE/$HOSTSFILE | grep \"[[:space:]]$3[[:space:]]\"`"
+
+    # get the registered hostname
+
+    PRCSHOST=`echo $branchline | cut -f 1 -d " "`
+
+    # return success
+
+    return 0
+}
+
+
+#
+# start of main bash script
+#
+#
+
+# if argument count less than 1
+
+if [ "$#" -lt "1" ]; then
+
+    # give diagnostics
+
+    echo "$0: subcommand is obligatory"
+
+    # exit failure
+
+    exit 1
+fi
+
+# set prcs command from command line
+
+PRCSCOMMAND="$1"
+
+# shift arguments
+
+shift
+
+# unset prcs subcommand
+
+PRCSSUBCOMMAND=""
+
+# if repository not set
+
+if [ "$PRCS_REPOSITORY" = "" ]; then
+
+    # set to prcs default directory
+
+    PRCS_REPOSITORY=$HOME/PRCS
+fi
+
+# if we cannot read the hosts file
+
+if [ ! -r $RPRCS_DATABASE/$HOSTSFILE ]; then
+
+    # give diag's
+
+    echo "$0: $RPRCS_DATABASE/$HOSTSFILE is not readable"
+
+    # exit failure
+
+    exit 1
+fi
+
+# parse command line
+
+PRCSOPTIONS=""
+
+PARSECOMMANDLINE=1
+
+while [ $PARSECOMMANDLINE -eq 1 ]; do
+
+    # look at command argument
+
+    case $1 in
+
+	# if version option
+
+	"-r")
+
+	    # if first -r option
+
+	    if [ "$COMMANDLINEBRANCH" != "1" ]; then
+
+		# remember that -r is given
+
+		COMMANDLINEBRANCH=1
+
+		# shift arguments
+
+		shift
+
+		# get project version
+
+		PROJECTMAJOR=$1
+
+		# if project version is empty
+
+		if [ "$PROJECTMAJOR" = "" ]; then
+
+		    # give diagnostics : illegal -r use
+
+		    echo "$0: -r not followed with project version"
+
+		    # exit failure
+
+		    exit 1
+		fi
+
+		# if minor version within commandline branch
+
+		if `echo $PROJECTMAJOR | grep >/dev/null "\."` ; then
+
+		    # remember : commandline contains minor
+
+		    COMMANDLINEMINOR=1
+		fi
+
+		# shift arguments
+
+		shift
+
+	    # else
+
+	    else
+
+		# remember that second -r is given
+
+		COMMANDLINEBRANCH2=1
+
+		# shift arguments
+
+		shift
+
+		# get project version
+
+		PROJECTMAJOR2=$1
+
+		# if project version is empty
+
+		if [ "$PROJECTMAJOR2" = "" ]; then
+
+		    # give diagnostics : illegal -r use
+
+		    echo "$0: -r not followed with project version"
+
+		    # exit failure
+
+		    exit 1
+		fi
+
+		# if minor version within commandline branch
+
+		if `echo $PROJECTMAJOR2 | grep >/dev/null "\."` ; then
+
+		    # remember : commandline contains minor
+
+		    COMMANDLINEMINOR2=1
+		fi
+
+		# shift arguments
+
+		shift
+	    fi
+	;;
+
+	# if hostname option
+
+	"-h")
+
+	    # remember that -h is given
+
+	    COMMANDLINEHOST=1
+
+	    # shift arguments
+
+	    shift
+
+	    # get hostname
+
+	    PRCSHOST=$1
+
+	    # if project version is empty
+
+	    if [ "$PRCSHOST" = "" ]; then
+
+		# give diagnostics : illegal -h use
+
+		echo "$0: -h not followed with hostname"
+
+		# exit failure
+
+		exit 1
+	    fi
+
+	    # shift arguments
+
+	    shift
+	;;
+
+	# normal prcs options
+
+	-d | -f | -i | -k | -l | -L | -n | -N | -q | -p | -P | --plain-format | --pre | -s | -u | -v | -z )
+
+	    PRCSOPTIONS="$PRCSOPTIONS $1"
+
+	    shift
+	;;
+
+	-j | --match | --not | -R | --sort )
+
+	    PRCSOPTIONS="$PRCSOPTIONS $1 $2"
+
+	    shift
+	    shift
+	;;
+
+	# else
+
+	*)
+	    # end parsing loop
+
+	    PARSECOMMANDLINE=0
+	;;
+    esac
+done
+
+
+# if project branch var empty
+
+if [ "$PROJECTMAJOR" = "" ]; then
+
+    # try to get project branch from project descriptor
+
+    PROJECTMAJOR=`grep 2>/dev/null "Project-Version" *.prj | cut -d " " -f 3`
+
+    # if project branch is empty
+
+    if [ "$PROJECTMAJOR" = "" ]; then
+
+	#t try to get the default major version from the repository
+	#t only if hostname already set
+	#t get it with -l option
+	#t | cut off all unwanted fields
+	#t | sort on field of branch
+	#t | grep of fields starting with number
+	#t | tail last line
+
+	# give diag's
+
+	echo "$0: getting default branch from repository is not yet implemented"
+
+	# exit failure
+
+	exit 1
+    fi
+fi
+
+# if major project version contains dots
+
+if echo $PROJECTMAJOR | grep >/dev/null "\." ; then
+
+    # get major/minor version from major version
+
+    # this depends on greedy regex operations and backreferences,
+    # I don't know if this works the same on all different versions of sed
+
+    PROJECTMINOR=`echo "$PROJECTMAJOR" | sed -e "s/\(.*\)\.\(.*\)/\2/"`
+    PROJECTMAJOR=`echo "$PROJECTMAJOR" | sed -e "s/\(.*\)\.\(.*\)/\1/"`
+
+# else
+
+else
+
+    # get minor version number from project descriptor
+
+    PROJECTMINOR=`grep 2>/dev/null "Project-Version" *.prj | cut -d " " -f 4 | cut -f 1 -d ")"`
+
+    # here minor version number can be empty, perhaps this is broke for some commands
+fi
+
+# if project revision is unset
+
+if [ "$PROJECTMINOR" = "" ]; then
+
+    # unset dotted project revision
+
+    DOTTEDPROJECTMINOR=""
+
+# else
+
+else
+
+    # set dotted project minor
+
+    DOTTEDPROJECTMINOR=".$PROJECTMINOR"
+fi
+
+# set parent branch and revision as from project descriptor
+
+#! no version descriptor -> no parent version numbers, should be ok.
+
+PARENTMAJOR=`grep 2>/dev/null "Parent-Version" *.prj | cut -d " " -f 3`
+PARENTMINOR=`grep 2>/dev/null "Parent-Version" *.prj | cut -d " " -f 4 | cut -f 1 -d ")"`
+
+# if project name given on command line
+
+if [ "$1" != "" ]; then
+
+    # remember command line contains project
+
+    COMMANDLINEPROJECT=1
+
+    # set given project
+
+    PROJECT=$1
+
+    # shift arguments
+
+    shift
+
+else
+
+    # try to get project from project descriptor
+
+    PROJECT=`grep 2>/dev/null "Project-Version" *.prj | cut -d " " -f 2`
+
+    # if there is exactly one project descriptor
+
+    if [ "$PROJECT" = "" ]; then
+
+	# give diagnostics : failure
+
+	echo "$0: No project descriptor found in your working directory"
+
+	# exit failure
+
+	exit 1
+
+    # else
+
+    else
+
+	# if there are multiple project descriptors
+
+	if [ `ls *.prj | wc -w` -ne "1" ]; then
+
+	    # give diagnostics : failure
+
+	    echo "$0: Multiple project descriptors found in your working directory"
+
+	    # exit failure
+
+	    exit 1
+	fi
+    fi
+fi
+
+# get a randomnumber
+
+random=$RANDOM
+
+#
+# status should be :
+#
+#   variables filled out :
+#
+#     PRCSCOMMAND	: one of the rprcs commands
+#     PRCSUSER          : user for $RPRCS_RSH
+#     PRCSOPTIONS       : extra prcs options
+#     PROJECT		: project name (without .prj)
+#     PARENTMAJOR	: project parent branch
+#     PROJECTMAJOR	: project branch
+#     PROJECTMINOR	: project revision
+#     PROJECTMAJOR2	: project branch second -r option
+#     PROJECTMINOR2	: project revision second -r option
+#     DOTTEDPROJECTMINOR: project revision preceded by '.'
+#
+#     COMMANDLINEHOST   :
+#     COMMANDLINEPROJECT:
+#     COMMANDLINEBRANCH :
+#     COMMANDLINEMINOR  :
+#     COMMANDLINEBRANCH2:
+#     COMMANDLINEMINOR2 :
+#
+#  $* : remaining command line (file arguments)
+#
+
+# look at prcs command
+
+case $PRCSCOMMAND in
+
+    # checkin
+
+    checkin)
+
+	# give diag's
+
+	echo "$0: Doing $PRCSCOMMAND for $PROJECT on branch $PROJECTMAJOR"
+
+	# if host not set from commandline
+
+	if [ "$COMMANDLINEHOST" = "" ]; then
+
+	    # if can't get host for project branch
+
+	    if ! HostFromProjectBranch $PRCS_REPOSITORY $PROJECT $PROJECTMAJOR ; then
+
+		# exit failure
+
+		exit 1
+	    fi
+	fi
+
+	# if no lock for branch
+
+	if ! AcquireLock $PRCSHOST $PROJECT $PROJECTMAJOR `id -un`@`uname -n`"::$PPID($random)" ; then
+
+	    # give diag's
+
+	    echo "$0: could not obtain lock for $PROJECT/$PROJECTMAJOR"
+
+	    # exit failure
+
+	    exit 1
+	fi
+
+	# if this a new branch
+
+	#! prcs running on remote host
+	#! `$RPRCS_RSH | wc` running on localhost
+
+	#! never forget the minor version number for the checkouts, it lets prcs keep
+	#! track of ancestry relationships
+
+	if [ "`$RPRCS_RSH 2>/dev/null -l $PRCSUSER $PRCSHOST \"prcs 2>&1 info -fr $PROJECTMAJOR $PROJECT\" | wc -c`" -eq "0" ]; then
+
+	    # if this is a new project
+
+	    if [ "`$RPRCS_RSH 2>/dev/null -l $PRCSUSER $PRCSHOST \"prcs 2>&1 info -f $PROJECT\" | wc -c`" -eq "0" ]; then
+
+		# perform sanity test : is parent branch not "-*-"
+
+		if [ "$PARENTMAJOR" != "-*-" ]; then
+
+		    # internal error : give diagnostics
+
+		    echo "$0: Internal error, existing parent branch for prcs ($PARENTMAJOR), "
+		    echo "$0: for new project ($PROJECT)"
+
+		    # release lock project/branch
+
+		    ReleaseLock $PRCSHOST $PROJECT $PROJECTMAJOR `id -un`@`uname -n`"::$PPID($random)"
+
+		    # exit failure
+
+		    exit 1
+		fi
+
+		# if host file not on command line
+
+		if [ "$COMMANDLINEHOST" != "1" ]; then
+
+		    # give diag's
+
+		    echo "Creating new project requires host on command line"
+
+		    # release lock project/branch
+
+		    ReleaseLock $PRCSHOST $PROJECT $PROJECTMAJOR `id -un`@`uname -n`"::$PPID($random)"
+
+		    # exit failure
+
+		    exit 1
+		fi
+
+		# if user not allowed to create new projects
+
+		if ! HasProjectPermission $PRCSHOST `id -un` `uname -n` ; then
+
+		    # release lock project/branch
+
+		    ReleaseLock $PRCSHOST $PROJECT $PROJECTMAJOR `id -un`@`uname -n`"::$PPID($random)"
+
+		    # exit failure
+
+		    exit 1
+		fi
+
+		# add project to hosts file
+
+		#! do not omit the ending tab
+
+		echo >>$RPRCS_DATABASE/$HOSTSFILE "$PRCSHOST	$PROJECT	$PROJECTMAJOR	"
+
+		# add project to remote branch file
+
+		$RPRCS_RSH -l $PRCSUSER $PRCSHOST "echo >>\$PRCS_REPOSITORY/$BRANCHFILE \"`id -un`@`uname -n`	\`uname -n\`	$PROJECT	$PROJECTMAJOR	rwb\""
+
+	    # else
+
+	    else
+
+		# if user has no perm to create new branches from parent
+
+		if ! HasBranchPermission $PRCS_REPOSITORY $PROJECT $PARENTMAJOR ; then
+
+		    # release lock project/branch
+
+		    ReleaseLock $PRCSHOST $PROJECT $PROJECTMAJOR `id -un`@`uname -n`"::$PPID($random)"
+
+		    # exit failure
+
+		    exit 1
+		fi
+
+		# do checkout of parent branch in temp. dir
+
+		$RPRCS_RSH -l $PRCSUSER $PRCSHOST "cd /tmp/.prcs/$PROJECT/$PROJECTMAJOR ; prcs 2>/dev/null checkout -fr $PARENTMAJOR.$PARENTMINOR $PROJECT"
+	    fi
+
+	# else
+
+	else
+
+	    # if no write permission on branch
+
+	    if ! HasWritePermission $PRCSHOST $PROJECT $PROJECTMAJOR ; then
+
+		# release lock project/branch
+
+		ReleaseLock $PRCSHOST $PROJECT $PROJECTMAJOR `id -un`@`uname -n`"::$PPID($random)"
+
+		# exit failure
+
+		exit 1
+	    fi
+
+	    # do checkout of this branch
+
+	    $RPRCS_RSH -l $PRCSUSER $PRCSHOST "cd /tmp/.prcs/$PROJECT/$PROJECTMAJOR ; prcs 2>/dev/null checkout -fr $PROJECTMAJOR$DOTTEDPROJECTMINOR $PROJECT $*"
+	fi
+
+	#t place New-Version-Log on a line of its own in project descriptor
+	#t and user logging info in some specific format (user@host, date)
+
+	#sed <$PROJECT.prj >.$PROJECT.prj -e 's/\(^[[:space:]]*([[:space:]]*New-Version-Log[[:space:]]*"\)/\1\
+#/g'
+
+	#t add user/host info in New-Version-Log entry
+
+	# construct an rsync include file from the files section in
+	# the project descriptor
+
+	$AWK <$PROJECT.prj '
+		BEGIN { x = 0 }
+		/^[[:space:]]*\(.*[[:space:]]*\((.*\/.*[[:space:]]*[0-9.]*[[:space:]]*[0-9.]*[[:space:]]*|)\).*\)[^\n]*$/ { if (x) print $1 }
+		/^\(Files/ { x = 1 }
+		' | cut >$PROJECT.rsyncincludefile -c2-
+
+	# add the project descriptor to the files to mirror
+
+	echo >>$PROJECT.rsyncincludefile $PROJECT.prj
+
+	# run rsync on directories
+
+	rsync $RSYNC_LOG_FORMAT -e $RPRCS_RSH -r --include-from $PROJECT.rsyncincludefile --exclude \* . ${PRCSUSER}@$PRCSHOST:/tmp/.prcs/$PROJECT/$PROJECTMAJOR
+
+	# do checkin on server
+
+	$RPRCS_RSH -l $PRCSUSER $PRCSHOST "cd /tmp/.prcs/$PROJECT/$PROJECTMAJOR ; prcs checkin -fr $PROJECTMAJOR $PRCSOPTIONS $PROJECT $*"
+
+	# perform rekey on server
+
+	#$RPRCS_RSH -l $PRCSUSER $PRCSHOST "cd /tmp/.prcs/$PROJECT/$PROJECTMAJOR ; prcs -f rekey"
+
+	# do rsync on client
+
+	rsync $RSYNC_LOG_FORMAT -e $RPRCS_RSH -r --include-from $PROJECT.rsyncincludefile --exclude \* ${PRCSUSER}@$PRCSHOST:/tmp/.prcs/$PROJECT/$PROJECTMAJOR/ .
+
+	# release lock project/branch
+
+	ReleaseLock $PRCSHOST $PROJECT $PROJECTMAJOR `id -un`@`uname -n`"::$PPID($random)"
+    ;;
+
+    # checkout
+
+    checkout)
+
+	# if host not set from commandline
+
+	if [ "$COMMANDLINEHOST" = "" ]; then
+
+	    # if can't get host from given project-branch
+
+	    if ! HostFromProjectBranch $PRCS_REPOSITORY $PROJECT $PROJECTMAJOR ; then
+
+		# exit failure
+
+		exit 1
+	    fi
+	fi
+
+	# if no lock for branch
+
+	if ! AcquireLock $PRCSHOST $PROJECT $PROJECTMAJOR `id -un`@`uname -n`"::$PPID($random)" ; then
+
+	    # give diag's
+
+	    echo "$0: could not obtain lock for $PROJECT/$PROJECTMAJOR"
+
+	    # exit failure
+
+	    exit 1
+	fi
+
+	# give diag's
+
+	echo "$0: Doing $PRCSCOMMAND for $PROJECT on branch $PROJECTMAJOR at $PRCSHOST"
+
+	# remove all files from the directory
+
+	$RPRCS_RSH -l $PRCSUSER $PRCSHOST "rm 2>/dev/null -fr /tmp/.prcs/$PROJECT/$PROJECTMAJOR/* /tmp/.prcs/$PROJECT/$PROJECTMAJOR/.*"
+
+	# if project minor not set from command line
+
+	#t bad hack
+
+	if [ "$COMMANDLINEMINOR" != "1" ]; then
+
+	    # reset dotted minor to get default minor from repo
+
+	    DOTTEDPROJECTMINOR=
+	fi
+
+	# do checkout of this branch
+
+	$RPRCS_RSH -l $PRCSUSER $PRCSHOST "cd /tmp/.prcs/$PROJECT/$PROJECTMAJOR ; prcs checkout -fr $PROJECTMAJOR$DOTTEDPROJECTMINOR $PRCSOPTIONS $PROJECT $*"
+
+	#echo $PRCSHOST
+	#echo $PROJECT
+	#echo $PROJECTMAJOR
+
+	# run rsync on directories
+
+	#! this also rsyncs the .<project>.prcs_aux file
+	#! we don't need it but don't mind
+
+	rsync $RSYNC_LOG_FORMAT -e $RPRCS_RSH -r ${PRCSUSER}@$PRCSHOST:/tmp/.prcs/$PROJECT/$PROJECTMAJOR/ .
+
+	# release lock project/branch
+
+	ReleaseLock $PRCSHOST $PROJECT $PROJECTMAJOR `id -un`@`uname -n`"::$PPID($random)"
+    ;;
+
+    # for branch
+
+    branch)
+
+	#t make distinction between adding and removing branches
+
+	# if command line contains no branch
+	# or contains minor
+	# or doesn't contain project name
+
+	if [ "$COMMANDLINEBRANCH" != "1" -o "$COMMANDLINEMINOR" = "1" -o "$COMMANDLINEPROJECT" != "1" -o "$COMMANDLINEHOST" != "1" ]; then
+
+	    # give diagnostics
+
+	    echo "$0: Branching requires -r without minor version number"
+	    echo "$0: Branching requires project from command line"
+	    echo "$0: Branching requires host from command line"
+
+	    # exit faliure
+
+	    exit 1
+	fi
+
+	# if no hostname given
+
+	if [ "$PRCSHOST" = "" ]; then
+
+	    # give diagnostics
+
+	    echo "$0: branching requires host on command line"
+
+	    # exit failure
+
+	    exit 1
+	fi
+
+	# give diag's
+
+	echo "$0: Mapping branch $PROJECTMAJOR for project $PROJECT to site $PRCSHOST"
+
+	# add the branch to the hosts file
+
+	#t remove the old entries first for project/branch
+
+	#! do not forget the terminating tab
+
+	echo >>$RPRCS_DATABASE/$HOSTSFILE "$PRCSHOST		$PROJECT		$PROJECTMAJOR	"
+    ;;
+
+    # for resync
+
+    resync)
+
+	# if host not set from commandline
+
+	if [ "$COMMANDLINEHOST" = "" ]; then
+
+	    # if can't get host from given project-branch
+
+	    if ! HostFromProjectBranch $PRCS_REPOSITORY $PROJECT $PROJECTMAJOR ; then
+
+		# exit failure
+
+		exit 1
+	    fi
+	fi
+
+	# if no lock for branch
+
+	if ! AcquireLock $PRCSHOST $PROJECT $PROJECTMAJOR `id -un`@`uname -n`"::$PPID($random)" ; then
+
+	    # give diag's
+
+	    echo "$0: could not obtain lock for $PROJECT/$PROJECTMAJOR"
+
+	    # exit failure
+
+	    exit 1
+	fi
+
+	# count the number of revisions for the branch
+
+	#! to get rid of the annoying tabs produced by wc,
+	#! put between double backquotes
+
+	numberofrevisions=`echo \`$RPRCS_RSH -l $PRCSUSER $PRCSHOST "cd /tmp/.prcs/$PROJECT/$PROJECTMAJOR ; prcs 2>&1 info -fr $PROJECTMAJOR $PROJECT | wc -l"\``
+
+	# if minor version not from command line
+
+	if [ "$COMMANDLINEMINOR" != "1" ]; then
+
+	    # replace minor version with last in repo
+
+	    PROJECTMINOR=`$RPRCS_RSH -l $PRCSUSER $PRCSHOST "prcs 2>&1 info -fr $PROJECTMAJOR $PROJECT | tail -n 1 | cut -f 2 -d \" \" | cut -f 2 -d \".\""`
+
+	    echo "$0: Default minor version resolved to $PROJECTMINOR"
+	fi
+
+	# give diagnostics
+
+	echo "$0: importing branch $PROJECTMAJOR for project $PROJECT from $PRCSHOST (total of $numberofrevisions revisions for that branch)"
+	echo "$0: starting at $PROJECT $PROJECTMAJOR.$PROJECTMINOR"
+
+	# if number of revisions is bigger than 0
+
+	if [ "$numberofrevisions" -gt "0" ]; then
+
+	    # remove all files from the directory
+
+	    $RPRCS_RSH -l $PRCSUSER $PRCSHOST "rm 2>/dev/null -fr /tmp/.prcs/$PROJECT/$PROJECTMAJOR/* /tmp/.prcs/$PROJECT/$PROJECTMAJOR/.*"
+
+	    # clear file with projects to sync
+
+	    >$PROJECT.prj.ancestry
+
+	    # while project has parents
+
+	    PARENTMAJOR=$PROJECTMAJOR
+	    PARENTMINOR=$PROJECTMINOR
+	    PARENTPROJECT=$PROJECT
+
+	    while [ "$PARENTMAJOR" != "-*-" ]; do
+
+		# add the project version and revision to the projects to sync
+
+		echo >>$PROJECT.prj.ancestry "-r $PARENTMAJOR.$PARENTMINOR $PARENTPROJECT"
+
+		# checkout the project descriptor
+
+		$RPRCS_RSH -l $PRCSUSER $PRCSHOST "cd /tmp/.prcs/$PROJECT/$PROJECTMAJOR ; rm 2>/dev/null $PROJECT.prj ; prcs checkout -fr $PARENTMAJOR.$PARENTMINOR $PROJECT $PROJECT.prj"
+
+		# get parent project/branch/version from the project file
+
+		PARENTPROJECT=`$RPRCS_RSH -l $PRCSUSER $PRCSHOST "cd /tmp/.prcs/$PROJECT/$PROJECTMAJOR ; grep 2>/dev/null \"Parent-Version\" *.prj | cut -d \" \" -f 2"`
+		PARENTMAJOR=`$RPRCS_RSH -l $PRCSUSER $PRCSHOST "cd /tmp/.prcs/$PROJECT/$PROJECTMAJOR ; grep 2>/dev/null \"Parent-Version\" *.prj | cut -d \" \" -f 3"`
+		PARENTMINOR=`$RPRCS_RSH -l $PRCSUSER $PRCSHOST "cd /tmp/.prcs/$PROJECT/$PROJECTMAJOR ; grep 2>/dev/null \"Parent-Version\" *.prj | cut -d \" \" -f 4 | cut -f 1 -d \")\""`
+	    done
+
+	    # give diag's
+
+	    echo Project branch ancestry at $PRCSHOST : \(`echo \`cat $PROJECT.prj.ancestry\``\)
+	    #echo `( cat $PROJECT.prj.ancestry && prcs 2>&1 info -fr $PROJECTMAJOR $PROJECT | cut -d " " -f 2 ) | sort | uniq -u`
+
+	    # first parent is NULL version of last revision in ancestry file
+
+	    PARENTMAJOR=`tail -n 1 $PROJECT.prj.ancestry | cut -f 2 -d " "`
+	    PARENTMAJOR=`echo "$PARENTMAJOR" | sed -e "s/\(.*\)\.\(.*\)/\1/"`
+	    PARENTMINOR=0
+
+	    # create local repository entry
+
+	    prcs admin init $PROJECT.prj
+
+	    # loop over all revisions of the given branch
+
+	    projectrevision=
+
+	    for version in `tac $PROJECT.prj.ancestry`
+	    do
+		if [ "$version" != "$PROJECT" ]; then
+
+		    projectrevision="$projectrevision $version"
+
+		    continue
+		fi
+
+		#! a last time needed
+
+		projectrevision="$projectrevision $version"
+
+		# if this revision is not yet in local repo
+
+		#! all info comes on stderr, no matter if any versions match
+
+		if [ `prcs 2>&1 info -f $projectrevision | grep -v "No versions" | wc -l ` -eq 0 ]; then
+
+		    # local checkout parent project descriptor
+
+		    #echo --1
+
+		    prcs checkout -fr $PARENTMAJOR.$PARENTMINOR $PROJECT $PROJECT.prj
+
+		    # get parent project/major/minor from local project descriptor
+
+		    parentproject=`grep 2>/dev/null "Parent-Version" $PROJECT.prj | cut -d " " -f 2`
+		    parentmajor=`grep 2>/dev/null "Parent-Version" $PROJECT.prj | cut -d " " -f 3`
+		    parentminor=`grep 2>/dev/null "Parent-Version" $PROJECT.prj | cut -d " " -f 4 | cut -f 1 -d ")"`
+
+		    # copy local files section to seperate file
+
+		    FilesSectionCopy $PROJECT.prj $PROJECT.prj.localfiles
+
+		    # remove all files from remote directory
+
+		    $RPRCS_RSH -l $PRCSUSER $PRCSHOST "rm 2>/dev/null -fr /tmp/.prcs/$PROJECT/$PROJECTMAJOR/* /tmp/.prcs/$PROJECT/$PROJECTMAJOR/.*"
+
+		    # do remote checkout of current version
+
+		    #echo --2
+
+		    $RPRCS_RSH -l $PRCSUSER $PRCSHOST "cd /tmp/.prcs/$PROJECT/$PROJECTMAJOR ; prcs checkout -f $projectrevision"
+
+		    # run rsync on directories
+
+		    if [ "$RSYNC_LOG_FORMAT" != "" ]; then
+
+			rsync >$version.rsync.log $RSYNC_LOG_FORMAT -e $RPRCS_RSH -r ${PRCSUSER}@$PRCSHOST:/tmp/.prcs/$PROJECT/$PROJECTMAJOR/ .
+
+		    else
+
+			rsync -e $RPRCS_RSH -r ${PRCSUSER}@$PRCSHOST:/tmp/.prcs/$PROJECT/$PROJECTMAJOR/ .
+
+		    fi
+
+		    # remove the aux. file
+
+		    rm 2>/dev/null .$PROJECT.prcs_aux
+
+		    # copy remote files section to seperate file
+
+		    FilesSectionCopy $PROJECT.prj $PROJECT.prj.remotefiles
+
+		    # merge RCS revisions from local files into project descriptor
+
+		    FilesSectionMerge >$PROJECT.prj.merged $PROJECT.prj.localfiles $PROJECT.prj.remotefiles $PROJECT.prj && mv $PROJECT.prj.merged $PROJECT.prj
+
+		    # replace Merge-Parents with New-Merge-Parents and vice versa
+
+		    MergeParentsSwitch $PROJECT.prj
+
+		    #t get all New-Merge-Parents entries from descriptor
+		    #t mkdir /tmp/$PPID
+		    #t ( cd /tmp/$PPID ; rprcs resync $mergedparent $PROJECT )
+
+		    # get project major/minor from remote checked out revision
+
+		    #! [0-9][0-9]* should be equivalent to [0-9]+ , but that didn't work
+
+		    projectmajor=`echo "$projectrevision" | sed -e "s/ -r \(.*\)\.\([0-9][0-9]*\).*$PROJECT/\1/"`
+		    projectminor=`echo "$projectrevision" | sed -e "s/ -r \(.*\)\.\([0-9][0-9]*\).*$PROJECT/\2/"`
+
+		    echo "version : ($projectrevision)"
+		    #echo "major   : ($projectmajor)"
+		    #echo "minor   : ($projectminor)"
+
+		    # update branch/minor in project descriptor to parent revision
+
+		    #echo "replacing 'Project-Version $PROJECT $projectmajor $projectminor' with 'Project-Version $PROJECT $PARENTMAJOR $PARENTMINOR'"
+
+		    sed <$PROJECT.prj >$PROJECT.prj.sed -e "s/Project-Version[[:space:]][[:space:]]*$PROJECT[[:space:]][[:space:]]*$projectmajor[[:space:]][[:space:]]*$projectminor/Project-Version $PROJECT $PARENTMAJOR $PARENTMINOR/g" && mv $PROJECT.prj.sed $PROJECT.prj
+
+		    # update parent project/branch/minor in project descriptor
+
+		    #echo "replacing 'Parent-Version $PROJECT $PARENTMAJOR $PARENTMINOR' with 'Parent-Version $PROJECT $parentmajor $parentminor'"
+
+		    #sed <$PROJECT.prj >$PROJECT.prj.sed -e "s/Parent-Version[[:space:]][[:space:]]*$PROJECT[[:space:]][[:space:]]*$PARENTMAJOR[[:space:]][[:space:]]*$PARENTMINOR/Parent-Version $PROJECT $parentmajor $parentminor/g" && mv $PROJECT.prj.sed $PROJECT.prj
+
+		    # checkin current version in local repo
+
+		    #echo --3
+
+		    #t if a host name is given on the command line, we could
+		    #t do 'rprcs checkin -h $hostname -r $projectmajor'
+
+		    prcs checkin -fr $projectmajor
+
+		    # remember current branch/revision as parent branch/revision
+
+		    PARENTMAJOR=$projectmajor
+		    PARENTMINOR=$projectminor
+
+		else
+
+		    # get project major/minor from remote checked out revision
+
+		    projectmajor=`echo "$projectrevision" | sed -e "s/ -r \(.*\)\.\([0-9][0-9]*\).*$PROJECT/\1/"`
+		    projectminor=`echo "$projectrevision" | sed -e "s/ -r \(.*\)\.\([0-9][0-9]*\).*$PROJECT/\2/"`
+
+		    # remember current branch/revision as parent branch/revision
+
+		    PARENTMAJOR=$projectmajor
+		    PARENTMINOR=$projectminor
+
+		    #t here is the place to do a consistency check : no diffs
+		    #t between remote and local version
+
+		    # give info : already in local repo
+
+		    echo "($projectrevision) already in local repository"
+
+		fi
+
+		projectrevision=
+
+	    done
+	fi
+
+	# release lock project/branch
+
+	ReleaseLock $PRCSHOST $PROJECT $PROJECTMAJOR `id -un`@`uname -n`"::$PPID($random)"
+    ;;
+
+    # init
+
+    init)
+
+	# add project to rprcs project list
+
+	echo "$0: init for project $PROJECT"
+    ;;
+
+    # populate
+
+    populate)
+
+	# populate with local prcs
+
+	echo "$0: populate for project $PROJECT"
+
+	prcs populate $PRCSOPTIONS $PROJECT $*
+    ;;
+
+    # depopulate
+
+    depopulate)
+
+	# depopulate with local prcs
+
+	echo "$0: depopulate for project $PROJECT"
+
+	prcs depopulate $PRCSOPTIONS $PROJECT $*
+    ;;
+
+    # merge
+
+    merge)
+
+	# resync remote branches
+
+	# merge with local prcs
+
+	echo "$0: merge for project $PROJECT"
+
+	echo "Not yet implemented"
+    ;;
+
+    # info
+
+    info)
+
+	# give info on local branches
+
+	echo "$0: info for project $PROJECT"
+
+	# if host not set from commandline
+
+	if [ "$COMMANDLINEHOST" = "" ]; then
+
+	    # if can't get host from given project-branch
+
+	    if ! HostFromProjectBranch $PRCS_REPOSITORY $PROJECT $PROJECTMAJOR ; then
+
+		# exit failure
+
+		exit 1
+	    fi
+	fi
+
+	# give info on remote site repo
+
+	$RPRCS_RSH -l $PRCSUSER $PRCSHOST "prcs info -f $PRCSOPTIONS $PROJECT $*"
+    ;;
+
+    # status
+
+    help)
+
+	# give diag's
+
+	echo "$0: prcs front end with extensions to maintain remote branches"
+	echo "$0: to get info on prcs visit http://www.xcf.berkeley.edu/"
+    ;;
+
+    # all other cases
+
+    *)
+
+	# give diagnostics : usage
+
+	echo "$0: Usage: $0 <command>"
+	echo
+	echo "where command is one of (you gave $PRCSCOMMAND)"
+	echo "		checkin"
+	echo "		checkout"
+	echo "		help"
+	echo "		resync"
+	echo "		init"
+	echo "		info"
+	echo "		populate"
+	echo "		populate"
+	echo "		branch"
+	exit 1
+    ;;
+esac

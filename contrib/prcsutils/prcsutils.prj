@@ -1,0 +1,89 @@
+;; -*- Prcs -*-
+(Created-By-Prcs-Version 1 2 16)
+(Project-Description "A number of prcs related utilities.")
+(Project-Version prcsutils 0 15)
+(Parent-Version prcsutils 0 14)
+(Version-Log "
+	1. Added README file.
+")
+(New-Version-Log 
+"")
+(Checkin-Time "Thu, 25 Oct 2001 17:49:00 +0200")
+(Checkin-Login hugo)
+(Populate-Ignore ("~$" "\\.o$" "core$" "\\.emacs\\.desktop" "\\.a$"
+		  "\\.gz$" "Templates.DB"
+		  "obsolete" "\\.deps" "\\(\\(^#\\)\\|\\(/#\\)\\).*#$"))
+(Project-Keywords)
+(Files
+;; This is a comment.  Fill in files here.
+;; For example:  (prcs/checkout.cc ())
+
+;; Files added by populate at Fri, 11 May 2001 17:49:47 +0200,
+;; to version 0.0(w), by hugo:
+
+  (prcspatch2 (prcsutils/0_prcspatch2 1.4 775))
+  (prcspatch (prcsutils/1_prcspatch 1.4 775))
+  (prcsfind (prcsutils/2_prcsfind 1.2 775))
+
+;; Files added by populate at Fri, 11 May 2001 18:02:05 +0200,
+;; to version 0.0(w), by hugo:
+
+  (visualtree/prcs_tree_draw (prcsutils/3_prcs_tree_ 1.1 755))
+  (visualtree/prcs_tree2.pl (prcsutils/4_prcs_tree2 1.2 775))
+  (visualtree/prcs_tree.pl (prcsutils/5_prcs_tree. 1.1 755))
+  (visualtree/README (prcsutils/6_README 1.1 644))
+  (prcsstatus (prcsutils/7_prcsstatus 1.1 755))
+  (prcs_checkfiles (prcsutils/8_prcs_check 1.1 755))
+  (pfe-1.0/tre (prcsutils/9_tre 1.1 755))
+  (pfe-1.0/vertree (prcsutils/10_vertree 1.1 755))
+  (pfe-1.0/README.txt (prcsutils/11_README.txt 1.1 644))
+  (pfe-1.0/LICENSE.txt (prcsutils/12_LICENSE.tx 1.1 644))
+  (pfe-1.0/versiontree/versiontree.init (prcsutils/13_versiontre 1.1 644))
+  (pfe-1.0/versiontree/VersionTree.tea (prcsutils/14_VersionTre 1.1 644))
+  (pfe-1.0/versiontree/VersionMgr.tea (prcsutils/15_VersionMgr 1.1 644))
+  (pfe-1.0/versiontree/TreeNode.tea (prcsutils/16_TreeNode.t 1.1 644))
+  (pfe-1.0/versiontree/TODO (prcsutils/17_TODO 1.1 644))
+  (pfe-1.0/versiontree/Snapshot.tea (prcsutils/18_Snapshot.t 1.1 644))
+  (pfe-1.0/versiontree/SelectedVersionListener.tea (prcsutils/19_SelectedVe 1.1 644))
+  (pfe-1.0/versiontree/Rectangle.tea (prcsutils/20_Rectangle. 1.1 644))
+  (pfe-1.0/versiontree/Point.tea (prcsutils/21_Point.tea 1.1 644))
+  (pfe-1.0/versiontree/GridMgr.tea (prcsutils/22_GridMgr.te 1.1 644))
+  (pfe-1.0/versiontree/GridItem.tea (prcsutils/23_GridItem.t 1.1 644))
+  (pfe-1.0/versiontree/GridCell.tea (prcsutils/24_GridCell.t 1.1 644))
+  (pfe-1.0/versiontree/Connector.tea (prcsutils/25_Connector. 1.1 644))
+  (pfe-1.0/versiontree/Circle.tea (prcsutils/26_Circle.tea 1.1 644))
+  (pfe-1.0/versiontree/Branch.tea (prcsutils/27_Branch.tea 1.1 644))
+  (pfe-1.0/versiontree/BBox.tea (prcsutils/28_BBox.tea 1.1 644))
+  (pfe-1.0/doc/index.html (prcsutils/29_index.html 1.1 644))
+  (pfe-1.0/doc/announcement.txt (prcsutils/30_announceme 1.1 644))
+  (pfe-1.0/doc/images/tubatree.gif (prcsutils/31_tubatree.g 1.1 644) :no-keywords)
+  (pfe-1.0/doc/images/sagetree.gif (prcsutils/32_sagetree.g 1.1 644) :no-keywords)
+  (pfe-1.0/vertree.pot (prcsutils/33_vertree.po 1.1 644) :no-keywords)
+
+;; Files added by populate at Fri, 11 May 2001 18:40:04 +0200,
+;; to version 0.0(w), by hugo:
+
+  (visualtree/prcs_tree_info.pl (prcsutils/34_prcs_tree_ 1.7 775))
+
+;; Files added by populate at Tue, 29 May 2001 08:42:26 +0200,
+;; to version 0.1(w), by hugo:
+
+  (prcsbranches (prcsutils/35_prcsbranch 1.2 755))
+
+;; Files added by populate at Fri, 22 Jun 2001 23:23:43 +0200,
+;; to version 0.2(w), by hugo:
+
+  (prcsguess (prcsutils/36_prcsguess 1.3 775))
+
+;; Files added by populate at Fri, 22 Jun 2001 23:45:08 +0200,
+;; to version 0.2(w), by hugo:
+
+  (prcsentry (prcsutils/37_prcsentry 1.3 775))
+
+;; Files added by populate at Thu, 25 Oct 2001 17:28:42 +0200,
+;; to version 0.14(w), by hugo:
+
+  (README (prcsutils/38_README 1.1 664))
+)
+(Merge-Parents)
+(New-Merge-Parents)

@@ -1,0 +1,23 @@
+package versiontree
+
+class Point {
+  private tclint x_
+  private tclint y_
+  
+  Point {x y} {
+    set x_ $x
+    set y_ $y
+  }
+  
+  tclint getX {} {
+    return $x_
+  }
+  
+  tclint getY {} {
+    return $y_
+  }
+  
+  tclint getPoint {} {
+    return [list $x_ $y_]
+  }
+}

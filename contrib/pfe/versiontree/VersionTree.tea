@@ -1,0 +1,320 @@
+package versiontree
+
+public class VersionTree {
+  static objref GridMgr gridmgr
+  static objref VersionMgr vermgr
+  static tclbool shortform
+  static tclbool warnings 1
+  static tclbool quiet
+  static public tclstring selitem "(None)"
+  
+  public static void main {args} {
+    # parse arguments
+    parseArgs $args
+    
+    # create the version manager
+    set vermgr [new VersionMgr]
+    
+    # parse version information
+    parseVersions
+    
+    # display the tree
+    #::puts "time to output tree: [time {outputTree}]"
+    outputTree
+    
+    tkwait window .
+  }
+  
+  # overload the puts command
+  static void puts {msg} {
+    if { $quiet } {
+      return
+    }
+
+    if { [string range $msg 0 7] == "Warning:" && $warnings == 0 } {
+      return
+    }
+
+    ::puts $msg
+  }
+  
+  private static void parseArgs {argv} {
+    for {set argc 0} {[string match -* [lindex $argv $argc]]} {incr argc} {
+      switch -exact -- [lindex $argv $argc] {
+        -version -
+        -V {
+          puts "VersionTree v1.0"
+          exit 0
+        }
+        
+        -s { set shortform 1 }
+        
+        -w { set warnings 0 }
+        
+        -q { set quiet 1 }
+      }
+    }
+  }
+  
+  private static void parseVersions {} {
+    global env
+    
+    if { ! [info exists env(FAKEPRCS)] } {
+      # find out what the project name is
+      set projfile [glob -nocomplain *.prj]
+      if { [llength $projfile] != 1 } {
+        puts "Error: no project file or more than one"
+        exit 1
+      }
+
+      set proj [file rootname [lindex $projfile 0]]
+
+      puts "reading PRCS info..."
+
+      set f [open "|prcs info -l --sort date" r]
+      set buf [read $f]
+      close $f
+
+      puts "parsing PRCS info..."
+
+      tclstring version
+      tcllist parents
+
+      foreach line [split $buf "\n"] {
+        if { [string match "$proj *" $line] } {
+          set newversion [lindex $line 1]
+
+          # double check to make sure it is a real version line
+          if { ! [regexp {^.*\.[0-9]+$} $newversion] } continue
+
+          if { $version != "" } {
+            # take care of the previous one
+            $vermgr addVersion $version $parents
+            set version ""
+            set parents {}
+          }
+
+          set version $newversion
+        } elseif { [string match "Parent-Version:*" $line] } {
+          lappend parents [lindex $line 1]
+        }
+      }
+
+      # flush the last entry
+      if { $version != "" } {
+        $vermgr addVersion $version $parents
+      }
+    } else {
+      puts "Creating fake version information..."
+      $vermgr addVersion 1.0.1 {}
+      $vermgr addVersion 1.0.2 {1.0.1}
+      $vermgr addVersion feature.1 {1.0.2}
+      $vermgr addVersion feature.2 {feature.1}
+      $vermgr addVersion feature.3 {feature.2}
+      $vermgr addVersion feature2.1 {1.0.2}
+      $vermgr addVersion feature2.2 {feature2.1}
+      $vermgr addVersion 1.0.3 {1.0.2 feature.1}
+      $vermgr addVersion 1.0.5 {1.0.4 feature2.2}
+      $vermgr addVersion 1.0.6 {1.0.5}
+      $vermgr addVersion 2.0.1 {1.0.4.1}
+    }
+  }
+  
+  private static void outputTree {} {
+  
+    puts "Building tree..."
+    
+    # create our version selected listener
+    objref VersionListener listener [new VersionListener]
+    
+    set f [frame .extra]
+    pack $f -pady 5 -fill x -expand no
+
+    label $f.l1 -text "Current selected item:"
+    label $f.l2 -text "" -textvariable [teafield $listener selitem]
+    button $f.b1 -text "Print" -command "$this printcmd"
+    button $f.b2 -text "Exit" -command "destroy ."
+
+    pack $f.l1 -side left -anchor w
+    pack $f.l2 -side left -anchor w
+    pack $f.b2 -side right -anchor e
+    pack $f.b1 -side right -anchor e -padx 30
+    
+    # first create the canvas
+    frame .grid
+    pack .grid -expand yes -fill both -padx 3 -pady 3
+    
+    grid rowconfig    .grid 0 -weight 1 -minsize 0
+    grid columnconfig .grid 0 -weight 1 -minsize 0
+
+    set c [canvas .c -scrollregion {0c 0c 250c 120c} -height 15c -width 15c\
+	-xscrollcommand ".hscroll set" \
+	-yscrollcommand ".vscroll set" \
+        -background #f0f0f0 -borderwidth 2 -relief solid]
+
+    scrollbar .hscroll -orient horiz -command "$c xview"
+    scrollbar .vscroll -command "$c yview"
+    
+    grid .c -padx 4 -in .grid -pady 4 -row 0 -column 0 -sticky news
+    grid .vscroll -in .grid -padx 1 -pady 1 -row 0 -column 1 -sticky news
+    grid .hscroll -in .grid -padx 1 -pady 1 -row 1 -column 0 -sticky news
+
+    # create the grid manager
+    set gridmgr [new GridMgr $c]
+    
+    # add listener to the grid mgr's listener list
+    $gridmgr addListener $listener
+    
+    # now let's traverse the tree
+    set col -1
+    foreach orphan [$vermgr getOrphans] {
+      traverse $orphan $col 0
+      set col [$gridmgr getLastCol]
+    }
+    
+    # handle the merge arrows
+    foreach orphan [$vermgr getOrphans] {
+      if { $orphan != "null" } {
+        traverseMerges $orphan
+      }
+    }
+    
+    # now tell the gridmgr to draw all his grid items now that the arrows
+    # and lines are in place
+    $gridmgr drawAllItems
+    
+    # readjust the scroll region
+    #set canvsize [$gridmgr getSize]
+    #.c configure -scrollregion [list 0c 0c [lindex $canvsize 0] [lindex $canvsize 1]]
+    .c configure -scrollregion [.c bbox all]
+  }
+  
+  private static GridItem traverse {Branch.br tclint.col tclint.row} {
+    # bump up the grid column number
+    incr col
+    
+    # ask the grid manager for a chunk big enough for this branch
+    $gridmgr need [$br getDepth] col row
+
+    objref GridItem rci
+    objref GridItem i
+    tclbool first 1
+    
+    set rci [$gridmgr addItem Rectangle $col $row $br]
+    $rci setText [$br getName]
+    
+    objref Snapshot ss
+    
+    tcllist children [$br getChildren]
+    tclint count [llength $children]
+    tclint j
+    foreach ss $children {
+      incr j
+
+      # if this snapshot has no references, then don't bother outputting it
+      # but do it if it is the last one
+      if { $shortform && [$ss getReferences] == 0 && $j != $count } {
+        continue
+      }
+      
+      incr row
+      set i [$gridmgr addItem Circle $col $row $ss]
+      $i setText [$ss getNum]
+      
+      # add the grid item to the version manager
+      $vermgr mapGridItem [$ss getName] $i
+      
+      # now traverse over this snapshot
+      traverse $i $ss $col $row
+      
+      if { $first } {
+        # connect to the feature branch box
+        $gridmgr addConnector $rci $i
+        set first 0
+      }
+      
+    }
+    
+    return $rci
+  }
+  
+  private static void traverse {GridItem.i Snapshot.ss tclint.col tclint.row} {
+    objref Branch br
+    objref GridItem pi
+
+    # take care of vertical parent connection
+    objref Snapshot vparent [$ss getVParent]
+    if { $vparent != "null" } {
+      set pi [$vermgr getGridItem [$vparent getName]]
+      if { $pi == "null" } {
+        # don't output this if the short form is being used
+        #puts "Warning: no grid item for [$vparent getName]"
+      } {
+        $gridmgr addConnector $pi $i
+      }
+    }
+    
+    # do the horizontal branches
+    foreach br [$ss getBranches] {
+      set bi [traverse $br $col $row]
+      $gridmgr addConnector $i $bi
+      
+      incr col
+      incr row
+    }
+    
+  }
+  
+  private static void traverseMerges {Branch.br} {
+    objref Snapshot ss
+    
+    foreach ss [$br getChildren] {
+      objref GridItem si [$vermgr getGridItem [$ss getName]]
+      if { $si == "null" && [$ss getMergeParents] != "" } {
+        puts "Warning: version [$ss getName] doesn't seem to have a grid item"
+        continue
+      }
+
+      # handle merge arrows
+      objref Snapshot mp
+      foreach mp [$ss getMergeParents] {
+        set pi [$vermgr getGridItem [$mp getName]]
+        if { $pi == "null" } {
+          puts "Warning: no grid item for merge parent [$mp getName] merging to [$ss getName]"
+        } {
+          $gridmgr addConnector $pi $si 1
+        }
+      }
+      
+      # do any branches we may have
+      foreach ssbr [$ss getBranches] {
+        traverseMerges $ssbr
+      }
+    }
+  }
+  
+  public static void printcmd {} {
+    $gridmgr print
+  }
+}
+
+class VersionListener implements SelectedVersionListener {
+  public tclstring selitem "(None)"
+  
+  void snapshotSelected {Snapshot.selected} {
+    set selitem "Version [$selected getName]"
+  }
+  
+  void snapshotUnSelected {Snapshot.selected} {
+    set selitem "(None)"
+  }
+
+  void branchSelected {Branch.selected} {
+    set selitem "Branch [$selected getName]"
+  }
+  
+  void branchUnSelected {Branch.selected} {
+    set selitem "(None)"
+  }
+  
+}

@@ -1,0 +1,251 @@
+# --------
+#
+# example usage:
+#	This example shows how to interact with a correctly setup remote 
+#	repository. The merge at the end is done with a local repository
+#	and is not (yet) possible with remote repositories (the resync
+#	operation is just a first step towards this).
+#	The checkin and checkout operations are functional.
+#
+# map two branches bar,foo from project foobar to a remote site
+# add a file 'foobar' to the project
+# at branch bar add some lines at the end
+# at branch foo delete some lines
+# (modifications done such that no conflicts are generated during merge)
+# synchronize branches with local repo
+# merge branches
+#
+# Actions performed in this order
+#
+# --------
+#
+# 1. map two branches to a remote site
+#	in this example the remote sites are localhost and multicad.uia.ac.be
+#	this means that the two sites are both local (same machine)
+#	this should give no difference, but not tested for a while
+#
+#	the first action automatically sets up ~/RPRCS as local mapping 
+#	database
+#
+
+<prcsuser@multicad> ~ $ rprcs branch -r bar -h localhost foobar
+/home/prcsuser/bin/rprcs: Created rprcs database /home/prcsuser/RPRCS
+/home/prcsuser/bin/rprcs: Mapping branch bar for project foobar to site localhost
+<prcsuser@multicad> ~ $ rprcs branch -r foo -h multicad.uia.ac.be foobar
+/home/prcsuser/bin/rprcs: Mapping branch foo for project foobar to site multicad.uia.ac.be
+
+# --------
+#
+# 2. check out a mapped branch at the remote site
+#	the remote branch didn't exist yet, it is created
+#
+
+<prcsuser@multicad> ~ $ rprcs checkout -r bar foobar
+/home/prcsuser/bin/rprcs: Doing checkout for foobar on branch bar at localhost
+cat prcs: Project not found in repository, initial checkout.
+prcs: You may now edit the file `foobar.prj'.
+
+# --------
+#
+# 3. add a file to the project and do a checkin on branch bar
+#	rprcs populate is the same prcs populate
+#
+
+<prcsuser@multicad> ~ $ cat >foobar
+line 1
+line 2
+line 3
+line 4
+line 5
+<prcsuser@multicad> ~ $ rprcs checkin
+/home/prcsuser/bin/rprcs: Doing checkin for foobar on branch bar
+prcs: Created repository entry `foobar'.
+prcs: Checking in project `foobar' version bar.1.
+prcs: No modifications were found.  Aborting checkin.
+<prcsuser@multicad> ~ $ rprcs populate foobar foobar
+/home/prcsuser/bin/rprcs: populate for project foobar
+prcs: One file was added.
+<prcsuser@multicad> ~ $ rprcs checkin
+/home/prcsuser/bin/rprcs: Doing checkin for foobar on branch bar
+prcs: Checking in project `foobar' version bar.1.
+
+# --------
+#
+# 4. edit the file and do checkin on branch foo
+#	two lines deleted
+#
+
+<prcsuser@multicad> ~ $ cat >foobar
+line 1
+line 3
+line 5
+<prcsuser@multicad> ~ $ rprcs checkin -r foo
+/home/prcsuser/bin/rprcs: Doing checkin for foobar on branch foo
+prcs: No previous major version named `foo'.  Creating.
+prcs: Checking in project `foobar' version foo.1.
+
+# --------
+#
+# 5. edit the file and do checkin on branch foo
+#	one more line delete
+#
+
+<prcsuser@multicad> ~ $ cat >foobar
+line 1
+line 5
+<prcsuser@multicad> ~ $ rprcs checkin
+/home/prcsuser/bin/rprcs: Doing checkin for foobar on branch foo
+prcs: Checking in project `foobar' version foo.2.
+
+# --------
+#
+# 6. modifications on branch bar
+#	three lines appended
+#
+
+<prcsuser@multicad> ~ $ rprcs checkout -r bar
+/home/prcsuser/bin/rprcs: Doing checkout for foobar on branch bar at localhost
+prcs: Checkout project `foobar' version bar.1.
+<prcsuser@multicad> ~ $ cat foobar 
+line 1
+line 2
+line 3
+line 4
+line 5
+<prcsuser@multicad> ~ $ cat >>foobar
+line 6
+line 7
+line 8
+<prcsuser@multicad> ~ $ cat foobar
+line 1
+line 2
+line 3
+line 4
+line 5
+line 6
+line 7
+line 8
+<prcsuser@multicad> ~ $ rprcs checkin
+/home/prcsuser/bin/rprcs: Doing checkin for foobar on branch bar
+prcs: Checking in project `foobar' version bar.2.
+
+# --------
+#
+# 7. resync branches bar with the local repo
+#
+
+<prcsuser@multicad> ~ $ rprcs resync -r bar foobar
+/home/prcsuser/bin/rprcs: Default minor version resolved to 2
+/home/prcsuser/bin/rprcs: importing branch bar for project foobar from localhost (total of 2 revisions for that branch)
+/home/prcsuser/bin/rprcs: starting at foobar bar.2
+prcs: Checkout project `foobar' version bar.2.
+prcs: Checkout project `foobar' version bar.1.
+Project branch ancestry at localhost : (-r bar.2 foobar -r bar.1 foobar)
+prcs: Created repository `/home/prcsuser/PRCS', you may wish to run `prcs admin access' to set its permissions.
+prcs: Created repository entry `foobar'.
+prcs: Repository entry owner:  prcsuser
+prcs: Repository entry group:  prcsuser
+prcs: Repository entry access: 
+prcs: Owner:                   read/write
+prcs: Group:                   read/write
+prcs: Other:                   read only
+prcs: Project file `foobar.prj' already exists.  Replacing.
+prcs: You may now edit the file `foobar.prj'.
+prcs: Checkout project `foobar' version bar.1.
+version : ( -r bar.1 foobar)
+prcs: Checking in project `foobar' version bar.1.
+prcs: Checkout project `foobar' version bar.1.
+prcs: Project file `foobar.prj' already exists.  Replacing.
+prcs: Checkout project `foobar' version bar.2.
+version : ( -r bar.2 foobar)
+prcs: Checking in project `foobar' version bar.2.
+
+# --------
+#
+# 8. resync branch foo with the local repo
+#	ancestry has one version at branch bar, that is just skipped
+#
+
+<prcsuser@multicad> ~ $ rprcs resync -r foo foobar
+/home/prcsuser/bin/rprcs: Default minor version resolved to 2
+/home/prcsuser/bin/rprcs: importing branch foo for project foobar from multicad.uia.ac.be (total of 2 revisions for that branch)
+/home/prcsuser/bin/rprcs: starting at foobar foo.2
+prcs: Checkout project `foobar' version foo.2.
+prcs: Checkout project `foobar' version foo.1.
+prcs: Checkout project `foobar' version bar.1.
+Project branch ancestry at multicad.uia.ac.be : (-r foo.2 foobar -r foo.1 foobar -r bar.1 foobar)
+prcs: Repository entry owner:  prcsuser
+prcs: Repository entry group:  prcsuser
+prcs: Repository entry access: 
+prcs: Owner:                   read/write
+prcs: Group:                   read/write
+prcs: Other:                   read only
+( -r bar.1 foobar) already in local repository
+prcs: Checkout project `foobar' version bar.1.
+prcs: Project file `foobar.prj' already exists.  Replacing.
+prcs: Checkout project `foobar' version foo.1.
+version : ( -r foo.1 foobar)
+prcs: No previous major version named `foo'.  Creating.
+prcs: Checking in project `foobar' version foo.1.
+prcs: Checkout project `foobar' version foo.1.
+prcs: Project file `foobar.prj' already exists.  Replacing.
+prcs: Checkout project `foobar' version foo.2.
+version : ( -r foo.2 foobar)
+prcs: Checking in project `foobar' version foo.2.
+
+# --------
+#
+# 9. checkout bar from local repo
+#
+
+<prcsuser@multicad> ~ $ prcs checkout -r bar foobar
+prcs: Checkout project `foobar' version bar.2.
+Project file `foobar.prj' already exists.  Replace(nyq?)[y] 
+File `foobar' differs.  Replace(nyq!?)[y] 
+<prcsuser@multicad> ~ $ cat foobar
+line 1
+line 2
+line 3
+line 4
+line 5
+line 6
+line 7
+line 8
+
+# --------
+#
+# 10. merge with branch foo
+#
+
+<prcsuser@multicad> ~ $ prcs merge -r foo
+prcs: Working version:  bar.2(w)
+prcs: Common version:   bar.1
+prcs: Selected version: foo.2
+prcs: *** Action on file `foobar'
+prcs: Choose an action on file `foobar' for rule 2: All three files exist and are different in each version.
+Please select(dnmrhvq!?)[m] 
+prcs: Merge file `foobar' by rule 2
+prcs: Merge against version foo.2 complete.
+
+# --------
+#
+# 11. check contents, checkin (on branch bar)
+#
+
+<prcsuser@multicad> ~ $ cat foobar
+line 1
+line 5
+line 6
+line 7
+line 8
+<prcsuser@multicad> ~ $ prcs checkin
+prcs: Checking in project `foobar' version bar.3.
+
+# --------
+#
+# 12. use xemacs to copy/paste this xterm window's contents and decorate it 
+#	with some comments
+#
+
+<prcsuser@multicad> ~ $ xemacs rprcs_session.log
+<prcsuser@multicad> ~ $ 

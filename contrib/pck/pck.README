@@ -1,0 +1,252 @@
+
+pck == Patch Control Kludge
+
+pck works on patchsets and patches, where a patchset is a simple
+grouping of patches for distribution, and a patch is defined by a
+tag and its id in source control.
+
+Tags are names to help us remember a patch, they should be unique 
+across the whole project, but they are required to be unique across a given 
+patchset.
+
+pck uses an XML file as the backend for remembering the patchset
+groupings and the tag->id mapping.  XML::Twig is used to process the XML.
+
+pck commands:
+
+All of these take the XML filename as an argument in --file.  The default
+file is PRCS_REPOSITORY/patch.info
+
+In general --patch can take either a prcs revision id, or pck tag name. 
+It tries to find a tag first, and if that fails assumes you've provided an id.
+
+I'm using the perl Getopt::Long package for the args, so -- and - both
+work.  Also, you can shorten the option name as long as perl can still
+figure out which option you mean.  So, -p is ambiguous, -pat is --patch.
+
+For most commands, the default option is -patch.  So:
+pck add -set foo -patch 0.54 is the same as
+pck add -set foo 0.54
+
+--
+pck create -project name [-file file]
+
+Creates the XML file and does initial setup, only one project name is 
+allowed per file.
+
+--
+pck add --set name
+
+Creates a patchset, example: "pck add -set 2.4.12"
+
+pck add --set name --patch name --id num [--before patch ] [ --after patch ]
+
+Creates a patch in a patch set.  Examples:
+
+pck add -set 2.4.12 -patch reiserfs-quota-1 -id 4.2
+
+Puts a patch tagged reiserfs-quota-1 into patchset 2.4.12.  Marks it
+as having prcs revision 4.2, and polls prcs for the parent id number.
+
+pck add -set 2.4.12 -patch 4.2
+
+Puts a patch into patchset 2.4.12, polls prcs for the version log of
+revision 4.2, and uses the log as the tag.  Since the version log
+in this case was reiserfs-quota-1, this does the same as the first add
+command.  If the first word in your version log is surrounded by 
+colons, that word alone is used as the tag.  In other words:
+
+(New-Version-Log ":reiserfs-quota-2: fix i_blocks counting bug")
+
+When pck add polls prcs, it will use reiserfs-quota-2 as the patch tag.
+
+pck add -set 2.4.12 -patch 4.1 --before 4.2
+
+Checks prcs for the details on patch 4.1, and puts the new item before
+the record for 4.2.
+
+pck add -set 2.4.12 -patch 4.1 --before reiserfs-quota-1
+
+Same as above. The pck after command works the same way.
+
+pck add -set 2.4.12 -patch 4.1 --after reiserfs-quota-1
+--
+
+Copy is used to copy and existing patch in one patchset to another
+patchset.  -before and -after work just like they do in pck add.
+
+pck copy -set dest_set -patch src_patch [-before patch] [-after patch]
+
+Examples:
+
+pck add -set 2.4.13 # new kernel release, copy pending patches
+pck copy -set 2.4.13 -patch reiserfs-quota-1
+pck copy -set 2.4.13 -patch 4.1 -before reiserfs-quota-1
+
+--
+pck remove -set name [-patch name]
+
+removes either a full patchset or a single patch from the specified
+patchset.  Does not change the prcs repository at all.
+
+pck remove -set 2.4.12
+pck remove -set 2.4.13 -patch reiserfs-quota-1
+pck remove -set 2.4.13 -patch 4.1
+
+--
+pck apply -patch name [-branch id] [-destset name]
+pck apply -set name [-patch name] [-branch id] [-destset name]
+
+apply has prcs make a diff, and apply it to the repository in your
+working directory, checking in each patch as it goes.
+
+There are two forms of apply because you can apply a patch without knowing
+the patchset name.  You can use the tag if there are no other tags with
+matching names but different ids.  You can always use the id, since
+prcs gives us unique ids.
+
+The branch option tells prcs to use a different branch than the default
+when checking the patches in.
+
+pck apply -patch reiserfs-quota-1
+pck apply -patch 4.2
+pck apply -set 2.4.13 -patch 4.2
+
+All 3 of the above do the same thing.  So does this, but it uses major
+version 10 as the destination:
+
+pck apply -patch 4.2 -branch 10
+
+pck apply -set 2.4.13 -branch 10
+
+The above will apply every patch in patchset 2.4.13, using branch
+10 as the destination.  The destset option can be used to add the newly
+checked in revision into the XML file.  It adds a "-w" onto the end of
+the tag name so the tags won't conflict.  If there were failed hunks during
+the apply, and you continued, it adds a "-mod" because it assumes you've
+changed the original patch.
+
+pck apply -set 2.4.13 -branch 10 -destset 2.4.15
+
+--
+pck diff -patch name [-inc name [-parentid id]]
+pck diff -set name [ -patch name [-inc name [-parentid id] [-checkin] [-branch]]]
+pck diff -patch name [-compound name ... [-parentid id]]
+pck diff -set name [ -patch name [-compound name ... [-parentid id]]]
+
+This generates a diff of the specified patch or patchset.
+
+The diff command will also lookup a patch without knowing the patchset. It
+works the same way pck apply does there.  If you use "workingdir" as the
+name of a patch, -inc and -comp use the diff of the working directory
+against its parent.
+
+pck diff -patch reiserfs-quota-1
+pck diff -patch 4.1
+pck diff -set 2.4.13 -patch reiserfs-quota-1
+
+pck diff can generate incremental and compound diffs.  To
+demonstrate incremental diffs, pretend your repository has a revision for
+2.4.11-pre6, and 2.4.11-pre7 comes out.  You'd like to see what has changed:
+
+prcs diff -patch 2.4.11-pre6 -inc patch-2.4.11-pre7
+
+(where patch-2.4.11-pre7 is a file with Linus' diff).  This will:
+
+Compile a list of the files changed in both 2.4.11-pre6 and 2.4.11-pre7
+
+Checkout only those files from the parent of 2.4.11-pre6, or from the 
+specified parent rev on the command line.  Then copy to a second directory.
+
+Apply the patch from parent->2.4.11-pre6 to the first working directory,
+and apply the patch supplied on the command line to the second working
+dir.
+
+diff the two working directories.
+
+Cleanup.
+--
+
+Now, it's nice to get a diff between 2.4.11-pre6 and 2.4.11-pre7, but it
+would be even better to be able to checkin 2.4.11-pre7 without having
+to first checkout the entire linux source tree:
+
+pck diff -patch 2.4.11-pre6 -inc patch-2.4.11-pre7 -checkin
+
+The above will do all of the steps for -inc, but instead of making a diff
+it will:
+
+figure out which files are new and deleted, then feed them to 
+prcs populate and prcs depopulate.
+
+Prompt the user for a version log.
+
+Check in the second working directory, optionally to the specified branch.
+
+Note, this will also checkin 2.4.11-pre7, but be faster since it doesn't
+waste time making a diff between 2.4.11-pre6 and its parent.
+
+pck diff -patch 2.4.10 -parent 2.4.10 -inc patch-2.4.11-pre7 -checkin
+--
+
+Compound diffs are for when you make small changes to an existing revision,
+and want to send out a patch containing the original rev and the new
+changes.  For example, a bug was found in reiserfs-quota-1, and you
+want to distribute a new all inclusive patch called reiserfs-quota-2.
+
+pck diff -patch reiserfs-quota-1 -compound bug_fix#1 -compound bug_fix#2
+
+-compound can be specified more than once.  Each rev or tag will be
+applied to make the compound diff.
+
+-compound can also be used to diff a whole patchset:
+
+pck diff -set quota -compound
+
+The above will combine all of the patches in the patchset named quota, making
+or checking in a single diff for the group.
+
+To generate the new diff, pck will:
+
+Build a single patch with all changes appended together, and build a list
+of the affected files.
+
+Checkout the affected files from the parent of the first patch, or the 
+parentid supplied, then make a copy to a second directory.
+
+Apply the big patch to one of the directories.
+
+Diff the two directories.
+
+Cleanup.
+--
+pck diff -compound can also checkin the resulting compound patch.  --checkin
+works the same way it does for pck diff -inc.
+
+--
+pck list [ -set name ] [ -patch name ]
+
+Lists a single patch, a whole patchset, or everything in the file.
+pck list
+pck list -set 2.4.13
+pck list -set 2.4.13 -patch reiserfs-quota-1
+pck list -patch reiserfs-quota-1
+
+--
+pck edit
+
+Brings up $EDITOR (or vi by default), and lets you change the
+XML directly.  Use with care.
+
+--
+pck checkout [-set patchset] -patch name
+
+Wrapper for prcs checkout.  This translates the patch tag into a prcs id,
+and runs prcs checkout for you.
+
+--
+pck info [-set patchset] -patch name
+
+Wrapper for prcs info.  This translates the patch tag into a prcs id,
+and runs prcs info for you.
+

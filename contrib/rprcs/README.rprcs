@@ -1,0 +1,97 @@
+
+rprcs readme
+
+
+1. intro
+
+This readme is a quicky to get you going.
+rprcs is a front end for prcs that uses rsh and rsync to communicate with
+a remote site and do prcs's checkins and checkouts at the remote site.
+For the moment rprcs is one shell script that manages all related files,
+there is no real client and server as e.g. in prcs2. The site that
+manages the repo is still called the server and the site that the user
+is working on is still called the client.
+
+
+2. installation
+
+at the server site you need :
+
+prcs, rsync, various GNU utils like (g)awk, sed
+
+at the client site you need :
+
+rprcs, prcs, rsync, various GNU utils like (g)awk, sed, grep, uniq, cat,
+id, uname, tac, ...
+
+
+All things are tested on a Redhat60 out of the box.
+prcs: Version 1.2.14
+rsync version 2.2.1  protocol version 19
+
+I don't know if I used specific bash things, if you want to be sure, use bash
+instead of sh.
+
+
+2.1 install at server
+
+At the remote site create a user called prcs, no password required.
+Allow access via rsh to this user for foreign users with .rhosts file or
+whatever. (I'm not really familiar with rsh, I know .rhosts is a security
+leak, but I don't know any other way.) A sample .rhosts file might be :
+
+***********************************************************************
+UPDATE: With release 1.2.16, rprcs is patched to use SSH and the user
+named $PRCSUSER.
+***********************************************************************
+
+localhost prcsuser
+heining.bbf.uia.ac.be hugo
+
+This file allows from the localhost user 'prcsuser' and from
+heining.bbf.uia.ac.be user 'hugo' to execute commands via rsh. (The .hosts
+file should be created in the home directory of the newly created user prcs.
+It should be readable and writable by prcs itself, but not by anyone else.)
+
+Setup a repository for user prcs : setup $PRCS_REPOSITORY somewhere in the
+init script (.bashrc, .bash_profile) such that it points to a valid directory.
+In the repository directory create a userfile like this one :
+
+# user permission file
+#
+# user@host                     permissions
+#                               c create projects
+#
+prcsuser@localhost              c
+prcsuser@multicad.uia.ac.be     c
+
+In the repository directory create a branch file like this :
+
+#
+#               Server permission file
+#
+# user@host                     hostname                project         branch          operations
+# host must be fully            branch owner                                            read : read access
+# qualified hostname                                                                    write : checkin newer versions
+#                                                                                       branch : derive branches
+hugo@multicad.uia.ac.be         localhost               genesis         HC23a           rwb
+prcsuser@localhost              localhost               bash            0               rwb
+prcsuser@multicad.uia.ac.be     localhost               bash            0               rwb
+hugo@multicad.uia.ac.be         localhost               bash            0               r
+prcsuser@multicad.uia.ac.be     multicad.uia.ac.be      rash    1       rwb
+prcsuser@multicad.uia.ac.be     multicad.uia.ac.be      foobar          foo             rw
+prcsuser@multicad.uia.ac.be     localhost               foobar          bar             rwb
+
+(Fill in some valid entries of your own)
+
+
+2.2 install at client
+
+copy rprcs to a directory somewhere in the $PATH var, install all other utils
+that are needed. Map branches to remote sites in the file ~/RPRCS/hosts.txt.
+It should look something like this :
+
+localhost               	foobar          bar
+multicad.uia.ac.be              foobar          foo
+
+You can also map branches via rprcs itself. Take a look at the sample session.

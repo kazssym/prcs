@@ -1,0 +1,15 @@
+Some useful PRCS utilities.  Keith Owens <kaos@ocs.com.au>.  PRCS is
+a source control system, ftp://ftp.xcf.berkeley.edu/pub/prcs.
+
+prcs_checkfiles         Compares the files and directories in a project
+                        against the .prj file.  Useful to verify that
+                        the ignore list is not too broad.
+
+prcs_tree.pl            Read the output from prcs info -l and generate
+                        input to xvcg to visualize the graph.  vcg is at
+                        ftp://ftp.cs.uni-sb.de/pub/graphics/vcg/vcg.1.30.r3.17.tgz.
+
+prcs_tree_draw          Quick and dirty shell script which takes a
+                        project name, optional start and end version
+                        numbers, extracts the prcs info -l data, runs
+                        prcs_tree.pl and calls xvcg on the result.

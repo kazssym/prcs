@@ -1,0 +1,181 @@
+package versiontree
+
+class Rectangle implements GridItem {
+  private tclstring canv_
+  private tclstring id_
+  private objref GridCell cell_
+  private tclstring textid_
+  private objref TreeNode treeNode_
+  
+  # the defined bounding box
+  private objref BBox defbox_
+
+  # the actual bounding box
+  private objref BBox actbox_
+  
+  # a font we create
+  static private tclstring font_ {[font create -family Courier -size 10]}
+  
+  static {
+    # create a font to use
+    #set font_ [font create -family Courier -size 8]
+  }
+  
+  Rectangle {GridCell.cell TreeNode.treeNode} {
+    set cell_ $cell
+    set treeNode_ $treeNode
+    
+    set canv_ [$cell getCanvas]
+
+    objref BBox bbox [$cell getBBox]
+    foreach {x1 y1 x2 y2} [$bbox getCoords] {}
+    
+    # shrink the cell box down some
+    incr x1 3
+    incr x2 -3
+    incr y1 25
+    incr y2 -25
+    
+    if { [$treeNode isGhost] } {
+      set color grey
+      set bg white
+      set tag GHOSTGRIDITEM
+    } {
+      set color black
+      set bg SlateGray1
+      set tag GRIDITEM
+    }
+
+    # and put a rectangle around that
+    set id_ [$canv_ create rectangle $x1 $y1 $x2 $y2 -outline $color -tags $tag -fill $bg -width 2]
+    
+    # map the id with the grid mgr
+    set gridmgr [$cell getGridMgr]
+    $gridmgr mapGridItem $this $id_
+        
+    # get the actual bounding box
+    set actbox_ [new BBox [$canv_ coords $id_]]
+  }
+  
+  void select {} {
+    $canv_ itemconfig $id_ -outline red
+  }
+  
+  void unselect {} {
+    $canv_ itemconfig $id_ -outline black
+  }
+  
+  GridCell getCell {} {
+    return $cell_
+  }
+  
+  void setText {tclstring.text} {
+    if { [$treeNode_ isGhost] } {
+      set color grey
+    } {
+      set color black
+    }
+    
+    eval [$cell_ getCanvas] create text [[getCenter] getPoint] -text [list $text] -font $font_ -tags GRIDITEM -fill $color
+  }
+  
+  Point getCenter {} {
+    foreach {x1 y1 x2 y2} [$actbox_ getCoords] {}
+
+    set x [expr {$x1 + (($x2 - $x1)/2)}]
+    set y [expr {$y1 + (($y2 - $y1)/2)}]
+    return [new Point $x $y]
+  }
+  
+  Point getNorth {} {
+    foreach {x1 y1 x2 y2} [$actbox_ getCoords] {}
+
+    # get the x coord, which is half the distance between x1 and x2
+    set x [expr {$x1 + (($x2 - $x1) / 2)}]
+
+    # the y coord is the top of the box
+    set y $y1
+
+    return [new Point $x $y]
+  }
+
+  Point getNorthEast {} {
+    set eastpoint [getEast]
+    set northpoint [getNorth]
+    
+    foreach {ex ey} [$eastpoint getPoint] {}
+    foreach {nx ny} [$northpoint getPoint] {} 
+
+    return [new Point $ex $ny]
+  }
+  
+  Point getNorthWest {} {
+    set westpoint [getWest]
+    set northpoint [getNorth]
+    
+    foreach {wx wy} [$westpoint getPoint] {}
+    foreach {nx ny} [$northpoint getPoint] {} 
+
+    return [new Point $wx $ny]
+  }
+    
+  Point getSouth {} {
+    foreach {x1 y1 x2 y2} [$actbox_ getCoords] {}
+
+    # get the x coord, which is half the distance between x1 and x2
+    set x [expr {$x1 + (($x2 - $x1) / 2)}]
+
+    # the y coord is the bottom of the box
+    set y $y2
+
+    return [new Point $x $y]
+  }
+  
+  Point getSouthEast {} {
+    set eastpoint [getEast]
+    set southpoint [getSouth]
+    
+    foreach {ex ey} [$eastpoint getPoint] {}
+    foreach {sx sy} [$southpoint getPoint] {} 
+
+    return [new Point $ex $sy]
+  }
+  
+  Point getSouthWest {} {
+    set westpoint [getWest]
+    set southpoint [getSouth]
+    
+    foreach {wx wy} [$westpoint getPoint] {}
+    foreach {sx sy} [$southpoint getPoint] {} 
+
+    return [new Point $wx $sy]
+  }
+  
+  Point getEast {} {
+    foreach {x1 y1 x2 y2} [$actbox_ getCoords] {}
+
+    # the x coord is the right side of the oval
+    set x $x2
+
+    # get the y coord, which is half the distance between y1 and y2
+    set y [expr {$y1 + (($y2 - $y1) / 2)}]
+
+    return [new Point $x $y]
+  }
+  
+  Point getWest {} {
+    foreach {x1 y1 x2 y2} [$actbox_ getCoords] {}
+
+    # the x coord is the left side of the oval
+    set x $x1
+
+    # get the y coord, which is half the distance between y1 and y2
+    set y [expr {$y1 + (($y2 - $y1) / 2)}]
+
+    return [new Point $x $y]
+  }
+  
+  TreeNode getTreeNode {} {
+    return $treeNode_
+  }
+}

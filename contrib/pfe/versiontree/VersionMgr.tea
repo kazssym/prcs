@@ -1,0 +1,178 @@
+package versiontree
+
+class VersionMgr {
+  # root of mainline
+  #private Branch root_
+  
+  # list of orphan branches whose parents no longer exist
+  private tcllist orphans_
+  
+  # feature branch name to Branch objref mapping
+  private tclarray FBmap_
+  
+  # version name to Snapshot objref mapping
+  private tclarray SSmap_
+  
+  # version name to GridItem objref mapping
+  private tclarray GImap_
+  
+  VersionMgr {} {
+  }
+  
+#   # this method defines what constitutes a mainline version.
+#   # for me, a mainline version is one where all the major
+#   # and minor numbers are digits, and the number of dots
+#   # in the version is 2.
+#   private tclbool onMainline {tclstring.version} {
+#     return [regexp {^[0-9]+\.[0-9]+\.[0-9]+$} $version]
+#   }
+  
+  # add a version to the tree. if the snapshot number
+  # of the version is 1, then it is a branch (could be
+  # a branch on the mainline, though).
+  Snapshot addVersion {tclstring.version tcllist.parents {tclbool.ghost 0}} {
+    objref Branch br
+    
+    # all versions have a snapshot number, so pluck it off
+    set ss [string range [file extension $version] 1 end]
+    set brname [file rootname $version]
+    set br [getBranch $brname]
+    
+    # create the branch if it doesn't already exist
+    if { $br == "null" } {
+      # create the feature branch
+      set br [new Branch $brname $ghost]
+      
+      # map this entry
+      set FBmap_($brname) $br
+    }
+
+    # create the Snapshot object
+    set s [new Snapshot $version $ghost]
+
+    # map the entry
+    set SSmap_($version) $s
+
+    # add the snapshot to the branch
+    $br addChild $s
+    
+    set valid [addParents $s $parents]
+    
+    if { $valid == 0 } {
+      # uh oh, no parents. He's an orphan
+      # don't print out a warning if the mainline list is empty
+      # because this is probably the root
+      if { [llength $orphans_] != 0 } {
+        VersionTree puts "Warning: version $version has no valid parents; tree may be disjoint"
+      }
+      
+      # stick him on the orphan list
+      if { [lsearch -exact $orphans_ $br] == -1 } {
+        lappend orphans_ $br
+      }
+    }
+    
+    return $s
+  }
+  
+  # this adds a parent version to a child version. If the
+  # parent doesn't have the same root, it is considered a
+  # merge, unless it's on the mainline.
+  # returns the number of valid parents (ones that actually
+  # exist)
+  tclint addParents {Snapshot.child tcllist.parents} {
+    set childversion [$child getName]
+    set childbranchname [file rootname $childversion]
+    set childnum [$child getNum]
+    tclint valid
+    tclbool ghost
+    
+    foreach parent $parents {
+      set ghost 0
+      
+      # if we use prcs info --sort date, we are guaranteed
+      # that the parent version has already been processed
+      # and exists in our map.
+      objref Snapshot po [getSnapshot $parent]
+
+      # but we need to handle the possibility that the parent
+      # has since been deleted and no longer exists
+      if { $po == "null" } {
+        # we'll have to create a ghost version
+        set po [addVersion $parent {} 1]
+        set ghost 1
+      }
+
+      # is it a merge parent or a branch?
+      if { $childbranchname != [file rootname $parent] } {
+        # branches occur on ss 1
+        if { $childnum == 1 } {
+          # get the Branch object
+          objref Branch br [getBranch $childbranchname]
+
+          $po addBranch $br
+          incr valid
+        } else {
+          # the parent is from a merge. add the parent to the
+          # child's merge parents list
+          $child addMergeParent $po
+          
+          # let the parent know he's a parent so he can update
+          # his reference count
+          $po addMergeChild $child
+          
+          # this is a valid parent only if it was not a ghost
+          if { ! $ghost } {
+            incr valid
+          }
+        }
+      } else {
+        # the child is a vertical branch (a snapshot increment)
+        $child setVParent $po
+        incr valid
+      }
+    }
+    
+    return $valid
+  }
+  
+  Branch getRoot {} {
+    return [lindex $orphans_ 0]
+  }
+  
+  tcllist getOrphans {} {
+    return $orphans_
+  }
+  
+  void mapGridItem {tclstring.version GridItem.i} {
+    set GImap_($version) $i
+  }
+  
+  void mapSnapshot {tclstring.version Snapshot.s} {
+    set SSmap_($version) $s
+  }
+  
+  GridItem getGridItem {tclstring.version} {
+    if { [info exists GImap_($version)] } {
+      return $GImap_($version)
+    } {
+      return null
+    }
+  }
+  
+  Snapshot getSnapshot {tclstring.version} {
+    if { [info exists SSmap_($version)] } {
+      return $SSmap_($version)
+    } {
+      return null
+    }
+  }
+  
+  Branch getBranch {tclsrting.version} {
+    if { [info exists FBmap_($version)] } {
+      return $FBmap_($version)
+    } {
+      return null
+    }
+  }
+}

@@ -1,0 +1,108 @@
+-*- outline -*-
+
+The code in this directory was contributed by Hugo Cornelis
+<hugo@bbf.uia.ac.be>.
+
+prcsutils package :
+-------------------
+
+Some utilities to be used in combination with prcs.
+
+* prcspatch :
+create a patch file ignoring the project descriptor.
+patch file is generated from diffs for working project
+and goes to stdout.
+
+
+* prcspatch2 :
+create a patch file for project given on command line and
+two revisions given on command line.
+patch file contains differences between given revisions
+and is named after project and the two revisions.
+
+log message can be given after '-m' option which must
+be the first option on the command line.
+if no '-m', log message is Version-Log from second version
+The log message is present in the header of the patch file.
+
+
+* prcsfind :
+should be used in combination with emacs's 'M-x grep'
+replace the 'grep -n' command with a call to prcsfind
+
+
+* prcsbranches :
+display the different branch names of a project.
+usage : $0 <project> or simply $0 when a .prj file is in cd.
+
+
+* prcsguess :
+Tries to guess the project in a certain directory.
+result on stdout, return 1 if no successfull guess
+could be done, 2 in case of trouble.
+
+
+* prcsentry :
+give the contents of an entry of the project descriptor
+usage : $0 <entryname>
+$ prcsentry Project-Description
+"A number of prcs related utilities."
+
+* prcsstatus :
+gives info about the status of files in a project
+
+
+* prcs_checkfiles : also written by Keith Owens ?
+Check the file list in the prcs project file with the files
+(not directories) in the current source tree.  Double checks
+the populate-ignore list.
+
+
+* visualization :
+
+** visualtree/README : the original README file for prcs_tree.pl
+** visualtree/prcs_tree.pl : unmodified ?
+** visualtree/prcs_tree2.pl : some bug fixes
+Use prcs_tree_info.pl instead of the above.
+
+** visualtree/prcs_tree_info.pl :
+Read the output from "prcs info -l project" and plot the relationship
+between versions.  Output is commands for "VCG tool -
+visualization of compiler graphs" by Iris Lemke, Georg Sander,
+and the Compare Consortium.
+
+Typical use :-
+prcs info -l project > /var/tmp/$$a
+prcs_tree_info.pl < /var/tmp/$$a > /var/tmp/$$b
+xvcg /var/tmp/$$b
+rm /var/tmp/$$[ab]
+
+You can also use different branches to check how they depend
+on each other.  This example assumes a couple of branches starting
+with 'EDS', a couple of branches starting with 'HC', asks info
+and feeds the output to xvcg.  Versions that are merged into the
+'EDS*' or 'HC*', have a single node to show this, but don't have
+any node information.
+
+( prcs info -l --plain-format -r "EDS*" genesis.prj \
+	&& prcs info -l --plain-format -r "HC*" genesis.prj ) \
+| /genesis/prcs_support/visualtree/prcs_tree_info.pl \
+| /other/vcg/vcg.1.30/src/xvcg -
+
+The info1 field of the nodes is used for the version logs.
+Perhaps the info2 field could be used for date.
+
+** visualtree/prcs_tree_draw :
+automated use of visualtree/prcs_tree.pl.
+Given a project name, a start version and an end version, plot
+the prcs tree.  Project is required.  Start version defaults to
+first.  End version defaults to last.
+
+
+
+
+Note that most of these utils fall under GPL (except for pfe).
+
+
+I hope they will be usefull.  I will probably continue their development,
+but at a very slow pace.

@@ -1,0 +1,21 @@
+TODOs for v2:
+
+* speed up grid manager somehow
+* store descriptions in branches and ss; be able to select branches or
+  ss and perform operations on them:
+  + see description
+  + delete version/branch
+  + merge
+* rewrite in ceylon
+* customizations:
+  + selected/unselected colors for ss, branch boxes, and lines
+  + ghost item color
+  + fonts for feature boxes, snapshots
+  + printer stuff
+    - page size
+    - destination
+    - orientation
+    - pageanchor/offsets
+  + tree spread. the larger the number, the more vertical it will be (the d
+    is GridMgr.need {})
+  + cell size

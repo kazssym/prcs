@@ -1,0 +1,50 @@
+package versiontree
+
+class Branch implements TreeNode {
+  private tclstring name_
+  # array of Snapshot objects, indexed by the ss number
+  private tclarray children_
+  private tclstring description_
+  private tclbool ghost_
+  
+  Branch {tclstring.name tclbool.ghost} {
+    set name_ $name
+    set ghost_ $ghost
+  }
+  
+  void addChild {Snapshot.ss} {
+    set n [$ss getNum]
+    set children_($n) $ss
+  }
+  
+  tclbool isGhost {} {
+    return $ghost_
+  }
+  
+  tclstring getName {} {
+    return $name_
+  }
+  
+  tcllist getChildren {} {
+    tcllist rclist
+    
+    foreach n [lsort -integer [array names children_]] {
+      lappend rclist $children_($n)
+    }
+    
+    return $rclist
+  }
+  
+  void setDescription {tclstring.text} {
+    set description_ $text
+  }
+  
+  tclstring getDescription {} {
+    return $description_
+  }
+  
+  tclint getDepth {} {
+    return [expr {[array size children_] + 1}]
+  }
+}
+

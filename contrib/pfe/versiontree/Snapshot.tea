@@ -1,0 +1,71 @@
+package versiontree
+
+class Snapshot implements TreeNode {
+  private tclstring version_
+  private tclbool ghost_
+  private objref Snapshot vparent_
+  private tcllist branches_
+  private tcllist mergeParents_
+  private tclstring description_
+  private tclint references_
+  
+  Snapshot {tclstring.version tclbool.ghost} {
+    set version_ $version
+    set ghost_ $ghost
+  }
+  
+  void addBranch {Branch.b} {
+    lappend branches_ $b
+    incr references_
+  }
+  
+  void addMergeParent {Snapshot.parent} {
+    lappend mergeParents_ $parent
+    incr references_
+  }
+  
+  void addMergeChild {Snapshot.child} {
+    # just up our reference count
+    incr references_
+  }
+  
+  void setVParent {Snapshot.parent} {
+    set vparent_ $parent
+  }
+  
+  tclbool isGhost {} {
+    return $ghost_
+  }
+  
+  tclint getReferences {} {
+    return $references_
+  }
+  
+  tclint getNum {} {
+    return [string range [file extension $version_] 1 end]
+  }
+  
+  tclstring getName {} {
+    return $version_
+  }
+  
+  tcllist getBranches {} {
+    return $branches_
+  }
+  
+  tcllist getMergeParents {} {
+    return $mergeParents_
+  }
+  
+  Snapshot getVParent {} {
+    return $vparent_
+  }
+  
+  void setDescription {tclstring.text} {
+    set description_ $text
+  }
+  
+  tclstring getDescription {} {
+    return $description_
+  }
+}

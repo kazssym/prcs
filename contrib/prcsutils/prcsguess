@@ -1,0 +1,298 @@
+#!/usr/bin/perl -w
+#
+# Part of the prcsutils package
+# Copyright (C) 2001  Hugo Cornelis <hugo@bbf.uia.ac.be>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with prcs, The Project Revision Control System available at 
+# http://www.xcf.berkeley.edu ; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+# $Project: rprcs $
+# $ProjectHeader: rprcs 0.45 Wed, 06 Oct 1999 11:40:06 +0000 hugo $
+# $Id$
+#
+# prcsguess : Tries to guess the project in a certain directory.
+#		result on stdout, return 1 if no successfull guess 
+#		could be done, 2 in case of trouble.
+#
+
+use strict;
+
+my $exit_status = 1 ;
+
+sub GetProjects {
+
+  my @dirs = @_ ;
+
+  my %projects ;
+
+  my $base=`pwd` ;
+
+  foreach my $dir (@dirs)
+    {
+      if ( $dir )
+	{
+	  chdir($dir) ;
+
+	  my $project ;
+
+	  #! how can you create hashes with arrays/lists as elements ?
+
+	  while ( defined ($project = glob("*.prj")) )
+	    {
+	      if (defined $projects{$dir})
+		{
+		  print STDERR ("Multiple projects in $dir\n") ;
+		  $exit_status = 2 ;
+		}
+	      else
+		{
+		  $projects{$dir} = $project ;
+		}
+	    }
+	}
+    }
+
+  chdir($base) ;
+
+  return %projects ;
+}
+
+
+sub LispPreProcess {
+
+  #! if there are files with '"' or ;, 
+  #! this function will not behave as expected
+
+  my ( $lispcode ) = @_ ;
+
+  # remove strings
+
+  $lispcode =~ s{"[^"]*"}{}g ; # deconfuse emacs : ";
+
+  # remove comments
+
+  #! for some the reason $ did not work, so I simply replace the newline
+  #! with a new newline.
+
+  $lispcode =~ s{;.*\n}{\n}g ;
+
+  #! now we should have a nice and clean string without any surprises.
+
+  return $lispcode ;
+}
+
+
+sub LispHash {
+
+  my %entries = () ;
+
+  my ( $lispcode ) = @_ ;
+
+  #print $lispcode . "\n" ;
+
+  study $lispcode ;
+
+  #! The (?> .. ) speeds this matching up a lot, don't know why
+  #! anybody who knows may explain here, perhaps it's at the same time
+  #! a good example (how EXP matching is turned into polynomial matching ?).
+
+  while (
+	 $lispcode =~
+	 m{
+	   \G\s*	# start where we left off
+	   \(		# match opening of an entry
+	   ((\w
+	     | [^\0\r\f\n\t \\\"\(\)]
+			# note : this matches file entries, 
+			# range comes from prcs
+	     | (\\.)
+			# I added these to the above range to match '\' chars
+			# probably adds considerable overhead.
+	    )+)\s?	# match keyword for this entry			\1..3
+	   (
+	    (?>
+	     ( \( )?	# match an opening parenthese if any		\4
+	     [^()]*	# match value of entry
+	     (?>
+	      ( \( )?	# match an opening parenthese if any		\5
+	      [^()]*	# match value of entry
+	      (?(5) \))	# match closing parenthese if one was opened
+	     )
+	     [^()]*	# match value of entry <- these tags :no-keywords,...
+	     (?(4) \) )	# match closing parenthese if one was opened
+	     )
+	    [^()]*	# match value of entry <- these tags :no-keywords,...
+	   )*
+	   \)		# match closing of an entry
+	  }gx
+	)
+    {
+      my $key = $1 ;
+
+      my $replacekey = quotemeta $key ;
+
+      my $value = $& ;
+
+      $value =~ s/\s*\($replacekey\s*// ;
+      $value =~ s/\s*\)\z// ;
+
+      #print $key . "|" . $value . "\n" ;
+
+      $entries{$key} = $value ;
+    }
+
+  return %entries ;
+}
+
+
+#
+# main
+#
+
+# get current directory
+
+my $dir = `pwd` ;
+chomp($dir) ;
+
+# since $dirs is rooted (starts with '/'), @dirs starts with an empty 
+# component which should be removed
+
+my @relative_dirs = split("/",$dir) ;
+my @absolute_dirs = () ;
+shift @relative_dirs ;
+
+# remap dirs to absolute path entries
+
+{
+  for (my $i = $#relative_dirs ; $i >= 0 ; $i--)
+    {
+      $absolute_dirs[$i] = "/" . join("/",@relative_dirs[0..$i]) ;
+    }
+}
+
+# get all projects for the given directories
+
+my %projects = GetProjects (@absolute_dirs) ;
+
+# print $absolute_dirs[-1] . "\n" ;
+# print $projects{$absolute_dirs[-1]} . "\n" ;
+
+# print $absolute_dirs[1] . "\n" ;
+# print $absolute_dirs[0] . "\n" ;
+
+# loop over projects from root to current dir to check for dependencies
+
+{
+  my $i = 0 ;
+
+  foreach my $key (@absolute_dirs)
+    {
+      # if there is a project in dir
+
+      if (defined $projects{$key} )
+	{
+	  # if current dir
+
+	  if ( $key =~ $dir )
+	    {
+	      # this means that we have checked all candidate project files
+	      # in the parent directories, the one in the current dir should
+	      # be it.
+
+	      print $key . "/" . $projects{$key} . "\n" ;
+
+	      $exit_status = 0 ;
+	    }
+
+	  # else
+
+	  else
+	    {
+	      # if we have a project in the working directory
+
+	      if ( defined $projects{$dir} )
+		{
+		  # read project file
+		  
+		  my $projectfile = `cat $key/$projects{$key}` ;
+		  
+# 		  #! this is my test project
+		  
+# 		  $projectfile = ""
+# 		    . "(dederik)"
+# 		      . "(1 (2 3 \"8 9\" 7)) ; have\n"
+# 			. "(aa (d \"e f g\"))\n"
+# 			  . "(a (b c \"d e\" f)) ; comments\n"
+# 			    . "(Files"
+# 			      . "  (file1 (internal 1 2))"
+# 				. "  (file2 (internal 1 2) :tag=project)"
+# 				  .")" ;
+		  
+		  # remove any non-wanted data
+		  
+		  $projectfile = LispPreProcess $projectfile ;
+		  
+		  # split string into hash
+		  
+		  my %projectentries = LispHash $projectfile ;
+		  
+		  # split 'Files' entry into hash
+		  
+		  my %files = LispHash $projectentries{'Files'} ;
+		  
+		  # get directory as it should be in the file entry
+		  
+		  my $leadingdir = $dir ;
+		  my $replacekey = quotemeta $key ;
+		  $leadingdir =~ s($replacekey/)() ;
+		  
+		  # create entry as it should appear in the Files section
+		  
+		  my $fileEntry = $leadingdir . "/" . $projects{$dir} ;
+		  
+		  # check for defined of $files{$key} . "/" . $projects{$value}
+		  
+		  if (defined $files{$fileEntry} )
+		    {
+		      # this one should be it, print and stop loop
+		      
+		      print $key . "/" . $projects{$key} . "\n" ;
+		      
+		      $exit_status = 0 ;
+
+		      last ;
+		    }
+		}
+
+	      # else (no project in working directory)
+	      
+	      else
+		{
+		  # this one should be it, print and stop loop
+		  
+		  print $key . "/" . $projects{$key} . "\n" ;
+		  
+		  $exit_status = 0 ;
+
+		  last ;
+		}
+	    }
+	}
+    }
+}
+
+# exit status still 1 if no project found
+
+exit $exit_status ;

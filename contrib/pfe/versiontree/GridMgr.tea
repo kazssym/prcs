@@ -1,0 +1,304 @@
+package versiontree
+
+final class GridMgr {
+  private tclstring canv_
+  private tclarray cells_
+  # this is the canvas item id to GridItem object mapping. Key is the id
+  # value is the GridItem objref
+  private tclarray GIidmap_
+  
+  # map for connector lines
+  private tclarray Cidmap_
+  
+  # the current item selected
+  private GridItem GIselected_
+  
+  # the current line selected
+  private Connector Cselected_
+  
+  # list of listeners who want notification when versions are selected
+  private tcllist listeners_
+  
+  private tclint treespread_ 3
+  
+  GridMgr {canvas} {
+    set canv_ $canvas
+    
+    # set up the bindings to highlight lines and grid items when selected
+    $canv_ bind LINE <Button-1> "$this lineSelected"
+    $canv_ bind GRIDITEM <Button-1> "$this itemSelected"
+  }
+  
+  public void lineSelected {} {
+    # get the line selected with the mouse
+    set id [$canv_ find withtag current]
+    objref Connector newselected [getConnector $id]
+    
+    if { $newselected == "null" } {
+      return
+    }
+    
+    # unselect whatever currently has the selection
+    if { $Cselected_ != "null" } {
+      $Cselected_ unselect
+    }
+    
+    # did we just select what was already selected?
+    if { $newselected == $Cselected_ } {
+      set Cselected_ null
+      return
+    } {
+      set Cselected_ $newselected
+      $Cselected_ select
+    }
+  }
+  
+  public void itemSelected {} {
+    # get the item selected with the mouse
+    set id [$canv_ find withtag current]
+
+    # is it the text?
+    if { [$canv_ type current] == "text" } {
+      # get the item underneath the text
+      set id [$canv_ find below $id]
+    }
+    
+    objref GridItem newselected [getGridItem $id]
+    
+    if { $newselected == "null" } {
+      return
+    }
+    
+    # unselect whatever currently has the selection
+    if { $GIselected_ != "null" } {
+      $GIselected_ unselect
+      
+      # send the unselected notifications out
+      foreach listener $listeners_ {
+        if { [$GIselected_ instanceof Rectangle] } {
+          $listener branchUnSelected [$GIselected_ getTreeNode]
+        } else {
+          $listener snapshotUnSelected [$GIselected_ getTreeNode]
+        }
+      }
+    }
+    
+    # did we just select what was already selected?
+    if { $newselected == $GIselected_ } {
+      set GIselected_ null
+      return
+    } {
+      set GIselected_ $newselected
+      $GIselected_ select
+      
+      # send the selected notifications out
+      foreach listener $listeners_ {
+        if { [$GIselected_ instanceof Rectangle] } {
+          $listener branchSelected [$GIselected_ getTreeNode]
+        } else {
+          $listener snapshotSelected [$GIselected_ getTreeNode]
+        }
+      }
+    }
+  }
+  
+  void addListener {SelectedVersionListener.listener} {
+    lappend listeners_ $listener
+  }
+  
+  void mapGridItem {GridItem.item tclint.id} {
+    set GIidmap_($id) $item
+  }
+  
+  GridItem getGridItem {tclint.id} {
+    if { ! [info exists GIidmap_($id)] } {
+      return null
+    } {
+      return $GIidmap_($id)
+    }
+  }
+  
+  void mapConnector {Connector.line tclint.id} {
+    set Cidmap_($id) $line
+  }
+  
+  Connector getConnector {tclint.id} {
+    if { ! [info exists Cidmap_($id)] } {
+      return null
+    } {
+      return $Cidmap_($id)
+    }
+  }
+  
+  tclstring getCanvas {} {
+    return $canv_
+  }
+  
+  tclint getCellWidth {} {
+    return 100
+  }
+  
+  tclint getCellHeight {} {
+    return 71
+  }
+  
+  # you ask for <rows> number of rows somewhere near <col>,<row> and the
+  # grid manager will find a spot where it will fit.
+  void need {tclint.rows tclint&.col tclint&.row} {
+    # does this column even exist?
+    if { [array names cells_ "$col,*"] == "" } {
+      # no, just return what they want then
+      return
+    }
+    
+    # starting at the given row, keep going till we reach the end
+    # we don't want to go any farther than $treespread_ steps though
+    for {set origrow $row} {1} {incr col; set row $origrow} {
+      for {set d 0} {$d < $treespread_} {incr d;incr row} {
+        if { ! [info exists cells_($col,$row)] } {
+          # we found a free spot, but does it have enough space?
+          for {set i 1;set r [expr {$row+1}]} {$i < $rows} {incr i;incr r} {
+            if { [info exists cells_($col,$r) ] } {
+              # damn something there, better start looking in another col
+              # set this variable to kick us out of outer loop
+              set d $treespread_
+              break
+            }
+          }
+          
+          if { $d == $treespread_ } break
+          
+          # I guess it's big enough
+          return
+        }
+      }
+    }
+  }
+
+  # this version uses a hole data structure
+  private tclarray holes_
+  void need2 {tclint.rows tclint&.col tclint&.row} {
+    while {1} {
+      # does this column even exist?
+      if { ! [info exists holes_($col)] } {
+        # no, just return what they want then
+        #
+        # set up the holes made tho
+        set end [expr {$row + $rows}]
+        if { $row > 2 } {
+          set holes_($col) [list [list 0 $row] [list $end -1]]
+        } {
+          set holes_($col) [list $end -1]
+        }
+
+#parray holes_
+        return
+      }
+    
+      # find a hole big enough for us
+      set len [llength $holes_($col)]
+      for {set i 0} {$i < $len} {incr i} {
+        foreach {r s} [lindex $holes_($col) $i] {}
+        
+        if { $r < $row } continue
+
+        # have we gone beyond our spread limit?
+        if { [expr {($r - $row) > $treespread_}] } break
+        
+        # is this hole big enough?
+        if { $s == -1 || $s >= $rows} {
+          # we'll take it
+          set row $r
+          
+          # now fix up the hole info
+          if { $s == -1 } {
+            set r [expr {$r + $rows}]
+            set holes_($col) [lreplace $holes_($col) $i $i [list $r -1]]
+          } elseif { $s - $rows < 2 } {
+            # don't want a 2 row hole; outright remove the entry
+            set holes_($col) [lreplace $holes_($col) $i $i]
+          } else {
+            # update the entry
+            set r [expr {$r + $rows}]
+            set s [expr {$s - $rows}]
+            set holes_($col) [lreplace $holes_($col) $i $i [list $r $s]]
+          }
+#parray holes_
+          return
+        }
+      }
+      
+      incr col
+    }
+  }
+  
+  GridItem addItem {tclstring.class tclint.x tclint.y TreeNode.treeNode} {
+    # get the cell for this location
+    objref GridCell cell [getCell $x $y]
+    
+    # create the item
+    return [$cell addItem $class $treeNode]
+  }
+  
+  void addConnector {GridItem.i1 GridItem.i2} {
+    new Connector [$i1 getCell] [$i2 getCell]
+  }
+  
+  void addConnector {GridItem.i1 GridItem.i2 tclbool.arrow} {
+    new Connector [$i1 getCell] [$i2 getCell] $arrow
+  }
+  
+  GridCell getCell {tclint.x tclint.y} {
+    if { ! [info exists cells_($x,$y)] } {
+      set cells_($x,$y) [new GridCell $this $x $y]
+    }
+    
+    return $cells_($x,$y)
+  }
+  
+  tclint getLastCol {} {
+    tclint maxcol -1
+    foreach col [array names cells_] {
+      # pull off the column
+      set col [lindex [split $col ,] 0]
+      
+      # is it bigger?
+      if { $col > $maxcol } {
+        set maxcol $col
+      }
+    }
+    
+    return $maxcol
+  }
+  
+  # return the current size of the grid, in pixels
+  tcllist getSize {} {
+    set maxcol [getLastCol]
+    
+    tclint maxrow -1
+    foreach row [array names cells_] {
+      # pull off the row
+      set row [lindex [split $row ,] 1]
+      
+      # is it bigger?
+      if { $row > $maxrow } {
+        set maxrow $row
+      }
+    }
+    
+    incr maxcol
+    incr maxrow
+    return [list [expr {$maxcol * [getCellWidth]}] [expr {$maxrow * [getCellHeight]}]]
+  }
+  
+  void drawAllItems {} {
+    $canv_ raise GRIDITEM LINE
+    $canv_ raise GHOSTGRIDITEM LINE
+  }
+  
+  void print {} {
+    # this could stand a lot of customization!
+    foreach {x1 y1 x2 y2} [$canv_ bbox all] {}
+    $canv_ postscript -file versiontree.ps -pageheight 10i -pagewidth 8.5i -width [expr {$x2 - $x1}] -height [expr {$y2 - $y1}]
+  }
+}

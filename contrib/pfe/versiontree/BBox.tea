@@ -1,0 +1,60 @@
+package versiontree
+
+class BBox {
+  private tclstring x1_
+  private tclstring y1_
+  private tclstring x2_
+  private tclstring y2_
+
+  BBox {tcllist.coordlist} {
+    foreach {x1_ y1_ x2_ y2_} $coordlist {}
+  }
+  
+  BBox {x1 y1 x2 y2} {
+    set x1_ $x1
+    set y1_ $y1
+    set x2_ $x2
+    set y2_ $y2
+  }
+  
+  tclint getHeight {} {
+    return [expr {$y2_ - $y1_}]
+  }
+  
+  tclint getWidth {} {
+    return [expr {$x2_ - $x1_}]
+  }
+  
+  # return the coordinates of the box as {x1 y1 x2 y2}
+  tcllist getCoords {} {
+    return [list $x1_ $y1_ $x2_ $y2_]
+  }
+
+  # this will return the coords of a square box with side length $size.
+  # if size is bigger than our rectangle, then truncate.
+  # the square will be centered in the rectangle.
+  tcllist square {tclint.side} {
+    set h [getHeight]
+    set w [getWidth]
+
+    # truncate the side length to fit inside our rectangle
+    if { $side > $w } {
+      set side $w
+    }
+    
+    if { $side > $h } {
+      set side $h
+    }
+    
+    # figure out the top left corner
+    set x1 [expr {$x1_ + (($w - $side)/2)}]
+    set y1 [expr {$y1_ + (($h - $side)/2)}]
+    
+    # and the bottom
+    set x2 [expr {$x1 + $side}]
+    set y2 [expr {$y1 + $side}]
+    
+    return [list $x1 $y1 $x2 $y2]
+  }
+  
+}

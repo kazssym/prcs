@@ -1,0 +1,320 @@
+#!/usr/bin/perl -w
+#
+# Part of the prcsutils package
+# Copyright (C) 2001  Hugo Cornelis <hugo@bbf.uia.ac.be>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with prcs, The Project Revision Control System available at 
+# http://www.xcf.berkeley.edu ; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+# $Project: rprcs $
+# $ProjectHeader: rprcs 0.45 Wed, 06 Oct 1999 11:40:06 +0000 hugo $
+# $Id$
+#
+# prcsentry : give the contents of an entry of the project descriptor
+#		usage : $0 <entryname> 
+#
+
+use strict;
+
+# global return code
+
+my $exit_status = 1 ;
+
+=head1 INTERNAL FUNCTIONALITY
+
+This section describes internals of this file.  It may or may not be
+correct.
+
+
+=cut
+
+
+=head2 C<@strings>
+
+array of strings in lispcode/projectfile
+
+=cut
+
+
+my @strings = () ;
+
+
+=head2 C<@comments>
+
+array of comments in lispcode/projectfile
+
+=cut
+
+my @comments = () ;
+
+
+=head2 C<LispReProcess($lispcode)>
+
+Replace references to comments and strings with entries from B<@comments>
+and B<@strings>.  Returns modified B<$lispcode>.
+
+=cut
+
+sub LispReProcess ($)
+{
+
+  # get lispcode
+  
+  my ( $lispcode ) = @_ ;
+  
+  # replace comments
+  
+  $lispcode =~ s/\\c(\d+)/$comments[$1]/ge ;
+  
+  #   print $1 . "\n\n" ;
+  
+  # replace strings
+  
+  $lispcode =~ s/\\s(\d+)/$strings[$1]/ge ;
+  
+  # return result
+  
+  return $lispcode ;
+}
+
+
+=head2 C<LispPreProcess($lispcode)>
+
+Replace comments and strings from B<$lispcode> with references to arrays
+B<@comments> and B<@strings>.  Returns modified B<$lispcode>.
+
+=cut
+
+sub LispPreProcess ($)
+{
+
+  #! if there are files with '"' or ;, 
+  #! this function will not behave as expected
+
+  my ( $lispcode ) = @_ ;
+
+  my $count = 0 ;
+
+  my $replacement = "" ;
+
+  study $lispcode ;
+
+  # If I remove the first match-only statement, $1 is not defined in the
+  # first replacement, in all successive replacements (due to 'g') 
+  # it's ok, this seems a perlre bug to me (I'm not very specialized in re,
+  # but this is really odd).
+
+  # remove strings, inserting them into array
+
+  $count = 0 ;
+
+  $lispcode =~ m/(\"[^\"]*\")/ ;
+
+  $lispcode
+    =~ s/(\"[^\"]*\")(?{
+			$strings[$count] = $1 ;
+			$replacement = "\\s" . $count ;
+			$count++ ;
+		       })/$replacement/ge ;
+
+  # remove comments
+
+  #! for some the reason $ did not work, so I simply replace the newline
+  #! with a new newline.
+
+  $count = 0 ;
+
+  $lispcode =~ m/(\;.*)\n/ ;
+
+  $lispcode
+    =~ s/(\;.*)\n(?{
+		    $comments[$count] = $1 ;
+		    $replacement = "\\c" . $count . "\n" ;
+		    $count++ ;
+		   })/$replacement/ge ;
+
+  #! now we should have a nice and clean string without any surprises.
+
+  return $lispcode ;
+}
+
+
+=head2 C<LispHash($lispcode)>
+
+Parse B<$lispcode> and create a hash with keys from B<$lispcode>.
+Nesting depth must not be greater than 3.  Returns created hash.
+
+=cut
+
+sub LispHash ($)
+{
+
+  my %entries = () ;
+
+  my ( $lispcode ) = @_ ;
+
+  #print $lispcode . "\n" ;
+
+  study $lispcode ;
+
+  #! The (?> .. ) speeds this matching up a lot, don't know why
+  #! anybody who knows may explain here, perhaps it's at the same time
+  #! a good example of this feature.
+  #! (how EXP time matching is turned into polynomial time matching ?).
+
+  while (
+	 $lispcode =~
+	 m{
+	   \G\s*	# start where we left off
+	   (\\c\d*\s*)*	# match comment markers				\1
+	   \(		# match opening of an entry
+	   ((\w
+	     | [^\0\r\f\n\t \\\"\(\)]
+			# note : this matches file entries, 
+			# range comes from prcs where \v was also present
+#	     | (\\.)
+			# I added these to the above range to match '\' chars
+			# probably adds considerable overhead.
+	    )+)\s*	# match keyword for this entry			\2..3
+	   (		# start matching value				\4
+	    (\\c\d*\s*)*# match comment markers				\5
+	    (		# 						\6
+	     ( \( )?	# match an opening parenthese if any		\7
+	     [^()]*	# match any value of sub entry
+	     (?>
+	      ( \( )?	# match an opening parenthese if any		\8
+	      [^()]*	# match more value of sub entry
+	      (?(8) \))	# match closing parenthese if one was opened
+	      [^()]*	# match even more value of subentry
+	     )*
+	     (?(7) \) )	# match closing parenthese if one was opened
+	     [^()]*	# match value of entry <- these tags :no-keywords,...
+	    )*
+	   )
+	   \)		# match closing of an entry
+	   (\s*\\c\d*)*	# match comment markers				\9
+	  }gx
+	)
+    {
+      my $key = $2 ;
+
+      my $value = $4 ;
+
+      #print $key . "|" . $value . "\n" ;
+
+      $entries{$key} = $value ;
+    }
+
+  return %entries ;
+}
+
+
+#
+# main
+#
+
+# if no command line
+
+if ( ! defined $ARGV[0] )
+  {
+  die <<HELP;
+
+Usage: $0 <entry-name>
+
+    Get the contents of an entry in the project file to which the current
+    directory belongs.
+
+HELP
+  }
+
+# get project
+
+my $project=`prcsguess` ;
+
+# read project file
+
+my $projectfile = `cat $project` ;
+
+#! this is my test project
+
+# $projectfile = ""
+#   . "(dederik)"
+#   . "(1 (2 3 \"8 9\" 7)) ; have\n"
+#   . "(aa (d \"e f g\"))\n"
+#   . "(a (b c \"d e\" f)) ; comments\n"
+#   . "(Files\n"
+#   . ";; This is a comment.  Fill in files here.\n"
+#   . ";; For example:  (prcs/checkout.cc ())\n"
+#   . "  (file1 (internal 1 2))"
+#   . "  (file2 (internal 1 2) :tag=project)"
+#   . ")\n"
+#   . "(Merge-Parents\n"
+#   . "  (axonview.22 complete\n"
+#   . "   (a) (a)\n"
+#   . "   (Xodus/Widg/xgifdump.c\n"
+#   . "    Xodus/Widg/xgifdump.c\n"
+#   . "    Xodus/Widg/xgifdump.c r) \n"
+#   . "   (Xodus/Widg/xgifdump.c\n"
+#   . "    Xodus/Widg/xgifdump.c\n"
+#   . "    Xodus/Widg/xgifdump.c r) \n"
+#   . "  )\n"
+#   . "  (axonview.22 complete\n"
+#   . "   ()\n"
+#   . "   (Xodus/Widg/xgifdump.c\n"
+#   . "    Xodus/Widg/xgifdump.c\n"
+#   . "    Xodus/Widg/xgifdump.c r) \n"
+#   . "  )\n"
+#   . ")\n"
+#   . "" ;
+
+# print $projectfile . "\n\n\n" ;
+
+# canonicalize
+
+$projectfile = LispPreProcess $projectfile ;
+
+# split string into hash
+
+my %projectentries = LispHash $projectfile ;
+
+# print join('|',@strings) ;
+# print "\n\n" ;
+# print join('|',@comments) ;
+# print "\n\n" ;
+
+# if requested entry available
+
+if ( defined $projectentries{$ARGV[0]} )
+  {
+    # get entry
+
+    my $result = $projectentries{$ARGV[0]} ;
+
+    # uncanonicalize
+
+    $result = LispReProcess $result ;
+
+    # print result
+
+    print $result . "\n" ;
+
+    exit 0 ;
+  }
+else
+  {
+    print STDERR "$0: Entry $ARGV[0] not found in project $project\n" ;
+
+    exit 1 ;
+  }

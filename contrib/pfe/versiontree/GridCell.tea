@@ -1,0 +1,67 @@
+package versiontree
+
+class GridCell {
+  private tclint x_
+  private tclint y_
+  private tclint h_
+  private tclint w_
+  private objref GridMgr mgr_
+  private objref GridItem item_
+  
+  GridCell {GridMgr.mgr tclint.x tclint.y} {
+    set mgr_ $mgr
+    set x_ $x
+    set y_ $y
+    set w_ [$mgr_ getCellWidth]
+    set h_ [$mgr_ getCellHeight]
+  }
+  
+  void raiseItem {} {
+    $item_ raise
+  }
+  
+  tclstring getCanvas {} {
+    return [$mgr_ getCanvas]
+  }
+  
+  GridMgr getGridMgr {} {
+    return $mgr_
+  }
+  
+  GridItem addItem {tclstring.class TreeNode.treeNode} {
+    set item_ [new $class $this $treeNode]
+    return $item_
+  }
+  
+  GridItem getItem {} {
+    return $item_
+  }
+  
+  # return the absolute bbox for this grid
+  BBox getBBox {} {
+    set x1 [expr {$x_ * $w_}]
+    set y1 [expr {$y_ * $h_}]
+    set x2 [expr {$x1 + $w_}]
+    set y2 [expr {$y1 + $h_}]
+    return [new BBox $x1 $y1 $x2 $y2]
+  }
+  
+  tclint getX {} {
+    return $x_
+  }
+  
+  tclint getY {} {
+    return $y_
+  }
+  
+  Point getCenter {} {
+    objref BBox bbox
+    set bbox [getBBox]
+    foreach {x1 y1 x2 y2} [$bbox getCoords] {}
+    
+    set x [expr {$x1 + (($x2 - $x1)/2)}]
+    set y [expr {$y1 + (($y2 - $y1)/2)}]
+    
+    return [new Point $x $y]
+  }
+}

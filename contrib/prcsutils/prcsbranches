@@ -1,0 +1,38 @@
+#!/bin/sh
+#
+# Part of the prcsutils package
+# Copyright (C) 2001  Hugo Cornelis <hugo@bbf.uia.ac.be>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with prcs, The Project Revision Control System available at 
+# http://www.xcf.berkeley.edu ; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+# $Project: rprcs $
+# $ProjectHeader: rprcs 0.45 Wed, 06 Oct 1999 11:40:06 +0000 hugo $
+# $Id$
+#
+# prcsbranches : display the different branch names of a project
+#		usage : $0 <project> or simply $0 when a .prj file is in cd.
+#
+
+PROJECT=$1
+
+if [ x$PROJECT = x ] ; then
+
+	PROJECT=`prcsguess`
+
+fi
+
+#PROJECTMAJOR=`echo "$PROJECTMAJOR" | sed -e "s/\(.*\)\.\(.*\)/\1/"`
+prcs info $PROJECT | cut -f2 -d" " | sed -e "s/\(.*\)\.\(.*\)/\1/" | uniq

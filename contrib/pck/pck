@@ -1,0 +1,1550 @@
+#!/usr/bin/perl
+
+use strict ;
+use XML::Twig ;
+use Getopt::Long ;
+use POSIX ;
+use Cwd ;
+
+my %args = (); # all command line args go here
+my $version = "0.1" ;
+
+sub print_patch {
+    my($p, $action) = @_ ;
+    my $att = $p->atts ;
+    if ($action) {
+        print "$action " ;
+    }
+    print "id $att->{'id'} parent $att->{'parent'}, " ;
+    print "tag $att->{'tag'}\n" ;
+}
+
+sub print_patchset {
+    my ($p_elt, $action) = @_ ;
+    my $att = $p_elt->atts ;
+    my $elt ;
+    if ($action) {
+        print "$action " ;
+    }
+    print "patchset $att->{'tag'}\n" ;
+    $elt = $p_elt->first_child('patch') ;
+    while($elt) {
+        print_patch($elt, '   ') ;
+	$elt = $elt->next_sibling('patch') ;
+    }
+}
+
+# p_elt id and parent are required.  The rest are optional
+# adds a new patch onto the tree in p_elt, and returns it.
+# 
+# if $sib is defined, it is the name of another patch under $p_elt.
+# we'll try to find it, and try to place the new patch in $pos relative
+# to $sib.  $pos can be "before" or "after" 
+#
+sub new_patch {
+    my ($p_elt, $id, $parent, $tag, $sib, $pos, $text) = @_ ;
+    my $elt ;
+    my $sib_elt ;
+    my %attr ;
+
+    if (!defined($id) || !defined($parent)) {
+        return undef ;
+    }
+    if (find_patch($p_elt, $id)) {
+        print STDERR "$id already exists\n" ;
+	return undef ;
+    }
+    if (find_patch($p_elt, $tag)) {
+        print STDERR "$tag already exists\n" ;
+	return undef ;
+    }
+    if (defined($sib)) {
+        $sib_elt = find_patch($p_elt, $sib) ;
+	if (!$sib_elt) {
+	    print STDERR "Unable to find $sib for relative placement\n" ;
+	    return undef ;
+	}
+	$p_elt = $sib_elt ;
+    } else {
+        $pos = "last_child" ;
+    }
+    $attr{'id'} = $id ;
+    $attr{'parent'} = $parent ;
+    if ($tag) {
+        $attr{'tag'} = $tag ;
+    }
+    $elt = new XML::Twig::Elt("patch", \%attr) ;
+    if ($text) {
+        $elt->set_text($text) ;
+    }
+    $elt->paste($pos, $p_elt) ;
+    print_patch($elt, "add: ") ;
+
+    return $elt ;
+}
+
+# remove patch with id from the tree in p_elt
+sub del_patch ($$) {
+    my ($p_elt, $id) = @_ ;
+    my $elt ;
+    my $del = 0;
+
+    while($elt = find_patch($p_elt, $id)) {
+	print_patch($elt, "del:") ;
+        $elt->delete ;
+	$del++ ;
+    }
+
+    return $del ;
+}
+
+sub del_patchset($$) {
+    my ($p_elt, $tag) = @_ ;
+    my @elt ;
+    my $i ;
+    my $del = 0;
+
+    @elt = $p_elt->get_xpath("patchset[\@tag='$tag']") ;
+    foreach $i (@elt) {
+	print "del: patchset tag $tag\n" ;
+        $i->delete ;
+	$del++ ;
+    }
+
+    return $del ;
+}
+
+
+sub new_patchset($$) {
+    my ($p_elt, $tag) = @_ ;
+    my $elt ;
+
+    if (find_patchset($p_elt, $tag)) {
+        print STDERR "$tag already exists\n" ;
+	return undef ;
+    }
+    $elt = new XML::Twig::Elt("patchset", { 'tag' => $tag } ) ;
+    $elt->paste('last_child', $p_elt);
+    return $elt ;
+}
+
+# send prcs id, returns array with id, parent, text, tag
+sub prcs_info ($$) {
+    my ($prcs_id, $project) = @_ ;
+    my $ret ;
+    my @ar ;
+    my @words ;
+    $ret = open(F, "prcs info -l -f -r$prcs_id ${project}|");
+    if (!defined($ret)) {
+	print STDERR "error running prcs $!\n" ;
+        return undef ;
+    }
+    while(<F>) {
+	chomp ;
+	@words = split/: */ ;
+	if (m/^($project)(\s)(\w+\.\w+).*/) {
+	    $ar[0] = $3 ;
+	} elsif (m/^Parent-Version/) {
+	    $ar[1] = $words[1] ;
+	} elsif (m/^(Version-Log:\s*)(.*)/) {
+	    $ar[2] = $2 ;
+	    # add support for :tag_word_or_phrase: in the version log
+	    if ($ar[2] =~ m/^:([\w\-_\+\.]+):/) {
+	        $ar[3] = $1 ;
+	    }
+	} elsif (m/^Project-Description:/) {
+	    # this comes after the version log, once we get here, we're
+	    # done
+	    close(F) ;
+	    return @ar ;
+	} else {
+            # still the version log
+	    $ar[2] .= "$_\n" ;
+	    if (m/^:([\w\-_\+\.]+):/) {
+	        $ar[3] = $1 ;
+	    }
+        }
+    }
+    close(F) ;
+    return @ar ;
+}
+
+# send patchset tag and the element to start looking in
+# returns reference to patchset element, or undefined
+# if there are more than one, it returns undefined, and prints
+# a warning
+#
+sub find_patchset($$) {
+    my ($p_elt, $tag) = @_;
+    my @elt ;
+
+    @elt = $p_elt->get_xpath("patchset[\@tag='$tag']") ;
+    if (@elt) {
+        if (scalar(@elt) > 1) {
+	    print STDERR "multiple tags for $tag found\n" ;
+	    return undef ;
+	}
+	return $elt[0] ;
+    }
+    return undef ;
+}
+
+sub cleanup_prcs_inc_diff($$) {
+    my ($cur_dir, $tmpdir) = @_;
+    chdir $cur_dir ;
+
+    # yes, its a hack, and rm -rf is a really bad idea.
+    #
+    if ($tmpdir =~ m/tmp/ && -d $tmpdir) {
+	print STDERR "Removing tmpdir $tmpdir\n" ;
+	print `rm -rf $tmpdir` ;
+    } else {
+        print STDERR "skipping cleanup on $tmpdir\n" ;
+    }
+}
+
+sub make_tmpdirs_inc_diff($$$$) {
+    my ($cur_dir, $tmpdir, $srcdir, $destdir) = @_ ;
+    my $ret ;
+
+    $ret = mkdir $tmpdir ;
+    if (!$ret) {
+        print STDERR "Unable to create temp dir $tmpdir $!\n" ;
+	return -1 ;
+    }
+    $ret = mkdir $srcdir ;
+    if (!$ret) {
+        print STDERR "Unable to create temp dir $srcdir $!\n" ;
+	cleanup_prcs_inc_diff($cur_dir, $tmpdir) ;
+        return -1 ;
+    }
+    $ret = mkdir $destdir ;
+    if (!$ret) {
+        print STDERR "Unable to create temp dir $destdir $!\n" ;
+	cleanup_prcs_inc_diff($cur_dir, $tmpdir) ;
+        return -1 ;
+    }
+    return 0 ;
+}
+
+sub diff_to_file ($$$) {
+    my ($elt, $project, $patchfile) = @_ ;
+    my $ret ;
+
+    $ret = open(FF, ">$patchfile") ;
+    if (!defined($ret)) {
+        print STDERR "Unable to open $patchfile for writing $!\n" ;
+	return -1 ;
+    }
+    select(FF) ;
+    $ret = gen_prcs_diff($elt, $project) ;
+    if ($ret) {
+	close(FF) ;
+	select(STDOUT) ;
+        print STDERR "Unable to generate diff\n" ;
+	return -1 ;
+    }
+    close(FF) ;
+    select(STDOUT) ;
+    return 0 ;
+}
+
+sub find_filenames_in_diff {
+    my ($outfile, @patches) = @_ ;
+    my $ret ;
+    my $p ;
+    my $index ;
+    my %h ;
+    my $name ;
+    
+    $ret = open(FF, ">$outfile") ;
+    if (!defined($ret)) {
+        print STDERR "Unable to open $outfile for writing $!\n" ;
+	return -1 ;
+    }
+    foreach $p (@patches) {
+	$index = 0 ;
+        $ret = open(PP, "<$p") ;
+	if (!defined($ret)) {
+	    print STDERR "Unable to open $p for reading $!\n" ;
+	    close(FF) ;
+	    return -1 ;
+	}
+	while(<PP>) {
+	    chomp ;
+	    if (m/^(Index:\s*)(\d+\.\d+\/)(.*)$/) {
+		if (!defined($h{$3})) {
+		    print FF "$3\n" ;
+		    $h{$3} = 1 ;
+		}
+		$index = 1 ;
+	    }
+	    # diff options origfile
+	    if (!$index && m/^(\+\+\+ [^\/]+\/)([^\s]+).*$/) {
+		if (!defined($h{$2})) {
+		    print FF "$2\n" ;
+		    $h{$2} = 1 ;
+		}
+	    }
+	}
+	close(PP) ;
+    }
+    close(FF) ;
+    return 0 ;
+}
+
+sub prcs_checkout_list($$$$) {
+    my ($destdir, $parent_id, $project, $listfile) = @_ ;
+    my $ret ;
+
+    $ret = open(FF, "$listfile") ;
+    if (!defined($ret)) {
+        print STDERR "Unable to open $listfile for reading\n" ;
+	return -1 ;
+    }
+    $ret = chdir($destdir) ;
+    if (!$ret) {
+        print STDERR "Unable to change directories to $destdir\n" ;
+	close(FF) ;
+	return -1 ;
+    }
+    print STDERR "Checking out from $parent_id\n" ;
+    $ret = open(XX, "|xargs prcs checkout -q -f -r$parent_id $project") ;
+    if (!defined($ret)) {
+        print STDERR "Unable to run prcs checkout $!\n" ;
+	close(FF) ;
+	return -1 ;
+    }
+    while(<FF>) {
+        print XX ;
+    }
+    close(FF) ;
+    close(XX) ;
+    $ret = ($? >> 8) ;
+    if ($ret) {
+        print STDERR "prcs checkout returned error $ret\n" ;
+	return -1 ;
+    }
+    return 0 ;
+}
+
+sub patch_working_dir($$) {
+    my ($dir, $patch) = @_ ;
+    my $ret ;
+    my $out ;
+
+    $ret = system("patch -d $dir -p1 -s < $patch") ;
+    $ret = $ret >> 8 ;
+    if ($ret) {
+	print STDERR "Errors running patch $ret\n" ;
+	return -1 ;
+    }
+    return 0 ;
+}
+
+# retuns the exit status of the command
+#
+sub pipe_hash_to_command {
+    my ($h, $com) = @_ ;
+    my $ret ;
+    my $f ;
+
+    $ret = open(FF, "|$com") ;
+    if (!defined($ret)) {
+	return -1 ;
+    }
+    foreach $f (keys(%$h)) {
+        print FF "$f\n" ;
+    }
+    close(FF) ;
+    $ret = $? >> 8 ;
+    return $ret ;
+}
+sub prcs_find_new_or_deleted($$) {
+    my ($listfile, $project) = @_ ;
+    my %file_list ;
+    my %deleted ;
+    my $ret ;
+    my $f ;
+    my $found_deleted = 0 ;
+
+    $ret = open(FF, $listfile) ;
+    if (!defined($ret)) {
+        print STDERR "Unable to open $listfile $!\n" ;
+	return -1 ;
+    }
+    while(<FF>) {
+        chomp ;
+	$file_list{$_} = 1 ;
+    }
+    close(FF) ;
+    # now we've got a hash with all the files
+    # figure out which ones have been deleted
+    #
+    foreach $f (keys(%file_list)) {
+        if (! -e $f) {
+	    $found_deleted = 1 ;
+	    $deleted{$f} = 1; 
+	    delete $file_list{$f} ;
+	}
+    }
+
+    # now have prcs populate and depopulate fix the repository
+    $ret = pipe_hash_to_command(\%file_list, "xargs prcs populate -f $project");
+    if ($ret) {
+        print STDERR "prcs populate failed $ret($!)\n" ;    
+	return -1 ;
+    }
+    if ($found_deleted) {
+	$ret = pipe_hash_to_command(\%deleted, "xargs prcs depopulate -f $project");
+	if ($ret) { 
+	    print STDERR "prcs populate failed $ret($!)\n" ;    
+	    return -1 ;
+	}
+    }
+    return 0 ;
+}
+
+sub prcs_checkin_dir ($$$) {
+    my ($tmpdir, $listfile, $project) = @_ ;
+    my $ret ;
+    my $log = "";
+    my $branch ;
+    my @checkin_info ;
+
+    $ret = chdir($tmpdir) ;
+    if (!$ret) {
+        print STDERR "Unable to change directories to $tmpdir\n" ;
+	return -1 ;
+    }
+    $ret = prcs_find_new_or_deleted($listfile, $project) ;
+    if ($ret) {
+        return -1 ;
+    }
+    print STDERR "Enter new version log, end with '.' on empty line:\n" ;
+    LINE: while(<STDIN>) {
+	chomp ;
+        last LINE if (m/^\.$/) ;
+	$log .= "$_\n" ;
+    }
+    chomp($log) ;
+    $ret = change_prcs_version_log($project, $log) ;
+    if ($ret) {
+        return -1 ;
+    }
+    if (defined($args{'branch'})) {
+        $branch = $args{'branch'} . ".@" ;
+    } else  {
+        $branch = ".@" ;
+    }
+    $ret = system("prcs checkin -q -f -r$branch $project") ;
+    $ret = $ret >> 8 ;
+    if ($ret) {
+        print "prcs checkin failed $ret\n" ;
+	return -1 ;
+    }
+    @checkin_info = prcs_info($branch, $project) ;
+    if (@checkin_info) {
+        print "Checkin complete, new id $checkin_info[0]\n" ;
+    }
+    return 0 ;
+}
+
+sub get_parent_id_override($) {
+    my ($pinfo) = @_ ;
+    my $parent_id = undef;
+    
+    if (defined($args{'parentid'})) {
+        $parent_id = $args{'parentid'} ;
+	if (!is_id($pinfo, $parent_id)) {
+	    my $l_elt = find_patch($pinfo, $parent_id) ;
+	    if (!$l_elt) {
+	        print STDERR "Unable to find parent patch $parent_id\n" ;
+		return -1 ;
+	    }
+	    $parent_id = $l_elt->atts->{'id'} ;
+	    if (!$parent_id) {
+	        print STDERR "Invalid parent id found $parent_id\n" ;
+		return -1 ;
+	    }
+	}
+    }
+    return $parent_id ;
+}
+
+sub gen_prcs_inc_diff {
+    my ($pinfo, $elt, $project, $newfile) = @_ ;
+    my $p_elt = $elt->parent ;
+    my $id = $elt->atts->{'id'} ;
+    my $parent_id = $elt->atts->{'parent'} ;
+    my $ret ;
+    my $oldpatch ;
+    my $tmpdir = tmpnam() ;
+    my $patchfile = "$tmpdir/patch" ;
+    my $srcdir = "$tmpdir/$project.$id" ;
+    my $destdir = "$tmpdir/$project" ;
+    my $listfile = "$tmpdir/filelist" ;
+    my $cur_dir = getcwd ;
+
+    $ret = get_parent_id_override($pinfo) ;
+    if ($ret == -1) {
+        return -1 ;
+    } elsif ($ret) {
+        $parent_id = $ret ;
+    }
+
+    $ret = make_tmpdirs_inc_diff($cur_dir, $tmpdir, $srcdir, $destdir) ;
+    if ($ret) {
+        return -1 ;
+    }
+    print STDERR "tmpdir is $tmpdir, $srcdir, $destdir\n" ;
+
+    # make a diff for the revision in $elt
+    $elt->atts->{'parent'} = $parent_id ;
+    $ret = diff_to_file ($elt, $project, $patchfile) ;
+    if ($ret) {
+	cleanup_prcs_inc_diff($cur_dir, $tmpdir) ;
+        return -1 ;
+    }
+
+    # extract list of filenames in both patches
+    #
+    $ret = find_filenames_in_diff($listfile, $patchfile, $newfile) ;
+    if ($ret) {
+	cleanup_prcs_inc_diff($cur_dir, $tmpdir) ;
+        return -1 ;
+    }
+
+    # checkout all the files listed into $destdir,
+    #
+    $ret = prcs_checkout_list($destdir, $parent_id, $project, $listfile) ;
+    if ($ret) {
+	cleanup_prcs_inc_diff($cur_dir, $tmpdir) ;
+        return -1 ;
+    }
+
+    # copy $destdir to $srcdir, apply corresponding patches
+    #
+    $ret = `cp --archive $destdir/* $srcdir` ;
+    $ret = $ret >> 8 ;
+    if ($ret) {
+        print STDERR "failed to copy source files into $srcdir: $ret\n"; 
+	cleanup_prcs_inc_diff($cur_dir, $tmpdir) ;
+	return -1 ;
+    }
+
+    $ret = chdir($cur_dir) ;
+    if (!$ret) {
+        print STDERR "unable to chdir to $tmpdir $!\n" ;
+	cleanup_prcs_inc_diff($cur_dir, $tmpdir) ;
+	return -1 ;
+    }
+
+    $ret = patch_working_dir($srcdir, $patchfile) ;
+    if ($ret) {
+        cleanup_prcs_inc_diff($cur_dir, $tmpdir) ;
+        return -1 ;
+    }
+
+    $ret = patch_working_dir($destdir, $newfile) ;
+    if ($ret) {
+        cleanup_prcs_inc_diff($cur_dir, $tmpdir) ;
+        return -1 ;
+    }
+
+    # do the diff or checkin
+    #
+    $ret = chdir($tmpdir) ;
+    if (!$ret) {
+        print STDERR "unable to chdir to $tmpdir $!\n" ;
+	cleanup_prcs_inc_diff($cur_dir, $tmpdir) ;
+	return -1 ;
+    }
+
+    if (defined($args{'checkin'})) {
+        $ret = prcs_checkin_dir($destdir, $listfile, $project) ;
+	if ($ret) {
+	    cleanup_prcs_inc_diff($cur_dir, $tmpdir) ; 
+	    return -1 ;
+	}
+    } else { 
+	$ret = system("diff -urN --exclude={*.orig,.*.prcs_aux} $project.$id $project");
+	$ret = $ret >> 8 ;
+	#
+	# diff returns 0 for no diffs, 1 for some diffs, 2 for something bad
+	if ($ret > 1) {
+	    $ret = $ret >> 8 ;
+	    print STDERR "diff failed with exit status $ret\n";
+	    cleanup_prcs_inc_diff($cur_dir, $tmpdir) ;
+	    return -1 ;
+	}
+    }
+
+    cleanup_prcs_inc_diff($cur_dir, $tmpdir) ;
+    return 0 ;
+}
+
+#
+# generates a single patch from two or more revisions that change the
+# same set of files.
+#
+# step1 build a single patch with all the changes from all revs
+# step2 checkout all the affected files from the parent of the first patch
+# step3 copy sources to second directory
+# step4 apply the big patch
+# step5 diff the copy and the chagned versions.
+#
+sub gen_prcs_compound_diff {
+    my ($pinfo, $elt, $project, @inc) = @_ ;
+    my $p_elt = $elt->parent ;
+    my $id = $elt->atts->{'id'} ;
+    my $parent_id = $elt->atts->{'parent'} ;
+    my $ret ;
+    my $p ;
+    my $t ;
+    my $tmpdir = tmpnam() ;
+    my $destdir = "$tmpdir/$project" ;
+    my $srcdir ;
+    my $patchfile = "$tmpdir/patch" ;
+    my $listfile = "$tmpdir/listfile" ;
+    my $cur_dir = getcwd ;
+
+    $ret = get_parent_id_override($pinfo) ;
+    if ($ret == -1) {
+        return -1 ;
+    } elsif ($ret) {
+        $parent_id = $ret ;
+    }
+
+    $srcdir = "$tmpdir/$project.$parent_id" ;
+
+    # step1, build one big patch with all the revisions appended into it
+    #
+    $ret = make_tmpdirs_inc_diff($cur_dir, $tmpdir, $srcdir, $destdir) ;
+    if ($ret) {
+        return -1 ; 
+    }
+    print STDERR "tmpdir is $tmpdir, $srcdir, $destdir\n" ;
+    $ret = open(FF, ">$patchfile") ;
+    if (!defined($ret)) {
+        print STDERR "Unable to open $patchfile for writing $!\n" ;
+	cleanup_prcs_inc_diff($cur_dir, $tmpdir) ;
+	return -1 ;
+    }
+    select(FF) ;
+    $ret = gen_prcs_diff($elt, $project) ;
+    if ($ret) {
+        print STDERR "Unable to generate diff\n" ;
+	cleanup_prcs_inc_diff($cur_dir, $tmpdir) ;
+	return -1 ;
+    }
+
+    foreach $p (@inc) {
+	if ($p ne "") {
+	    $t = find_patch($pinfo, $p) ;
+	    if ($t) {
+		$ret = gen_prcs_diff($t, $project) ;
+		if ($ret) {
+		    return -1 ;
+		}
+	    } else {
+		print STDERR "Unable to find patch $p\n" ;
+		close(FF) ;
+		select(STDOUT) ;
+		cleanup_prcs_inc_diff($cur_dir, $tmpdir) ;
+		return -1 ;
+	    }
+        }
+    }
+    close(FF) ;
+    select(STDOUT) ;
+    # extract list of filenames in both patches
+    #
+    $ret = find_filenames_in_diff($listfile, $patchfile) ;
+    if ($ret) {
+	cleanup_prcs_inc_diff($cur_dir, $tmpdir) ;
+        return -1 ;
+    }
+
+    # checkout all the files listed into $destdir,
+    # note, this leaves us in the $destdir directory when done.
+    #
+    $ret = prcs_checkout_list($destdir, $parent_id, $project, $listfile) ;
+    if ($ret) {
+	cleanup_prcs_inc_diff($cur_dir, $tmpdir) ;
+        return -1 ;
+    }
+
+    $ret = `cp --archive $destdir/* $srcdir` ;
+    $ret = $ret >> 8 ;
+    if ($ret) {
+        print STDERR "failed to copy source files into $srcdir: $ret\n"; 
+	cleanup_prcs_inc_diff($cur_dir, $tmpdir) ;
+	return -1 ;
+    }
+    # now the $destdir is all set, apply the diff to it.
+    #
+    $p = `patch -p1 -s < $patchfile` ;
+    $ret = ($? >> 8) ;
+    print "$p" ;
+    if ($ret) {
+        print STDERR "patch returned $ret, continue? [yes,NO]" ;
+	$p = <STDIN> ;
+	if (!($p =~ m/^yes$/i)) {
+	    print STDERR "abort diff\n"  ;
+	    cleanup_prcs_inc_diff($cur_dir, $tmpdir) ;
+	    return -1 ;
+	}
+    }
+
+    # now we're ready to make the new all inclusive patch.
+    #
+    $ret = chdir($tmpdir) ;
+    if (!$ret) {
+        print STDERR "unable to chdir to $tmpdir $!\n" ;
+	cleanup_prcs_inc_diff($cur_dir, $tmpdir) ;
+	return -1 ;
+    }
+
+    if (defined($args{'checkin'})) {
+        $ret = prcs_checkin_dir($destdir, $listfile, $project) ;
+	if ($ret) {
+	    cleanup_prcs_inc_diff($cur_dir, $tmpdir) ; 
+	    return -1 ;
+	}
+    } else {
+	$ret = system("diff -urN --exclude={*.orig,${project}.prj,.*.prcs_aux} $project.$parent_id $project");
+	$ret = $ret >> 8 ;
+	#
+	# diff returns 0 for no diffs, 1 for some diffs, 2 for something bad
+	if ($ret > 1) {
+	    $ret = $ret >> 8 ;
+	    print STDERR "diff failed with exit status $ret\n";
+	    cleanup_prcs_inc_diff($cur_dir, $tmpdir) ;
+	    return -1 ;
+	}
+    }
+
+    cleanup_prcs_inc_diff($cur_dir, $tmpdir) ;
+    return 0 ;
+}
+
+# send an element with the patch in it, and the name of the project
+#
+sub gen_prcs_diff {
+    my ($elt, $project) = @_ ;
+    my $p_elt = $elt->parent ;
+    my $id = $elt->atts->{'id'} ;
+    my $parent_id = $elt->atts->{'parent'} ;
+    my $ret ;
+    
+    if ($id eq "workingdir") {
+	$ret = open(F, "prcs diff -r$parent_id -N -P -f $project|") ;
+    } else {
+	$ret = open(F, "prcs diff -r$parent_id -r$id -N -P -f $project|") ;
+    }
+    if (!defined($ret)) {
+        print STDERR "Unable to generate patch for $id: $!\n" ;
+	return -1 ;
+    } 
+    while(<F>) {
+        print ;
+    }
+    close(F) ;
+    $ret = $? >> 8 ;
+    if ($ret != 1 && $ret != 0) {
+        print STDERR "Error $ret running prcs diff\n" ;
+	return -1 ;
+    }
+    return 0 ;
+}
+
+sub change_prcs_version_log($$) {
+    my ($project, $log) = @_ ;
+    my $ret ;
+
+    $ret = open(IF, "<${project}.prj");
+    if (!defined($ret)) {
+        print STDERR "Unable to update version info in $project $!\n" ;
+	return -1;
+    }
+    $ret = open(OF, ">${project}.prj.new") ;
+    if (!defined($ret)) {
+        print STDERR "Unable to update version info in $project $!\n" ;
+	return -1;
+    }
+    while(<IF>) {
+        if (m/^\(New-Version-Log.*$/) {
+	    print OF "\(New-Version-Log \"$log\"\)\n" ;
+	} else {
+	    print OF ;
+	}
+    }
+    close(IF) ;
+    close(OF);
+    $ret = rename "${project}.prj.new", "${project}.prj" ;
+    if (!$ret) {
+        print STDERR "Unable to install new project file $!\n" ;
+	return -1;
+    }
+    return 0 ;
+}
+
+sub apply_prcs_diff {
+    my ($elt, $project, $new_branch) = @_ ;
+    my $log ;
+    my $ret ;
+    my $failed = 0;
+    my $line ;
+    my $branch ;
+    my $tmpfile = tmpnam() ;
+
+    if ($elt->text) {
+        $log = $elt->text ;
+    } else {
+        $log = $elt->atts->{'tag'} ;
+    }
+    $ret = open(FF, ">$tmpfile") ;
+    if (!defined($ret)) {
+        print STDERR "unable to open temp $tmpfile $!\n" ;
+	return -1 ;
+    }
+    select(FF) ;
+    $ret = gen_prcs_diff($elt, $project) ;
+    close(FF) ;
+    select(STDOUT) ;
+    if ($ret) {
+	# error during the gen_prcs_diff
+	unlink "$tmpfile" ;
+        return -1 ;
+    }
+
+    $ret = open(FF, "patch -f -s -p1 < $tmpfile|") ;
+    if (!defined($ret)) {
+        print STDERR "error running patch on $tmpfile $!\n" ;
+	unlink "$tmpfile" ;
+	return -1 ;
+    }
+    while(<FF>) {
+        print ;
+	if (m/.*-- saving rejects/) {
+	    $failed++ ;
+	}
+    }
+    close(FF) ;
+    unlink "$tmpfile" ;
+    if ($failed > 0) {
+        print "\n$failed hunks failed, continue?[yes/NO] " ;
+	$line = <STDIN> ;
+	chomp $line ;
+	if (!($line =~ m/yes/)) {
+	    return -$failed; 
+	}
+    }
+
+    #update the prcs project file to include the new version info  
+    #
+    $ret = change_prcs_version_log($project, $log) ;
+    if ($ret) {
+        return -1 ;
+    }
+
+    $ret = `prcs populate -d -f` ;
+    if ($? >> 8) {
+        print STDERR "failure during populate $!\n" ;
+	return -1 ;
+    }
+    print $ret ;
+    
+    if (!defined($new_branch)) {
+        #$new_branch = $elt->atts->{'id'} ;    
+	#$new_branch =~ s/(\d+).*/$1/ ;
+	$new_branch = "" ;
+    }
+    $ret = `prcs checkin -r${new_branch}.@ -f $project` ;
+    if ($? >> 8) {
+        print STDERR "failure during checkin $!\n" ;
+	return -1 ;
+    }
+    if (defined($args{'destset'})) {
+	my $patchtag = $elt->atts->{'tag'} ;
+        my %largs ;
+	my @info ;
+
+	if ($failed > 0) {
+	    $patchtag = $patchtag . "-mod" ;
+	} else {
+	    $patchtag = $patchtag . "-w" ;
+	}
+	@info = prcs_info("${new_branch}.@", $project) ;
+	if (!@info) {
+	    print STDERR "prcs info failed for ${new_branch}.@\n" ;
+	    return -1 ;
+	}
+	$largs{'patch'} = $patchtag ;
+	$largs{'set'} = $args{'destset'} ;
+	$largs{'id'} = $info[0] ;
+	$ret = _process_add($elt->root, $project, \%largs) ;
+	if ($ret != 1) {
+	    return -1 ;
+	}
+    } else {
+        $ret = 0 ;
+    }
+    print_patch($elt, "apply:") ;
+
+    return $ret ;
+}
+
+# $elt is the patch set to apply, 
+# $project is the project name
+# $new_branch is optional, supply if you want to apply onto a different
+#  branch than the current one
+# returns 0 on success, -1 on failure
+#
+sub apply_patchset {
+    my ($elt, $project, $new_branch) = @_ ;
+    my $child ;
+    my $ret ;
+    my $tag = $elt->atts->{'tag'} ;
+    my $num = 0 ;
+    my $flush = 0 ;
+
+    print "Applying patchset $tag\n" ;
+    $child = $elt->first_child('patch'); 
+    while($child) {
+        $ret = apply_prcs_diff($child, $project, $new_branch) ;
+	if ($ret < 0) {
+	    print STDERR "Error while applying " ;
+	    print STDERR $child->atts->{'id'} ;
+	    print STDERR " abort\n" ;
+	    return -1 ;
+	} else {
+	  if ($ret > 0) {
+	      $flush = 1 ;
+	  }
+	}
+	$child = $child->next_sibling('patch')  ;
+	$num++ ;
+    }
+    print "done.  $num patches applied\n" ;
+    return $flush ;
+}
+
+sub gen_patchset_diff($$) {
+    my ($elt, $project) = @_ ;
+    my $child ;
+    my $first_patch ;
+    my $ret ;
+    my @inc = () ;
+    my $i = 0 ;
+    my $compound = defined($args{'compound'}) ;
+
+    $child = $elt->first_child('patch') ;
+    $first_patch = $child ;
+    while($child) {
+	if ($compound) {
+	    if ($i == 0) {
+	        $i++ ; # first patch is stored in $first_patch
+	    } else {
+		$inc[$i] = $child->atts->{'id'} ;
+		$i++ ;
+	    }
+	} else {
+	    $ret = gen_prcs_diff($child, $project) ;
+	    if ($ret) {
+		print STDERR "Error generating patch id " ;
+		print STDERR $child->atts->{'id'} ;
+		print STDERR " abort\n" ;
+		return -1 ;
+	    }
+	}
+	$child = $child->next_sibling('patch') ;
+    }
+    if ($compound) {
+	return gen_prcs_compound_diff($elt->parent, $first_patch, $project, 
+	                              @inc) ;
+    }
+    return 0 ;
+}
+
+# returns 1 if the string starts represents an id, 0 if it represents
+# an existing tag name
+sub is_id($$) {
+    my ($p_elt, $id) = @_;
+    my $elt  ;
+    
+    $elt = _find_patch($p_elt, $id, 'tag') ;
+    if ($elt) {
+        return 0 ;
+    }
+    return 1 ;
+}
+
+sub _find_patch($$$) {
+    my ($p_elt, $id, $attr) = @_ ;
+    my @elt ;
+    my $p ;
+    my $first_id ;
+
+    @elt = $p_elt->get_xpath(".//patch[\@$attr='$id']") ;
+    if (@elt) {
+        if (scalar(@elt) > 1) {
+	    # if there are more than one that match, make sure they are
+	    # all the same patch
+	    #
+	    $first_id = $elt[0]->atts->{'id'} ;
+	    foreach $p (@elt) {
+	        if ($p->atts->{'id'} ne $first_id) {
+		    print STDERR "multiple tags for $id found\n" ; 
+		    return undef ;
+		}
+	    }
+	}
+	return $elt[0] ;
+    }
+    return undef ;
+}
+# finds patch in p_elt with id, returns a ref to the element, or
+# undef.  If multiple patches are found with the same id, undef
+# is returned
+#
+sub find_patch($$) {
+    my ($p_elt, $id) = @_ ;
+    my $elt ;
+
+    $elt = _find_patch($p_elt, $id, 'tag') ;
+    if ($elt) {
+        return $elt ;
+    }
+    $elt = _find_patch($p_elt, $id, 'id') ;
+    return $elt ;
+}
+
+sub save_twig ($$) {
+    my ($twig, $file) = @_ ;
+    open(F, ">$file") || die "save_twig unable to open output file $!\n" ;
+    $twig->print(\*F) ;
+    close(F) ;
+}
+
+# these process the various command lines.  They return:
+# zero if everything worked
+# one if everything worked and you need to flush file changes
+# < 0 if there was an error
+#
+sub process_add($$) {
+    my ($pinfo, $project) = @_ ;
+    _process_add($pinfo, $project, \%args) ;
+}
+
+sub _process_add($$$) {
+    my ($pinfo, $project, $rargs) = @_ ;
+    my $p_elt ;
+    my $elt ;
+    my $patchset = '';
+    my $patch = '' ;
+    my $id ;
+    my @patch_attrs ;
+    my $tag ;
+    my $text ;
+    my $pos ;
+    my $sib ; 
+    
+    if (defined($rargs->{'set'})) {
+	$patchset = $rargs->{'set'} ;
+        $p_elt = find_patchset($pinfo, $patchset) ;
+	if (!$p_elt) {
+	    $p_elt = new_patchset($pinfo, $patchset) ;
+	    if (!$p_elt) {
+	        print STDERR "Unable to add patchset $patchset\n" ;
+		return -1 ;
+	    }
+	}
+    } else {
+        print STDERR "patchset name required to add a patch\n" ;
+	return -1 ;
+    }
+    if (!$p_elt) {
+        print STDERR "Unable to find patchset $patchset\n" ;
+	return -1 ;
+    }
+    if (defined($rargs->{'patch'})) {
+        $patch = $rargs->{'patch'} ;
+    } else {
+        # we're only adding the patchset, we're done
+	return 1;
+    }
+
+    # allow -patch id_num usage, where we pull the tag off of the
+    # prcs new version log
+    #
+    # otherwise, the usage is -patch tag -id num
+    #
+    if (!defined($rargs->{'id'})) {
+        $id = $patch ;
+    } else {
+        $tag = $patch ;
+
+        if (!defined($rargs->{'id'})) {
+	    print STDERR "id required when adding a patch\n" ;
+	    return -1 ;
+        }
+	$id = $rargs->{'id'} ;
+    }
+    @patch_attrs = prcs_info($id, $project) ;
+    if (!@patch_attrs) {
+	print STDERR "prcs info failed for $id\n" ;
+        return -1 ;
+    }
+
+    # $text = $patch_attrs[2] ;
+    # fill in the tag if we didn't get it from the command line
+    # don't include the version info, its annoying, and a duplicate
+    # of data available through prcs
+    #
+    $text = undef ;
+    if (!$tag) {
+	if (defined($patch_attrs[3])) {
+	    $tag = $patch_attrs[3] ;
+	} else {
+	    $tag = $patch_attrs[2] ;
+	}
+    }
+
+    if (defined($rargs->{'before'})) {
+        $sib = $rargs->{'before'} ;
+	$pos = "before" ;
+    } elsif (defined($rargs->{'after'})) {
+        $sib = $rargs->{'after'} ;
+	$pos = "after" ; 
+    }
+    $elt = new_patch($p_elt, $id, $patch_attrs[1], $tag, $sib, $pos, $text) ;
+    if (!$elt) {
+        print STDERR "Unable to add patch $patch\n" ;
+	return -1 ;
+    }
+    return 1 ;
+}
+
+sub process_remove($$) {
+    my ($pinfo, $project) = @_ ;
+    my $p_elt ;
+    my $patchset ;
+    my $patch ;
+    my $ret ;
+
+    if (defined($args{'set'})) {
+	$patchset = $args{'set'} ;
+        $p_elt = find_patchset($pinfo, $patchset) ;
+	if (!$p_elt) {
+	    print STDERR "Unable to find patchset $patchset\n" ;
+	    return -1 ;
+	}
+    } else {
+        print STDERR "please supply a patchset name\n" ;
+	return -1 ;
+    }
+    if (!defined($args{'patch'})) {
+        # we are deleting the entire patchset
+	#
+	$ret = del_patchset($pinfo, $patchset) ;
+	if ($ret == 0) {
+	    print STDERR "Unable to delete patchset $patchset\n" ;
+	    return -1 ;
+	}
+	return 1 ;
+    }
+    if (!defined($args{'patch'})) {
+        print STDERR "no patch name supplied for deletion\n" ;
+	return -1 ;
+    }
+    $patch = $args{'patch'} ;
+    $ret = del_patch($p_elt, $patch) ;
+    if ($ret == 0) {
+        print STDERR "Unable to delete patch $patch\n" ;
+	return -1 ;
+    }
+    return 1; 
+}
+
+sub process_apply($$) {
+    my ($pinfo, $project) = @_ ;
+    my $p_elt ;
+    my $elt ;
+    my $ret ;
+    my $patchset ;
+    my $patch ;
+    my $branch ;
+
+    if (defined($args{'branch'})) {
+        $branch = $args{'branch'} ;
+    }
+    if (defined($args{'set'})) {
+	$patchset = $args{'set'} ;
+        $p_elt = find_patchset($pinfo, $patchset) ;
+	if (!$p_elt) {
+	    print STDERR "Unable to find patchset $patchset\n" ;
+	    return -1 ;
+	}
+    } elsif (defined($args{'patch'})) {
+        $p_elt = $pinfo ;
+    } else {
+        print STDERR "please supply a patchset name\n" ;
+	return -1 ;
+    }
+
+    if (!defined($args{'patch'})) {
+        # we are applying the entire patchset
+	#
+	return apply_patchset($p_elt, $project, $branch) ;
+    } 
+    $patch = $args{'patch'} ;
+    $elt = find_patch($p_elt, $patch) ;
+    if (!$elt) {
+        print STDERR "Unable to find patch $patch\n" ;
+	return -1 ;
+    }
+    $ret = apply_prcs_diff($elt, $project, $branch) ;
+    if ($ret < 0) {
+        print STDERR "Error appling patch $patch\n" ;
+	return -1 ;
+    }
+    return $ret ;
+}
+
+sub process_change($$) {
+    my ($pinfo, $project) = @_ ;
+    print "Change not yet coded.  Carefully edit the file yourself\n" ;
+    return 0 ;
+}
+
+sub process_diff($$) {
+    my ($pinfo, $project) = @_ ;
+    my $p_elt ;
+    my $elt ;
+    my $ret ;
+    my $patchset ;
+    my $patch ;
+    my @inc ;
+
+    if (defined($args{'set'})) {
+	$patchset = $args{'set'} ;
+        $p_elt = find_patchset($pinfo, $patchset) ;
+	if (!$p_elt) {
+	    print STDERR "Unable to find patchset $patchset\n" ;
+	    return -1 ;
+	}
+    } elsif (defined($args{'patch'})) {
+        $p_elt = $pinfo ;
+    } else {
+        print STDERR "please supply a patchset name\n" ;
+	return -1 ;
+    }
+    if (!defined($args{'patch'})) {
+	return gen_patchset_diff($p_elt, $project);
+    } else {
+        $patch = $args{'patch'} ;
+    }
+    $elt = find_patch($p_elt, $patch) ;
+    if (!$elt) {
+	if ($patch eq "workingdir") {
+	    $elt = new XML::Twig::Elt("patch", { 'id' => 'workingdir',
+	                                         'parent' => '.'} ) ;
+	} else {
+	    print STDERR "Unable to find patch $patch\n" ;
+	    return -1 ;
+	}
+    }
+    if (defined($args{'compound'})) {
+        @inc = @{$args{'compound'}} ;
+	return gen_prcs_compound_diff($pinfo, $elt, $project, @inc) ;
+    }
+    if (defined($args{'inc'}) && -f $args{'inc'}) {
+        return gen_prcs_inc_diff($pinfo, $elt, $project, $args{'inc'}) ;
+    }
+    return gen_prcs_diff($elt, $project) ;
+}
+
+sub process_list($$) {
+    my ($pinfo, $project) = @_ ;
+    my $p_elt ;
+    my $elt ;
+    my $patch ;
+    my $patchset ;
+
+    if (defined($args{'set'})) {
+	$patchset = $args{'set'} ;
+        $p_elt = find_patchset($pinfo, $patchset) ;
+	if (!$p_elt) {
+	    print STDERR "Unable to find patchset $patchset\n" ;
+	    return -1 ;
+	}
+    } elsif (defined($args{'patch'})) {
+        $p_elt = $pinfo ;
+    } else {
+        # just list all patchsets
+	#
+	$p_elt = $pinfo->first_child('patchset') ;
+	while ($p_elt) {
+	    print_patchset($p_elt) ;
+	    $p_elt = $p_elt->next_sibling('patchset') ;
+	}
+	return 0 ;
+    }
+    if (defined($args{'patch'})) {
+        $patch = $args{'patch'};
+	$elt = find_patch($p_elt, $patch) ;
+	if (!$elt) {
+	    print STDERR "Unable to find patch $patch\n"; 
+	    return -1 ;
+	}
+	print_patch($elt) ;
+	return 0 ;
+    }
+    print_patchset($p_elt) ;
+    return 0 ;
+}
+
+sub process_copy($$) {
+    my ($pinfo, $project) = @_ ;
+    my $dest ;
+    my $elt ;
+    my $patch ;
+
+    if (!defined($args{'patch'})) {
+        print STDERR "source patch must be supplied\n" ;
+	return -1 ;
+    }
+    if (!defined($args{'set'})) {
+        print STDERR "destination patchset must be supplied\n" ;
+	return -1 ;
+    }
+    $patch = $args{'patch'} ;
+    $elt = find_patch($pinfo, $patch) ;
+    if (!$elt) {
+        print STDERR "Unable to find $patch for copy\n" ; 
+	return -1 ;
+    }
+    $args{'patch'} = $elt->atts->{'tag'}; 
+    $args{'id'} = $elt->atts->{'id'} ;
+    return process_add($pinfo, $project) ;
+}
+
+# returns an element for the patch in the -patch arg, honoring -set
+# if supplied, otherwise looking through the whole tree
+#
+sub find_patch_from_args($) {
+    my ($pinfo) = @_ ;
+    my $ret ;
+    my $p_elt ;
+    my $elt ;
+
+    if (defined($args{'set'})) {
+        $p_elt = find_patchset($pinfo, $args{'set'}) ;
+	if (!$p_elt) {
+	    print STDERR "Unable to find patchset $args{'set'}\n" ;
+	    return undef ;
+	}
+    } else {
+        $p_elt = $pinfo ;
+    }
+    if (defined($args{'patch'})) {
+	$elt = find_patch($pinfo, $args{'patch'}) ;
+	if (!$elt) {
+	    print STDERR "Unable to find patch $args{'patch'}\n" ;
+	    return undef ;
+	}
+	return $elt ;
+    } else {
+        print STDERR "No patch name specified\n" ;
+	return undef ;
+    }
+    return undef ;
+}
+
+sub process_info($$) {
+    my ($pinfo, $project) = @_ ;
+    my $elt ;
+    my $id ;
+    my @ar ;
+
+    $elt = find_patch_from_args($pinfo) ;
+    if (!$elt) {
+        return -1 ;
+    }
+    $id = $elt->atts->{'id'} ;
+    system("prcs info -f -l -r$id $project") ;
+    return 0 ;
+}
+
+sub process_checkout($$) {
+    my ($pinfo, $project) = @_ ;
+    my $elt ;
+    my $id ;
+
+    $elt = find_patch_from_args($pinfo) ;
+    if (!$elt) {
+        return -1 ;
+    }
+    $id = $elt->atts->{'id'} ;
+    system("prcs checkout -f -r$id $project") ;
+    return 0 ;
+}
+
+sub print_usage {
+    my $p = $0 ;
+    $p =~ s/^.*\///g ;
+    print "usage:\n" ;
+    print "$p create -project name [-file file]\n" ;
+    print "$p add -set name -patch name -id num [-before patch] [-after patch]\n" ;
+    print "$p add -set name\n" ;
+    print "$p copy -set dest_set -patch src_patch [-before patch] [-after patch]\n" ;
+    print "$p remove -set name [-patch name]\n" ;
+    print "$p apply -patch name [-branch id]\n" ;
+    print "$p apply -set name [-patch name] [-branch id]\n" ;
+    print "$p diff -patch name [-compound name ... [-parentid id]]\n" ;
+    print "$p diff -set name [-patch name [-compound name ... [-parentid id]]]\n" ;
+    print "$p diff -patch name [-inc name ... [-parentid id]]\n" ;
+    print "$p diff -set name [-patch name [-inc name ... [-parentid id]]]\n" ;
+    print "$p list [-set name] [-patch name]\n" ;
+    print "$p checkout [-set name] -patch name\n" ;
+    print "$p info [-set name] -patch name\n" ;
+    print "$p edit\n" 
+}
+
+my $action = '' ;
+my $process_func ;
+sub action_arg {
+    my ($a) = @_ ;
+    
+    if ($a eq "add") {
+        $process_func = \&process_add ;
+    } elsif ($a eq "remove") {
+        $process_func = \&process_remove ;
+    } elsif ($a eq "apply") {
+        $process_func = \&process_apply ;
+    } elsif ($a eq "change") {
+        $process_func = \&process_change ;
+    } elsif ($a eq "diff") {
+        $process_func = \&process_diff ;
+    } elsif ($a eq "create") {
+        $process_func = \&process_create ;
+    } elsif ($a eq "list") {
+        $process_func = \&process_list ;
+    } elsif ($a eq "edit") {
+        $process_func = \&process_edit ;
+    } elsif ($a eq "copy") {
+        $process_func = \&process_copy ;
+    } elsif ($a eq "info") {
+        $process_func = \&process_info ;
+    } elsif ($a eq "checkout") {
+        $process_func = \&process_checkout ;
+    } elsif ($action && !defined($args{'patch'})) {
+	# allow shortcuts for these actions, making the default -patch
+	#
+        if (($action eq "diff" ||
+	      $action eq "add" ||
+	      $action eq "apply" ||
+	      $action eq "remove" ||
+	      $action eq "info" ||
+	      $action eq "list" ||
+	      $action eq "copy" ||
+	      $action eq "checkout")) {
+	    $args{'patch'} = $a; 
+	} else {
+	    die "\nUnknown command $a\n" ;
+	}
+    } else {
+        die "\nUnknown command $a\n" ;
+    }
+    $action = $a ;
+}
+
+my $ret; 
+$ret = GetOptions(\%args, 
+	   'after=s',
+	   'before=s',
+	   'branch=s',
+	   'compound:s@',
+	   'checkin',
+	   'destset=s',
+	   'file=s',
+	   'id=s',
+	   'inc=s',
+	   'parentid=s',
+	   'patch=s',
+	   'project=s',
+           'set=s',
+	   'tag=s',
+	   'version' => sub { print "$0: version $version\n" ; },
+	   '<>' => \&action_arg
+          );
+
+if ($ret == 0 || !defined($process_func)) {
+    print_usage() ;
+    die ;
+}
+
+my $file = "patch.info" ;
+my $twig = new XML::Twig(pretty_print => "indented") ;
+my $pinfo ; 
+my $project ;
+
+if (! -f $file && exists($ENV{'PRCS_REPOSITORY'})) {
+    $file = "$ENV{'PRCS_REPOSITORY'}/patch.info" ;
+}
+
+if (defined($args{'file'})) {
+    $file = $args{'file'} ;
+}
+
+if ($action eq "create") {
+    if (-f $file) {
+        print STDERR "$file already exists, unable to create project\n" ;
+	exit 1 ;
+    }
+    if (!defined($args{'project'})) {
+        print STDERR "project name must be specified\n"  ;
+	exit 1 ;
+    }
+    open(FF, ">$file") or die "Can't create $file\n" ;
+    print FF "<patchinfo project=\"$args{'project'}\"></patchinfo>\n"  ;
+    close(FF) ;
+    exit(0) ;
+}
+
+print STDERR "using file $file\n" ;
+if (-f $file) {
+    if ($action eq "edit") {
+	if (defined $ENV{'EDITOR'}) {
+	    exec "$ENV{'EDITOR'} $file";
+        } else {
+	    exec "vi $file" ;
+	}
+    }
+    $twig->parsefile($file) ;
+
+    $pinfo = $twig->first_elt("patchinfo") ;
+    if (!$pinfo) {
+	die "patchinfo element not found\n" ;
+    }
+
+    if ($pinfo) {
+	$project = $pinfo->atts->{'project'} ;
+	print STDERR "project is $project\n" ;
+    }
+
+    $ret = &$process_func($pinfo, $project) ;
+    if ($ret < 0) {
+	print STDERR "Error processing $action\n" ;    
+	exit(-1) ;
+    } elsif ($ret == 1) {
+	print STDERR "saving changes to $file\n" ;
+	save_twig($twig, $file) ;
+    }
+    exit(0) ;
+} else {
+    print STDERR "$file not found\n" ;
+    exit(1) ;
+}

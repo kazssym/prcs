@@ -1,0 +1,1774 @@
+#! /usr/bin/tclsh8.0
+
+
+
+package require Tcl 8
+package provide Tre 2.1
+
+# begin the teaRTE namespace
+namespace eval ::teaRTE {
+  variable finalflag 0
+
+  # mod constants
+  variable ABSTRACT 1
+  variable FINAL 2
+  variable INTERFACE 4
+  variable NATIVE 8
+  variable PRIVATE 16
+  variable PROTECTED 32
+  variable PUBLIC 64
+  variable STATIC 128
+  variable TRANSIENT 256
+  variable DEPRECATED 512
+    
+  # array definitions for a nonTea class (from global scope)
+  array set NonTeaClass {
+    name ""
+    package ""
+    derived ""
+    implements ""
+    mods 0
+  }
+  array set NonTeaMethods {
+    null ""
+  }
+  array set NonTeaFields {
+    null ""
+  }
+  array set NonTeaImports {
+    null ""
+  }
+  
+  # array of packages who have been loaded already
+  variable pkgloaded
+  
+  # the list of class paths to look for classes in
+  variable classpaths
+  
+  # table of options
+  variable options
+  
+  # set the defaults
+  array set options {
+    checksource 0
+    deprecated 0
+    nowarn 0
+    verbose 0
+    nowrite 0
+    savedir ""
+    runpot ""
+    standalone 0
+    compiler 0
+  }
+  
+  # initialize the stand-alone RTE
+  proc init { {teapath "/home/john/work/installed/tea-2.1/lib/tea"} } {
+    initRTE "classpath $teapath standalone 1"
+  }
+  
+  # initialize the RTE.
+  # opts are the command line options that modify the RT behavior
+  proc initRTE {opts} {
+    variable classpaths
+    variable options
+    
+    # save off the options
+    array set options $opts
+    
+    # get the class paths
+    if { [info exists options(classpath)] } {
+      set classpaths [split $options(classpath) :]
+    } 
+    
+    # append the classpaths with the env var TEAPATH
+    global env 
+    if { [info exists env(TEAPATH)] } {
+      foreach path [split $env(TEAPATH) :] {
+        lappend classpaths $path
+      }
+    } else {
+      # tack on current dir
+      lappend classpaths .
+    }
+
+    # if we're running a potfile, stick it on the head of the classpaths list
+    if { $options(runpot) != "" } {
+      set classpaths "$options(runpot) $classpaths"
+    }
+    
+    # create the runtime namespaces
+    #
+    # this namespace holds class definitions and their methods code
+    namespace eval ::teaclasses {}
+    
+    # this namespace holds instantiated objects
+    namespace eval ::teaobjects {}
+    
+    # load in the zip file support
+    # but first, it may already be loaded if this is tre_lib.tcl
+    if { [info commands zip_compress] == "" } {
+      if { [catch {uplevel #0 source /home/john/work/installed/tea-2.1/lib/tea/zip_support.tcl} rc] } {
+        puts "Warning: can't load ZIP support; no support for TPOT archives"
+      }
+    }
+    
+    # special setup if we might run the compiler
+    if { $options(checksource) || $options(compiler) } {
+      # this namespace holds compiled classes that have not been loaded yet
+      namespace eval ::teacompiled {}
+
+      # load the RT compiler
+      uplevel #0 source /home/john/work/installed/tea-2.1/lib/tea/tea_compiler.tcl
+      
+      # and the extra support for dynamic compiling
+      uplevel #0 source /home/john/work/installed/tea-2.1/lib/tea/tea_compsupport.tcl
+    }
+    
+    # start loading the core packages that are always in memory
+    if { ! [loadClass tea.lang.Object] } {
+      error "Fatal: can't find tea.lang.Object"
+    }
+  }
+  
+  
+  # finds the given class in the file system, using classpaths.
+  # this finds only precompiled (.t) classes.
+  # returns the full path to the class file, or "" if not found
+  proc findClass {classname} {
+    variable classpaths
+    variable options
+    
+    # first split out the package from the name
+    set pkg ""; set class ""
+    splitclass $classname pkg class
+
+    if { $pkg != "" } {
+      set pkgpath [eval file join [split $pkg .]]
+    } else {
+      set pkgpath "."
+    }
+    
+    # now look in the classpaths for this guy
+    foreach path $classpaths {
+      # the path may actually be a zip file
+      if { [file isfile $path] } {
+        if { [zip_does_file_exist $path $pkgpath/$class.t] } {
+          # we found it in the zip file!
+          # returning a list will tell loadClass that it is in an archive
+          return [list $path $pkgpath/$class.t $pkg $class]
+        } else {
+          continue
+        }
+      } elseif { [file exists $path/$pkgpath/$class.t] } {
+        return $path/$pkgpath/$class.t
+      }
+    }
+    
+    # if we got here, we didn't find it. Return empty string
+    return ""
+  }
+  
+  # proc getClassRef
+  # proc getImportsRef
+  # create the methods that link up a variable to one of the class
+  # definition arrays
+  foreach arr {Class Imports} {
+    proc get${arr}Ref {class arrref} "
+      if { \$class == \"\" } {
+        uplevel upvar 0 ::teaRTE::NonTea$arr \$arrref
+      } else {
+        if { \[namespace children ::teaclasses ::teaclasses::\${class}\] != {} } {
+          uplevel upvar 0 ::teaclasses::\${class}::def::$arr \$arrref
+        } else {
+          uplevel upvar 0 ::teacompiled::\${class}::$arr \$arrref
+        }
+      }
+    "
+  }
+  
+  # Load a class into memory. classname must be fully qualified!
+  # returns 1 if the class was or already is loaded successfully, 0 if not
+  proc loadClass {classname} {
+    variable options
+    
+    # first look if class is already loaded into memory
+    if { [namespace children ::teaclasses ::teaclasses::$classname] != "" } {
+      return 1
+    }
+    
+    # we could have its definition compiled but not yet loaded
+    if { $options(checksource) || $options(compiler) } {
+      if { [namespace children ::teacompiled ::teacompiled::$classname] != "" } {
+        return [loadFromNamespace ::teacompiled::$classname]
+      }
+    }
+    
+    set file ""
+    set sfile ""
+    
+    # look for the class file
+    set file [findClass $classname]
+
+    # did we find it in an archive?
+    if { $file != "" && [llength $file] > 1 } {
+      return [loadFromTeaPot $file]
+    }
+    
+    # do we want to look at the source file too?
+    if { $options(checksource) } {
+      set sfile [findClassSource $classname]
+    }
+    
+    # there can be four cases here:
+    # 1. t file found and tea file found
+    #    compare file times and take latest one
+    # 2. t file found and tea file not found
+    #    source t file
+    # 3. t file not found and tea file found
+    #    compile tea file
+    # 4. neither file found
+    #    return 0
+    
+    if { $file != "" && $sfile != "" } {
+      # compare file times
+      if { [file mtime $sfile] > [file mtime $file] } {
+        # we need to set the savedir to empty to we recompile in the
+        # same dir as the source
+        set orig_savedir $options(savedir)
+        set options(savedir) ""
+        set rc [compile $sfile $classname]
+        set options(savedir) $orig_savedir
+        return $rc
+      } else {
+        return [loadFromTFile $file $classname]
+      }
+    } elseif { $file != "" && $sfile == "" } {
+      return [loadFromTFile $file $classname]
+    } elseif { $file == "" && $sfile != "" } {
+        set orig_savedir $options(savedir)
+        set options(savedir) ""
+        set rc [compile $sfile $classname]
+        set options(savedir) $orig_savedir
+        return $rc
+    } else {
+      return 0
+    }
+  }
+  
+  # this loads a class from the Tea Pot file (archive)
+  proc loadFromTeaPot {arcinfo} {
+    variable options
+    variable pkgloaded
+    
+    set potfile [lindex $arcinfo 0]
+    set subfile [lindex $arcinfo 1]
+    set pkg [lindex $arcinfo 2]
+    set class [lindex $arcinfo 3]
+
+    # has this package ever been initialized?
+    if { ! [info exists pkgloaded($pkg)] } {
+      # look for the pkg.init file in the pot file
+      set pkginit [file dirname $subfile]/$pkg.init
+      if { [zip_does_file_exist $potfile $pkginit] } {
+        set buf [zip_get_file_in_buf $potfile $pkginit]
+        if { [catch {uplevel #0 $buf} rc] } {
+          Throw tea.lang.ExceptionInInitializerError \
+            "Error running package initializer for $pkg in pot: '$rc'"
+        }
+      }
+      
+      # set it to something so we don't do this code again
+      set pkgloaded($pkg) {}
+    }
+
+    if { $options(verbose) } {
+      puts "Loading $pkg.$class from $potfile"
+    }
+
+    # extract the file from the archive
+    set buf [zip_get_file_in_buf $potfile $subfile]
+    
+    # now eval this guy
+    uplevel #0 $buf
+    
+    return 1
+  }
+  
+  # this loads a class from a .t file into memory.
+  proc loadFromTFile {file class} {
+    variable options
+    variable pkgloaded
+    
+    # has this package ever been initialized?
+    set pkg ""
+    splitclass $class pkg {}
+    if { ! [info exists pkgloaded($pkg)] } {
+      # look for the pkg.init file
+      if { [file exists [file dirname $file]/$pkg.init] } {
+        if { [catch {uplevel #0 source [file dirname $file]/$pkg.init} rc] } {
+          Throw tea.lang.ExceptionInInitializerError \
+            "Error running package initializer for $pkg: '$rc'"
+        }
+      }
+      
+      # set it to something so we don't do this code again
+      set pkgloaded($pkg) {}
+    }
+    
+    if { $options(verbose) } {
+      puts "Loading $class from $file"
+    }
+
+    if { [catch {source $file} rc] } {
+      return 0
+    } else {
+      return 1
+    }
+  }
+  
+  # RTE service proc. Resolves a short name given just the this pointer.
+  # this will handle the case where no match was found by attaching the
+  # package of this to it.
+  proc resolveNameFromThis {classname this} {
+    # get this's classname
+    set thisclass [getClassFromThis $this]
+    
+    # get the import table
+    getImportsRef $thisclass imports
+    
+    # call the real function
+    set longname [resolveName $classname imports]
+    if { $longname == "" } {
+      getClassRef $thisclass def
+      set longname $def(package).$classname
+    }
+    
+    return $longname
+  }
+  
+  # this will, using the import table, resolve a shortname with a fully
+  # qualified classname
+  proc resolveName {classname tableref} {
+    # for RT binding, the classname does not have to be fully qualified. The
+    # classdef array of the caller has an import table we can try to resolve
+    # short class names.
+    if { [string first "." $classname] == -1 } {
+      # possible short form (could be unnamed package)
+      
+      upvar $tableref imports
+      
+      if { [info exists imports($classname)] } {
+        # do we have conflicting packages?
+        if { [llength $imports($classname)] > 1 } {
+          Throw tea.lang.CompileError "Simple classname '$classname' imported from these packages: $imports($classname)"
+        } else {
+          return $imports($classname)
+        }
+      } else {
+        # couldn't find it, return empty string and let caller deal with it
+        return ""
+      }
+    }
+    
+    return $classname
+  }
+  
+  # support for the import command. This will find all the classes
+  # possible under the given package. This paws through all the paths
+  # in the classpaths list and finds all .t and .tea (since both are
+  # supported) and updates the importtable.
+  # this has been updated in tea-sarte to support zip archives
+  proc resolveWildcard {importtableref pkg {lookatsrcs 1}} {
+    upvar $importtableref importtable
+    variable classpaths
+    
+    # convert the package name into a path
+    if { $pkg != "" } {
+      set pkgpath [eval file join [split $pkg .]]
+    } else {
+      set pkgpath ""
+    }
+    
+    # now look in the classpaths for any classes under this package
+    foreach path $classpaths {
+      if { [file isdirectory $path/$pkgpath] } {
+        if { $lookatsrcs } {
+          set files [glob -nocomplain $path/$pkgpath/*.t $path/$pkgpath/*.tea]
+        } else {
+          set files [glob -nocomplain $path/$pkgpath/*.t]
+        }
+      } elseif { [file isfile $path] } {
+        # it's a tea pot file (we don't want srcs)
+        set files [zip_find_files $path $pkgpath/*.t]
+      } else {
+        continue
+      }
+        
+      foreach class $files {
+        # strip off the path and the extension
+        set class [file root [file tail $class]]
+
+        # see if it's already in the table
+        if { [info exists importtable($class)] } {
+          # are they different packages?
+          if { $importtable($class) != "$pkg.$class" } {
+            # what we'll do is note the fact that we have a conflict. It
+            # will only culminate into an error if the user tries to use
+            # this simple name
+            lappend importtable($class) $pkg.$class
+          } else {
+            continue
+          }
+        }
+
+        # put it in the import table
+        set importtable($class) $pkg.$class
+      }
+    }
+  }
+
+  proc decodeTypes {parmtypes} {
+    set buf ""
+    set len [string len $parmtypes]
+    for {set i 0} {$i < $len} {incr i} {
+      set t [string index $parmtypes $i]
+      if { $t == "O" || $t == "o" } {
+        set objref ""
+        incr i 2
+        while { [set o [string index $parmtypes $i]] != "," } {
+          append objref $o
+          incr i
+        }
+        if { $t == "o" } {
+          append objref &
+        }
+        lappend buf $objref
+      } else {
+        lappend buf [decodeType $t]
+      }
+    }
+    
+    return $buf
+  }
+
+  # create an encoding string using the following mapping:
+  # tclstring = S
+  # tclint = I
+  # tclbool = B
+  # tcldouble = D
+  # tcllist = L
+  # tclarray = A
+  # void = V
+  proc decodeType {type} {
+    switch $type {
+      S {return tclstring}
+      s {return tclstring&}
+      I {return tclint}
+      i {return tclint&}
+      B {return tclbool}
+      b {return tclbool&}
+      D {return tcldouble}
+      d {return tcldouble&}
+      L {return tcllist}
+      l {return tcllist&}
+      A {return tclarray}
+      a {return tclarray&}
+      V {return void}
+    }
+  }
+  
+  # looks for a field in the given class. Returns the name to field array
+  # if found, "" otherwise.
+  proc findField {class fieldname} {
+    # look for the field in the topmost class
+    if { [info vars ::teaclasses::${class}::def::f:$fieldname] != "" } {
+      return ::teaclasses::${class}::def::f:$fieldname
+    }
+    
+    # nope, we'll have to look in superclasses
+    set super [set ::teaclasses::${class}::def::Class(derived)]
+    while { $super != "" } {
+      if { [info vars ::teaclasses::${super}::def::f:$fieldname] != "" } {
+        return ::teaclasses::${super}::def::f:$fieldname
+      } else {
+        set super [set ::teaclasses::${super}::def::Class(derived)]
+      }
+    }
+    
+    # still haven't found it! Look in the interfaces
+    foreach int [set ::teaclasses::${class}::def::Class(implements)] {
+      # recursively call this proc on this interface
+      set found [findField $int $fieldname]
+      if { $found != "" } { return $found }
+    }
+    
+    # not there
+    return ""
+  }
+  
+  # this returns the fully qualified array variable name that
+  # is the method array for the given methodname. Returns ""
+  # if the method is not found
+  # the argcount variable must be called "ac" for the expression embedded
+  # in the methods array to work
+  proc findMethod {name ac class} {
+    # get a list of matching methods
+    set found ""
+    foreach methodref [info vars ::teaclasses::${class}::def::m:${name}:*] {
+      upvar 0 $methodref method
+      if $method(argexpr) {
+        if { $found != "" } {
+          Throw tea.lang.AmbiguousMethodError \
+            "Call to method $class.$name is ambiguous; more than one possibility"
+        } else {
+          set found $methodref
+        }
+      }
+    }
+    
+    if { $found != "" } { return $found }
+    
+    # if we got here, we didn't find it, look in our parents array.
+    # we need to do this because a superclass could be calling a non-
+    # accessible method (from the child) through the $this pointer.
+    set derived [set ::teaclasses::${class}::def::Class(derived)]
+    if { $derived != "" } {
+      # make sure it's loaded
+      loadClass $derived
+      set methodref [findMethod $name $ac $derived]
+
+      return $methodref
+    } else {
+      # we're at the top, no method by that name. 
+      return ""
+    }
+  }
+  
+  proc findMethodByType {nameandtypes class {searchstring ""}} {
+    if { $searchstring == "" } {
+      # pluck off the method name
+      set name [lindex $nameandtypes 0]
+
+      # get the types in encoded format
+      set enc ""
+      foreach type [lrange $nameandtypes 1 end] {
+        append enc [encodeType $type]
+      }
+      
+      set searchstring $name:$enc
+    }
+    
+    # now see if our methods array has this
+    set methodref [info vars ::teaclasses::${class}::def::m:$searchstring]
+    if { $methodref != "" } {
+      return $methodref
+    }
+    
+    # if we got here, we didn't find it, look in our parents array
+    set derived [set ::teaclasses::${class}::def::Class(derived)]
+    if { $derived != "" } {
+      # make sure it's loaded
+      loadClass $derived
+      set methodref [findMethodByType "" $derived $searchstring]
+
+      return $methodref
+    } else {
+      # we're at the top, no method by that name. 
+      return ""
+    }
+  }
+  
+  #
+  # utility support routines
+  #
+  # split a fully qualified classname into its package and class name
+  # components. 
+  proc splitclass {full pkgref classref} {
+    if { $pkgref != "" } {upvar $pkgref pkg}
+    if { $classref != "" } {upvar $classref class}
+
+    set i [string last . $full]
+    if { $i == -1 } {
+      # no package name, so it's an unnamed package
+      set pkg ""
+      set class $full
+    } else {
+      incr i -1
+      set pkg [string range $full 0 $i]
+      incr i +2
+      set class [string range $full $i end]
+    }
+  }
+
+  #
+  # Runtime support
+  #
+  
+  # a counter for creating unique object references
+  variable objcounter 0
+
+  # allocates an object of the given fully-qualified classname. Does
+  # not invoke the constructor!
+  # returns the reference to this object
+  proc allocateObject {classname} {
+    variable objcounter
+
+    incr objcounter
+    set new ::teaobjects::${classname}::$objcounter
+
+    # create the namespace
+    set ns ::teaclasses::$classname
+    #namespace eval $new "namespace import -force ${ns}::*;upvar #0 ${ns}::_class_def_ _class_def_"
+    namespace eval $new "upvar #0 ${ns}::_class_def_ _class_def_"
+
+    # initialize variables
+    ${ns}::__init_vars $new
+
+    # create the access method
+#    uplevel #0 "proc $new {method args} { return \[uplevel runmethod $new $classname \[list \$method\] \$args\] }"
+    interp alias {} $new {} runmethod $new $classname 1
+
+    return $new
+  }
+  
+  namespace export new
+  proc new { class args } {
+    variable objcounter 
+#puts "new $class $args"
+
+    # get the id of the caller
+    set caller [uplevel ::teaRTE::getCallerInfo]
+
+    # caller may be specifying explicit types for the ctor
+    # ie: set a [new {X tclint} 23]
+    if { [llength $class] > 1 } {
+      set explicittypes [lrange $class 1 end]
+      set class [lindex $class 0]
+    } else {
+      set explicittypes ""
+    }
+    
+    # resolve possible short classname
+    getImportsRef $caller imports
+    set fullclass [resolveName $class imports]
+    
+    if { $fullclass == "" } {
+      # assume it's a package-friendly class of the same package
+      getClassRef $caller callerdef
+      set fullclass $callerdef(package).$class
+    }
+#puts "trying to new class '$fullclass'"
+
+    # load the class
+    if { ! [loadClass $fullclass] } {
+      Throw tea.lang.ClassNotFoundException "Can't locate class '$class'"
+    }
+    
+    # get this class definition
+    getClassRef $fullclass def
+
+    # is this class an abstract class?
+    if { $def(mods) & $::teaRTE::ABSTRACT } {
+      Throw tea.lang.InstantiationException \
+        "Cannot instantiate abstract class '$fullclass'"
+    }
+    
+    # see if the caller can even allocate one of these
+    
+    # call the RT security manager
+    if { ! [SMaccessClass $caller $fullclass] } {
+      Throw tea.lang.IllegalAccessException \
+        "Cannot access '$fullclass' from '$caller'"
+    }
+    
+    # everything's a go security-wise
+    
+    # allocate the object
+    set new [allocateObject $fullclass]
+
+    # call the ctor
+    if { $explicittypes != "" } {
+      uplevel runmethod $new $fullclass 1 [list [concat $fullclass $explicittypes]] $args
+    } else {
+      uplevel runmethod $new $fullclass 1 $fullclass $args
+    }
+    
+    return $new
+  }
+
+  # proc to retrieve information about a caller. The caller better be one
+  # level up, so you better use uplevel when calling this proc. This
+  # returns the class name of the caller, or "" if global scope
+  proc getCallerInfo {} {
+    set ns [uplevel namespace current]
+    
+    if { [string match ::teaclasses::* $ns] } {
+      return [namespace tail $ns]
+    } elseif { [string match ::teaobjects::* $ns] } { 
+      # need to support this in case we're calling things from inside 
+      # the __init_var proc, which is run in the objects namespace 
+      return [namespace tail [namespace qualifiers $ns]] 
+    } else {
+      return ""
+    }
+  }
+  
+  # delete an object
+  # (this is going away, don't use it)
+  proc delete { this } {
+    # call the finalizer
+    $this finalize
+
+    # remove the accessor proc
+    rename $this {}
+
+    # delete the namespace
+    namespace delete $this
+  }
+
+  
+  namespace export final
+  proc final {type args} {
+    if { $type == "objref" } {
+      # need to skip over the objref type
+      uplevel ::teaRTE::_final [lrange $args 1 end]
+    } elseif { $type != "tclarray" } {
+      uplevel ::teaRTE::_final $args
+    } else {
+      uplevel ::teaRTE::_finalarr $args
+    }
+  }
+
+  # generate all the primitive type handlers
+  foreach {type value} {tclstring "" tclint 0 tcllist "" tclbool 0 tcldouble 0.0} {
+    namespace export $type
+    proc $type [list var [list value $value]] {
+      uplevel set $var [list $value]
+      #uplevel ::teaRTE::handle_primitive $var [list $value]
+    }
+  }
+
+  # this one needs special attention
+  namespace export tclarray
+  proc tclarray {varname {value {}}} {
+    variable finalflag
+#     if { $finalflag } {
+#       uplevel ::teaRTE::_finalarr $varname $value
+#     } else {
+      # if there is no value, set a dummy then unset it to force the
+      # variable to be of array type
+      if { $value == {} } {
+        uplevel set $varname\(dummy) dummy
+        uplevel unset $varname\(dummy)
+      } else {
+        # just do a normal set
+        uplevel array set $varname [list $value]
+      }
+#     }
+  }
+
+  namespace export objref
+  proc objref {class var {val "null"}} {
+    # this is cheap for now...
+    uplevel set $var $val
+    #uplevel ::teaRTE::handle_primitive $var $val
+  }
+
+  # plucks off the classname from the this pointer (could be a static
+  # this pointer, meaning that it points to the classes ns instead of
+  # the objects ns)
+  proc getClassFromThis {this} {
+    if { [isATeaObject $this] } {
+      return [namespace tail [namespace qualifiers $this]]
+    } elseif { $this != "" } {
+      return [namespace tail $this]
+    } else {
+      # global scope
+      return ""
+    }
+  }
+  
+  # this is a simpler runtime binder. The optimizer has done most of the
+  # work for us. He found out the mangled name of the method to run, he
+  # found out if permission is allowed to access the method. He just didn't
+  # know which method to run, so we'll look in the vmt to find it
+  proc runmethod2 {this method args} {
+    # check for null reference
+    if { $this == "null" } {
+      Throw tea.lang.NullPointerException \
+        "accessing method '$method' from a null reference"
+    }
+    
+    # see if we're calling a static
+    if { ! [isATeaObject $this] } {
+      # make sure the package and class are loaded
+      set splitlist [split $this :]
+      ::tea.lang::ClassLoader::loadClass1 ign [list [lindex $splitlist 2] [lindex $splitlist 4]]
+    }
+    
+    array set vmt [set ${this}::_class_def_(vmt)]
+
+    if { ! [info exists vmt($method)] } {
+      Throw tea.lang.RuntimeError \
+        "method '$method' does not exist in VMT"
+    }
+
+    set real $vmt($method)
+    if { $real == "null" } {
+      Throw tea.lang.AbstractMethodError \
+        "Trying to run abstract method $method"
+    }
+    
+    # the vmt only specifies the class
+    append real ::$method
+    
+    return [uplevel $real $this $args]
+  }
+  
+  # algorithm for running a method, which can involve
+  # static methods, virtual methods, overloaded methods, etc:
+  # 1. find out what class is calling the method. Could be "" if calling
+  #    a static from outside an object
+  # 2. find the real method that matches the argcount
+  # 3. get the class that defined this real method
+  # 4. check the privacy of the real method against the calling class
+  # 5. if everything's ok, run it.
+  # (this would be a lot quicker if implemented in C)
+  #
+  # this handles getting the real method name and checking protection
+  namespace export runmethod
+  proc runmethod {this forceclass dosecurity method args} {
+    #puts "runmethod '$this' '$invokedas' '$method' '$args'"
+    set staticflag 0
+    set must_be_static 0
+
+    # if we are not calling from a class method, then we can only
+    # call statics
+    if { ! [isATeaObject $this] } {
+      # the this pointer is a class name
+      set must_be_static 1
+    }
+
+    # get the caller info
+    set caller [uplevel ::teaRTE::getCallerInfo]
+
+    # forceclass is a way to implement $super method, to force execution of
+    # the method on the given class, ignoring an overriding method in the
+    # child
+    if { $forceclass == "" } {
+      set forceclass [getClassFromThis $this]
+    }
+    
+    set realname [realmethod $forceclass $dosecurity $method [llength $args] $caller staticflag]
+#puts "--> realname found is $realname"
+
+    if { $must_be_static && $staticflag != 1 } {
+      if { $caller == "" } {
+        Throw tea.lang.NoSuchMethodException \
+          "Can only call static methods from a class accessor"
+      } else {
+        Throw tea.lang.NoSuchMethodException \
+          "Can only call static methods from $caller"
+      }
+    }
+
+    # if we've made here, then we found the method and the caller
+    # is allowed to call it.
+
+    # run the actual method
+    if { $staticflag } {
+      if { ! [isATeaObject $this] } {
+        set code [catch {uplevel $realname $this $args} rc]
+      } else {
+        set code [catch {uplevel $realname ::teaclasses::[getClassFromThis $this] $args} rc]
+      }
+    } else {
+      set code [catch {uplevel $realname $this $args} rc]
+    }
+    
+    return -code $code $rc
+  }
+
+  # this gets the real method name and verifies that the caller can call it
+  proc realmethod {class dosecurity method argcount caller staticflagvar} {
+    upvar $staticflagvar staticflag
+
+    # caller could be explicitly specifying the parm types to get
+    # around overloading ambiguities
+    if { [llength $method] > 1 } {
+      # get the method using the parm types
+      set methodref [findMethodByType $method $class]
+    } else {
+      # get the method array from the owning class using the arg count
+      set methodref [findMethod $method $argcount $class]
+    }
+    
+    if { $methodref == "" } {
+        Throw tea.lang.NoSuchMethodException \
+          "method $class.$method with $argcount arguments does not exist"
+    }
+
+    upvar 0 $methodref methoddef
+    
+    # is this an abstract method?
+    if { $methoddef(mods) & $::teaRTE::ABSTRACT } {
+      Throw tea.lang.AbstractMethodError \
+        "Trying to run abstract method $class.$method from '$caller'"
+    }
+    
+    # the method owner may be different than the this pointer if the method
+    # is actually implemented in a superclass
+    
+    if { $dosecurity } {
+      # make sure caller can call this method
+      if { ! [SMaccessMethod $caller methoddef] } {
+        Throw tea.lang.IllegalAccessException \
+          "Cannot access $class.$method with $argcount arguments from $caller"
+      }
+    }
+    
+    # need to determine if this method is static
+    if { $methoddef(mods) & $::teaRTE::STATIC } {
+      set staticflag 1
+    } else {
+      set staticflag 0
+    }
+
+    return ::teaclasses::$methoddef(owner)::$methoddef(fullname)
+  }
+  
+  # in Java, the first line of a ctor MUST invoke it's superclass's
+  # ctor (or implicitly by invoking another ctor via "this"), or else
+  # the compiler (in this case the RTE) will insert a call to the super-
+  # class default ctor automatically.
+  #
+  # This method ensures that this behavior occurs
+  proc ctorfirstcmd {superclass {cmd ""} args} {
+    upvar this this
+    upvar super super
+
+    # look at the first statement of the ctor
+    # it might have explicit type suggestions
+    if { [llength $cmd] > 1 } {
+      if { [lindex $cmd 0] == $this } {
+        # chain to a peer ctor
+        #set classname [getClassFromThis $this]
+        set classname [uplevel ::teaRTE::getCallerInfo]
+        uplevel runmethod $this $classname 0 [list [concat $classname [lrange $cmd 1 end]]] $args
+      } elseif { [lindex $cmd 0] == $super } {
+        # call our super's ctor
+        uplevel runmethod $this $superclass 0 [list [concat $superclass [lrange $cmd 1 end]]] $args
+      } else {
+        # better insert a call to the default super ctor
+        if { $superclass != "" } {
+          uplevel runmethod $this $superclass 0 $superclass
+        }
+        # now we can run whatever they had in mind
+        uplevel [list $cmd] $args
+      }
+    } else {
+      if { $cmd == $this } {
+        # chain to peer ctor
+        #set classname [getClassFromThis $this]
+        set classname [uplevel ::teaRTE::getCallerInfo]
+        uplevel runmethod $this $classname 0 $classname $args
+      } elseif { $cmd == $super } {
+        # calling the super's ctor
+        uplevel runmethod $this $superclass 0 $superclass $args
+      } else {
+        # better insert a call to the default suprt ctor
+        if { $superclass != "" } {
+          uplevel runmethod $this $superclass 0 $superclass
+        }
+        uplevel $cmd $args
+      }
+    }
+  }
+  
+  # proc for handling null references
+  #
+  namespace export null
+  proc null {args} {
+    Throw tea.lang.NullPointerException \
+      "trying to call '$args' through a null reference"
+  }
+
+  proc isATeaObject {object} {
+    return [string match ::teaobjects::* $object]
+  }
+    
+  # try/throw/catch/finally functionality
+  #
+  namespace export try
+  proc try {code args} {
+    global errorCode errorInfo
+    
+    if { [set fi [lsearch -exact $args finally]] != -1 } {
+      incr fi
+      set finally_var $fi
+      #trace variable finally_var u "::teaRTE::run_finally [info level]"
+      trace variable finally_var u "eval [list [lindex $args $fi]] ;#"
+    }
+    
+    # try running the code, while catching any errors
+    set e [catch {uplevel $code} msg]
+    #puts "e is '$e' and msg is '$msg' and errorCode is '$errorCode'"
+    #set excobj $errorCode
+    set excobj $msg
+    set info $errorInfo
+    switch -- $e {
+      0 -
+      1 {}
+      default {
+        # this is a return of continue or break, let it go through
+        #return -code $e -errorcode $excobj -errorinfo $info $msg
+        return -code $e -errorcode $errorCode -errorinfo $info $msg
+      }
+    }
+      
+    if { $e } {
+      # is it one of our classes?
+      if { ! [isATeaObject $excobj] } {
+        # this might be a special case of an error thrown from a variable
+        # trace. Tcl wraps our IllegalAccess exceptions with his own
+        # message, so we need to look a little harder for the tea exception
+        if { [set i [string last ::teaobjects $excobj]] != -1 } {
+          set excobj [string range $excobj $i end]
+        } else {
+          # convert the tcl error to an exception
+          # but check if this has been tried before
+          if { [string first "Unable to throw this exception" $msg] == 0 } {
+            # let it go, we can't do anything here
+            error $msg
+          }
+          
+          set excobj [new tea.lang.TclError $msg]
+        }
+      }
+      
+      # find a catch handler
+      foreach {catchstring class_object code} $args {
+        if { $catchstring != "catch" } {
+          #return -code error -errorcode $excobj $msg
+          return -code error -errorcode $errorCode $excobj
+        }
+        
+        # resolve class name to long form
+        set caller [uplevel ::teaRTE::getCallerInfo]
+        if { $caller != "" } {
+          getImportsRef $caller imports 
+          set fullclass [resolveName [lindex $class_object 0] imports]
+          if { $fullclass == "" } {
+            getClassRef $caller def
+            set fullclass $def(package).[lindex $class_object 0]
+          } 
+        } else {
+            set fullclass [lindex $class_object 0]
+        }
+        
+        # is this a match
+        if { [$excobj instanceof $fullclass] } {
+          uplevel set [lindex $class_object 1] $excobj
+          uplevel $code
+          # unset the exception object
+          uplevel unset [lindex $class_object 1]
+          return
+        }
+      }
+      
+      # if we got here, we never found it, so rethrow
+      error $msg {} $errorCode
+    }
+
+    return
+  }
+  
+  # this internal proc is to trap throws that fail because the internal core
+  # is screwed up so bad that it cannot locate or compile an exception
+  # class or his superclasses. This detects this occurrence and just
+  # tosses a good ol' Tcl error.
+  variable throwlock 0
+  proc Throw {exc msg} {
+    variable throwlock
+    
+    # are we calling this recursively?
+    if { $throwlock != 0 } {
+      error "Unable to throw this exception (check your setup): $exc '$msg'"
+    } else {
+      set throwlock 1
+      set obj [new $exc $msg]
+      set throwlock 0
+      throw $obj
+    }
+  }
+  
+  namespace export throw
+  proc throw {object} {
+    # make sure it's a valid class
+    if { ! [isATeaObject $object] } {
+      set object [new tea.lang.ClassCastException "Object to throw is not a Tea class object"]
+    }
+    
+    # make sure object is throwable
+    if { ! [$object instanceof tea.lang.Throwable] } {
+      Throw tea.lang.ClassCastException \
+        "Object to throw is not an instance of Throwable"
+    }
+    
+    #return -code error -errorcode $object "TEA EXCEPTION"
+    #return -code error -errorcode "TEA EXCEPTION" $object
+    error $object {} "TEA EXCEPTION"
+  }
+  
+  proc _final {variable args} {
+    upvar $variable var
+    if { [llength $args] == 0 } {
+      # support for a blank final
+      set var ""
+      trace variable var wr [list ::teaRTE::_finalblank]
+    } else {
+      set value [lindex $args 0]
+      set var $value
+      trace variable var w [list ::teaRTE::_finalmod $value]
+    }
+  }
+  
+  proc _finalmod {value name1 name2 op} {
+    upvar $name1 name
+    set name $value
+    Throw tea.lang.IllegalAccessException "Trying to set final field $name1"
+  }
+
+  proc _finalblank {name1 name2 op} {
+    upvar $name1 name
+    if { $op == "r" } {
+      # we're trying to read an unset blank final
+      Throw tea.lang.RuntimeException \
+        "Trying to read an uninitialized blank final '$name1'"
+    } elseif { $op == "w" } {
+      # we're setting a blank final for the first time
+      # the variable has already been set, so let's use that as it's final value
+      trace vdelete name wr [list ::teaRTE::_finalblank]
+      trace variable name w [list ::teaRTE::_finalmod $name]
+    }
+  }
+  
+  proc _finalarr {array args} {
+    upvar $array arr
+    if { [llength $args] == 0 } {
+      # support for a blank final
+      # this is kind of a kludge. Just saying array set arr {} doesn't
+      # create the array. So we do the following then remove the 
+      # blank index when it is finally set
+      set arr() {}
+      trace variable arr wr [list ::teaRTE::_finalarrblank]
+    } else {
+      set values [lindex $args 0]
+      array set arr $values
+      trace variable arr w [list ::teaRTE::_finalmodarr $values]
+    }
+  }
+  
+  proc _finalmodarr {values name1 name2 op} {
+    upvar $name1 name
+    unset name
+    array set name $values
+    Throw tea.lang.IllegalAccessException \
+      "Trying to set element in final array field $name1"
+  }
+
+  proc _finalarrblank {name1 name2 op} {
+    upvar $name1 name
+    if { $op == "r" } {
+      # we're trying to read an unset blank final
+      Throw tea.lang.RuntimeException \
+        "Trying to read an uninitialized blank final array '$name1'"
+    } elseif { $op == "w" } {
+      # we're setting a blank final for the first time
+      # the variable has already been set, so let's use that as it's final value
+      trace vdelete name wr [list ::teaRTE::_finalarrblank]
+      trace variable name w [list ::teaRTE::_finalmodarr [array get name]]
+      # remove the placeholder index
+      unset name()
+    }
+  }
+  
+  # returns 1 if source is an instance of target. Pass in class names
+  proc isInstanceOf {source target} {
+    # first check if the two classes are identical
+    if { $source == $target } {
+      return 1
+    }
+    
+    # get the def
+    getClassRef $source sourcedef
+    
+    if { $sourcedef(derived) == "" } {
+      # tea.lang.Object is not an instance of anybody
+      return 0
+    }
+    
+    if { $sourcedef(derived) == $target } {
+      return 1
+    }
+    
+    if { [lsearch -exact $sourcedef(implements) $target] != -1 } {
+      return 1
+    }
+    
+    # still no match, start going up the inheritance tree
+    set rc [isInstanceOf $sourcedef(derived) $target]
+    if { ! $rc } {
+      # go through the interfaces
+      foreach int $sourcedef(implements) {
+        if { [isInstanceOf $int $target] } {
+          return 1
+        }
+      }
+    }
+    
+    return $rc
+  }
+
+  # create an encoding string using the following mapping:
+  # tclstring = S
+  # tclint = I
+  # tclbool = B
+  # tcldouble = D
+  # tcllist = L
+  # tclarray = A
+  # void = V
+  # objref Xxx = O,Xxx,
+  proc encodeType {type} {
+    switch -glob $type {
+      tclstring {return S}
+      tclstring& {return s}
+      tclint {return I}
+      tclint& {return i}
+      tclbool {return B}
+      tclbool& {return b}
+      tcldouble {return D}
+      tcldouble& {return d}
+      tcllist {return L}
+      tcllist& {return l}
+      tclarray {return A}
+      tclarray& {return a}
+      void {return V}
+      *& {return o,$type,}
+      default {return O,$type,}
+    }
+  }
+
+  namespace export teafield
+  proc teafield {this fieldname} {
+    variable STATIC
+    
+    # get the caller
+    set caller [uplevel ::teaRTE::getCallerInfo]
+    
+    # get the classname. If it's not a tea object, we may have to resolve
+    # a short name
+    if { ! [isATeaObject $this] } {
+      set classname [resolveNameFromThis $this $caller]
+       if { ! [loadClass $classname] } {
+        Throw tea.lang.ClassNotFoundException.tea \
+          "can't find class '$classname' while getting field '$fieldname'"
+      }
+   } else {
+      set classname [getClassFromThis $this]
+    }
+    
+    # get the field array for this field
+    set fielddef [findField $classname $fieldname]
+    if { $fielddef == "" } {
+      Throw tea.lang.NoSuchFieldException \
+        "no field '$fieldname' in '$classname'"
+    } else {
+      upvar 0 $fielddef field
+    }
+    
+    # can the caller access this field?
+    getClassRef $caller callerdef
+    getClassRef $classname ownerdef
+    if { ! [SMaccessField field callerdef ownerdef] } {
+      Throw tea.lang.IllegalAccessException \
+        "No access to field $classname.$fieldname"
+    }
+    
+    # everything's a go, return the namespace version of the name
+    if { $field(mods) & $STATIC } {
+      return ::teaclasses::${classname}::${fieldname}
+    } else {
+      return ${this}::${fieldname}
+    }
+  }
+  
+  namespace export teaset
+  proc teaset {this fieldname value} {
+    set [uplevel teafield $this $fieldname] $value
+  }
+  
+  namespace export teaget
+  proc teaget {this fieldname} {
+    return [set [uplevel teafield $this $fieldname]]
+  }
+  
+  # this is for the global or Tcl scope to have his own importtable.
+  namespace export import
+  proc import {import} {
+    variable NonTeaImports
+    
+    set pkg ""
+    set class ""
+    splitclass $import pkg class
+    
+    if { $class != "*" } {
+      # does it already exist in the map?
+      if { [info exists NonTeaImports($class)] } {
+        # if they're the same, we can ignore it
+        if { $NonTeaImports($class) == "$pkg.$class" } {
+          return
+        } else {
+          error "conflicting class '$class' in import"
+        }
+      } else {
+        set NonTeaImports($class) $pkg.$class
+      }
+    } else {
+      # have the RT find all the possible classes in this package
+      resolveWildcard NonTeaImports $pkg 0
+    }
+  }
+  
+  #
+  # SECURITY MANAGEMENT
+  #
+  
+  # checks if the caller class can access the target class for the given
+  proc SMaccessClass {caller target} {
+    getClassRef $target targetdef
+    
+    set pkg ""; set cl ""
+    splitclass $caller pkg cl
+    
+    # if the target is a public class, then it's automatically ok
+    if { $targetdef(mods) & $::teaRTE::PUBLIC } {
+      return 1
+    } else {
+      # it's a package friendly class, so we'll need to compare packages
+      return [expr {$targetdef(package) == $pkg}]
+    }
+  }
+  
+  # this checks to see if the caller can access the method in the target class
+  proc SMaccessMethod {caller method&} {
+    upvar ${method&} method
+    
+    set mods $method(mods)
+    
+    if { $mods & $::teaRTE::PUBLIC } {
+      # public. nothing to check, permission is granted
+      return 1
+    } elseif { $mods & $::teaRTE::PRIVATE } {
+      # Private. the caller and the callee better be the same
+      return [expr {$caller == $method(owner)}]
+    } elseif { $mods & $::teaRTE::PROTECTED } {
+      # Protected. caller better be an instance of callee
+      return [isInstanceOf $caller $method(owner)]
+    } else {
+      getClassRef $caller callerdef
+      getClassRef $method(owner) targetdef
+      # package-friendly, better have the same package
+      return [expr {$targetdef(package) == $callerdef(package)}]
+    }
+  }
+  
+  # this checks if a child class can access a super's variable
+  proc SMaccessField { field& child& super& } {
+    upvar ${field&} field
+    upvar ${child&} child
+    upvar ${super&} super
+    
+    set mods $field(mods)
+    
+    if { $mods & $::teaRTE::PRIVATE } {
+      return 0;
+    }
+    
+    if { $mods & $::teaRTE::PUBLIC || 
+         $mods & $::teaRTE::PROTECTED } {
+      return 1
+    }
+    
+    if { $super(package) == $child(package) } {
+      return 1
+    }
+    
+    return 0
+  }
+  
+  proc SMcanOverrideMethod {childmethod& supermethod&} {
+    variable PRIVATE
+    variable PROTECTED
+    variable PUBLIC
+    variable STATIC
+    variable FINAL
+    variable DEPRECATED
+    
+    upvar ${childmethod&} childmethod
+    set caller $childmethod(owner)
+
+    upvar ${supermethod&} supermethod
+    set super $supermethod(owner)
+    
+    set smods $supermethod(mods)
+    set cmods $childmethod(mods)
+    
+    if { $smods & $FINAL } {
+      return [list error \
+        "$caller can't override final method '$childmethod(name)' defined in $super"]
+    }
+    
+    if { $smods & $PRIVATE } {
+      return [list error \
+        "$caller can't override private method '$childmethod(name)' defined in $super"]
+    }
+
+    # a static cannot hide a non static
+    if { ($cmods & $STATIC) && !($smods & $STATIC)  } {
+      return [list error \
+        "Static method '$caller' cannot hide non-static method '$childmethod(name)' defined in '$super'"]
+    }
+
+    # a nonstatic cannot hide a static
+    if { !($cmods & $STATIC) && ($smods & $STATIC) } {
+      return [list error \
+        "Static method '$childmethod(name)' in '$caller' cannot hide non-static method defined in '$super'"]
+    }
+
+    # overriding method must provide at least as much access to overriden.
+    # if overridee is public, overrider must also be public
+    # if overridee is protected, overrider must be protected or public
+    # if overridee is package-friendly, overrider must not be private
+    set cm [expr {($PRIVATE | $PROTECTED | $PUBLIC) & $cmods}]
+    set sm [expr {($PRIVATE | $PROTECTED | $PUBLIC) & $smods}]
+    if { $sm == 0 } {
+      if { $cm == $PRIVATE } {
+        return [list error \
+          "$caller.$childmethod(name) is giving less access to $super.$childmethod(name)"]
+      }
+    } elseif { $cm < $sm } {
+      return [list error \
+        "$caller.$childmethod(name) is giving less access to $super.$childmethod(name)"]
+    }
+    
+    # are the return types the same?
+    if { $supermethod(type) != $childmethod(type) } {
+      return [list error \
+        "$caller.$childmethod(name) has a different return type ($childmethod(type)) than $super.$childmethod(name) ($supermethod(type))"]
+    }
+    
+    # are we overriding a deprecated method?
+    if { $smods & $DEPRECATED } {
+      # print out a warning
+      return [list warning \
+        "Method '$caller.$childmethod(name)' is overriding a deprecated method in class $super"]
+    }
+    
+    # everything is okay
+    return ""
+  }
+}
+
+# now get all those exported tea commands
+namespace import -force ::teaRTE::*
+
+# redefine any existing unknown proc
+catch {rename unknown original_unknown}
+
+# and create our own to handle static method calls
+proc unknown {cmd args} {
+  # get our caller info
+  if { [info level] > 1 } {
+    set caller [uplevel ::teaRTE::getCallerInfo]
+  } else {
+    set caller ""
+  }
+  
+  # cmd & args can be of two valid forms:
+  # "classname staticmethod args"
+  #   or
+  # "{method type type...} args"
+  
+  if { [llength $cmd] > 1 } {
+    upvar this this
+    uplevel ::teaRTE::runmethod $this [::teaRTE::getClassFromThis $this] 1 [list $cmd] $args
+  } else {
+    # this could be an objref type for a method or field definition in
+    # a class. Look at our stack and see if teaRTE::Compiler is in there
+    if { [info level] > 1 && [lindex [info level -1] 0] == "::teaRTE::Compiler::compilefile" } {
+      # if the "cmd" is the same as the current compiling class name, then it's
+      # a ctor
+      if { $cmd == $::teaRTE::Compiler::classname && [llength $args] == 2 } {
+        return [uplevel ::teaRTE::Compiler::doconstructor $args]
+      } else {
+        # it's probably a method or field type
+        return [uplevel ::teaRTE::Compiler::_generic_type_handler_ $cmd $args]
+      }
+    }
+    
+    # resolve the possible classname
+    ::teaRTE::getImportsRef $caller imports
+    set class [::teaRTE::resolveName $cmd imports]
+
+    if { $class == "" } {
+      # assume it's the same package as the caller
+      ::teaRTE::getClassRef $caller def
+      set class $def(package).$cmd
+    }
+
+    # try to load the class
+    if { ! [::teaRTE::loadClass $class] } {
+      return [uplevel original_unknown $cmd $args]
+    }
+
+    # try to run it
+    set method [lindex $args 0]
+    uplevel ::teaRTE::runmethod ::teaclasses::$class $class 1 [list $method] [lrange $args 1 end]
+  }
+}
+
+
+namespace eval ::teaRTE {
+  variable verboseopt ""
+
+  proc zip_set_verbose {} {
+    variable verboseopt
+    set verboseopt -v
+  }
+
+  # adds file to an archive with compression
+  proc zip_compress {zip args} {
+    variable verboseopt
+    eval exec /usr/bin/zip $verboseopt $zip $args
+  }
+
+  # stores files in an archive without compressing
+  proc zip_store {zip args} {
+    variable verboseopt
+    eval exec /usr/bin/zip $verboseopt -0 $zip $args
+  }
+
+  proc zip_list {zip args} {
+    variable verboseopt
+    return [eval exec /usr/bin/unzip -l $verboseopt $zip $args]
+  }
+
+  proc zip_find_files {zip pattern} {
+    set rclist ""
+    catch {set files [exec /usr/bin/unzip -l -qq $zip $pattern]}
+    foreach {dum dum dum file} $files {
+      lappend rclist $file
+    }
+    
+    return $rclist
+  }
+  
+  proc zip_extract {zip args} {
+    return [eval exec /usr/bin/unzip -o $zip $args]
+  }
+
+  proc zip_set_zipfile_comment {zip comment} {
+    set f [open "|/usr/bin/zip -z -q $zip" w]
+    puts $f $comment
+    close $f
+  }
+
+  proc zip_get_zipfile_comment {zip} {
+    set output [exec /usr/bin/unzip -zq $zip]
+    #return [lrange [split $output "\n"] 1 end]
+    return $output
+  }
+
+  proc zip_does_file_exist {zip file} {
+    if { [catch {exec /usr/bin/unzip -l -qq $zip $file}] } {
+      return 0
+    } {
+      return 1
+    }
+  }
+
+  proc zip_get_file_in_buf {zip file} {
+    set f [open "|/usr/bin/unzip -p $zip $file" r]
+    set buf [read $f]
+    close $f
+    return $buf
+  }
+}
+
+
+# the default classpath
+set classpath .:/home/john/work/installed/tea-2.1/lib/tea
+
+# if { [info exists env(TEAPATH)] } {
+#   append classpath :$env(TEAPATH)
+# }
+
+set checksource 0
+set nowarn 0
+set verbose 0
+# we default nowrite to 1 in the interpretter because it is not really
+# a compiler, so it won't save anything it happens to have to compile
+set nowrite 1
+set pot 0
+
+for {set argc 0} {[string match -* [lindex $argv $argc]] ||
+                  [string match +* [lindex $argv $argc]] } {incr argc} {
+  switch -exact -- [lindex $argv $argc] {
+    -version -
+    -V {
+      puts "Tre v2.1"
+      exit 0
+    }
+    
+    -cp -
+    -classpath {
+      incr argc
+      # override the default classpath
+      set classpath [lindex $argv $argc]
+    }
+    
+    +cp -
+    +classpath {
+      incr argc
+      # augment the default classpath
+      append classpath :[lindex $argv $argc]
+    }
+    
+    -pot {
+      set pot 1
+    }
+    
+    -help {
+      puts "Tre v2.1\n\nsyntax: tre \[options\] entity \[arguments\]\nOptions:
+     -version | -V 
+         Prints out the interpreter version and exits. 
+          
+     -verbose | -v 
+         Print out verbose information when classes are loaded or 
+         compiled.
+
+     -classpath path 
+         Sets up the list of paths to search for referenced classes. 
+         path is a colon-separated list. Using this option will override 
+         the default, so you must provide the path to the standard 
+         package tea.lang. 
+          
+     +classpath path 
+         Sets up the list of paths to search for referenced classes. 
+         path is a colon-separated list. This option will append to 
+         the default value. 
+          
+     -nowarn | -q 
+         Do not print out warnings from compiler or runtime environment. 
+          
+     -pot
+         Entity argument is a pot file. The actual class to extract and run
+         has been set via the \"tpot m\" command. Not necessary if entity has
+         the extension \".pot\".
+
+     -help 
+         Prints out brief help on options and exits.
+
+
+  entity can be a fully-qualified class name, or a tea pot archive.
+"
+      exit 0
+    }
+    
+    -verbose -
+    -v {
+      set verbose 1
+    }
+
+    -nowarn -
+    -q { 
+      set nowarn 1 
+    }
+    
+    default {
+      puts "Unknown option: [lindex $argv $argc]"
+      exit 1
+    }
+  }
+}
+
+if { [file extension [lindex $argv $argc]] == ".pot" } {
+  set pot 1
+}
+
+if { $pot } {
+  set runpot [lindex $argv $argc]
+  if { $runpot == "" } {
+    if { $nowarn == 0 } {
+      puts "No potfile specified"
+    }
+    exit 1
+  }
+} else {
+  set runpot \{\}
+}
+
+::teaRTE::initRTE "checksource $checksource nowarn $nowarn classpath $classpath verbose $verbose nowrite $nowrite savedir {} runpot $runpot standalone 1"
+
+if { $argc >= [llength $argv] } {
+  while { ! [eof stdin] } {
+    puts -nonewline "tre> "; flush stdout
+    try {
+      set input [gets stdin]
+      while { ! [info complete $input] } {
+        append input \n[gets stdin]
+      }
+      puts [eval $input]
+    } catch {TclError exc} {
+      puts "received uncaught Tcl Error"
+      puts [$exc getMessage]
+      $exc printTclStackTrace
+    } catch {Throwable exc} {
+      puts "received uncaught Tea exception of type: [$exc toString]"
+      $exc printStackTrace
+    }
+  }
+} else {
+  # run the main method on the given class
+  try {
+    if { $pot } {
+      # get the main class from the pot file
+      eval [::teaRTE::zip_get_zipfile_comment $runpot]
+      if { ! [info exists MainClass] } {
+        puts "MainClass not set in potfile '$runpot'"
+        exit 1
+      } else {
+        set class $MainClass
+      }
+    } else {
+      set class [lindex $argv $argc]
+    }
+    
+    incr argc
+    # we have to eval because if there are no arguments, then lrange produces
+    # {}, which when counted is an arg count of 1
+    eval $class main [lrange $argv $argc end]
+  } catch {tea.lang.TclError exc} {
+    puts "received uncaught Tcl Error"
+    puts [$exc getMessage]
+    $exc printTclStackTrace
+    exit 1
+  } catch {tea.lang.Throwable exc} {
+    puts "received uncaught Tea exception of type: [$exc toString]"
+    $exc printStackTrace
+    exit 1
+  }
+}
+
+

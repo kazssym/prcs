@@ -1,0 +1,190 @@
+package versiontree
+
+class Circle implements GridItem {
+  private tclstring canv_
+  private tclstring id_
+  private objref GridCell cell_
+  private objref TreeNode treeNode_
+  
+  # the defined bounding box
+  private objref BBox defbox_
+
+  # the actual bounding box
+  private objref BBox actbox_
+  
+  # this was retrieved with cos(45) (in degrees)
+  # this must be multiplied by the radius to be of any use
+  private tcldouble trigoffset_ 0.70710678
+  
+  # diameter of the circles
+  private tclint diameter 30
+  
+  Circle {GridCell.cell TreeNode.treeNode} {
+    set cell_ $cell
+    set treeNode_ $treeNode
+    
+    set canv_ [$cell getCanvas]
+    
+    # we want the bounding box of the circle to be half the size of the 
+    # grid cell
+    objref BBox box
+    set gridbox [$cell getBBox]
+    set defbox_ [new BBox [$gridbox square $diameter]]
+    
+    if { [$treeNode_ isGhost] } {
+      set color grey
+      set bg white
+      set tag GHOSTGRIDITEM
+    } {
+      set color black
+      set bg #fff9e6
+      set tag GRIDITEM
+    }
+    
+    set id_ [eval $canv_ create oval [$defbox_ getCoords] -outline $color -tags $tag -fill $bg -width 2]
+    
+    # map the id with the grid mgr
+    set gridmgr [$cell getGridMgr]
+    $gridmgr mapGridItem $this $id_
+    
+    # get the actual bounding box
+    set actbox_ [new BBox [$canv_ coords $id_]]
+    
+    # update the trig offset with the radius
+    set trigoffset_ [expr {$trigoffset_ * ([$actbox_ getWidth]/2)}]
+  }
+  
+  void select {} {
+    $canv_ itemconfig $id_ -outline red
+  }
+  
+  void unselect {} {
+    $canv_ itemconfig $id_ -outline black
+  }
+  
+  GridCell getCell {} {
+    return $cell_
+  }
+  
+  void setText {tclstring.text} {
+    if { [$treeNode_ isGhost] } {
+      set color grey
+    } {
+      set color black
+    }
+    
+    eval [$cell_ getCanvas] create text [[getCenter] getPoint] -text [list $text] -tags GRIDITEM -fill $color
+  }
+  
+  Point getCenter {} {
+    foreach {x1 y1 x2 y2} [$actbox_ getCoords] {}
+
+    set x [expr {$x1 + (($x2 - $x1)/2)}]
+    set y [expr {$y1 + (($y2 - $y1)/2)}]
+    return [new Point $x $y]
+  }
+  
+  Point getNorth {} {
+    foreach {x1 y1 x2 y2} [$actbox_ getCoords] {}
+
+    # get the x coord, which is half the distance between x1 and x2
+    set x [expr {$x1 + (($x2 - $x1) / 2)}]
+
+    # the y coord is the top of the oval
+    set y $y1
+
+    return [new Point $x $y]
+  }
+
+  Point getNorthEast {} {
+    set eastpoint [getEast]
+    set northpoint [getNorth]
+    
+    foreach {ex ey} [$eastpoint getPoint] {}
+    foreach {nx ny} [$northpoint getPoint] {} 
+
+    set x [expr {$nx + $trigoffset_}]
+    set y [expr {$ey - $trigoffset_}]
+
+    return [new Point $x $y]
+  }
+  
+  Point getNorthWest {} {
+    set westpoint [getWest]
+    set northpoint [getNorth]
+    
+    foreach {wx wy} [$westpoint getPoint] {}
+    foreach {nx ny} [$northpoint getPoint] {} 
+
+    set x [expr {$nx - $trigoffset_}]
+    set y [expr {$wy - $trigoffset_}]
+
+    return [new Point $x $y]
+  }
+    
+  Point getSouth {} {
+    foreach {x1 y1 x2 y2} [$actbox_ getCoords] {}
+
+    # get the x coord, which is half the distance between x1 and x2
+    set x [expr {$x1 + (($x2 - $x1) / 2)}]
+
+    # the y coord is the bottom of the oval
+    set y $y2
+
+    return [new Point $x $y]
+  }
+  
+  Point getSouthEast {} {
+    set eastpoint [getEast]
+    set southpoint [getSouth]
+    
+    foreach {ex ey} [$eastpoint getPoint] {}
+    foreach {sx sy} [$southpoint getPoint] {} 
+
+    set x [expr {$sx + $trigoffset_}]
+    set y [expr {$ey + $trigoffset_}]
+
+    return [new Point $x $y]
+  }
+  
+  Point getSouthWest {} {
+    set westpoint [getWest]
+    set southpoint [getSouth]
+    
+    foreach {wx wy} [$westpoint getPoint] {}
+    foreach {sx sy} [$southpoint getPoint] {} 
+
+    set x [expr {$sx - $trigoffset_}]
+    set y [expr {$wy + $trigoffset_}]
+
+    return [new Point $x $y]
+  }
+  
+  Point getEast {} {
+    foreach {x1 y1 x2 y2} [$actbox_ getCoords] {}
+
+    # the x coord is the right side of the oval
+    set x $x2
+
+    # get the y coord, which is half the distance between y1 and y2
+    set y [expr {$y1 + (($y2 - $y1) / 2)}]
+
+    return [new Point $x $y]
+  }
+  
+  Point getWest {} {
+    foreach {x1 y1 x2 y2} [$actbox_ getCoords] {}
+
+    # the x coord is the left side of the oval
+    set x $x1
+
+    # get the y coord, which is half the distance between y1 and y2
+    set y [expr {$y1 + (($y2 - $y1) / 2)}]
+
+    return [new Point $x $y]
+  }
+  
+  TreeNode getTreeNode {} {
+    return $treeNode_
+  }
+}

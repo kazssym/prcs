@@ -1,0 +1,16 @@
+package versiontree
+
+interface GridItem {
+  abstract Point getNorth {}
+  abstract Point getSouth {}
+  abstract Point getEast {}
+  abstract Point getWest {}
+  abstract Point getSouthEast {}
+  abstract Point getSouthWest {}
+  abstract Point getNorthEast {}
+  abstract Point getNorthWest {}
+  abstract Point getCenter {}
+  abstract void unselect {}
+  abstract void select {}
+  abstract TreeNode getTreeNode {}
+}
