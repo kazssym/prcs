@@ -1,3 +1,18 @@
+prcs (1.3.0-4) unstable; urgency=low
+
+  * debian/control: Added dependency to real Emacsen to the prcs-el
+    package.  The packages are now lintian-clean.  Fixed also the URL for
+    the PRCS location (now at SourceForge).
+
+ -- Rafael Laboissiere <rafael@debian.org>  Thu,  7 Feb 2002 11:02:41 +0100
+
+prcs (1.3.0-3) unstable; urgency=low
+
+  * debian/control: Fixed spelling errors in package description (thanks
+    to Matt Zimmerman <mdz@debian.org>, closes: #125268).
+
+ -- Rafael Laboissiere <rafael@debian.org>  Fri, 21 Dec 2001 17:17:10 +0100
+
 prcs (1.3.0-2) unstable; urgency=low
 
   * Downgraded ssh dependency of prcs-synch from Recommends to Suggests.
@@ -11,20 +26,20 @@ prcs (1.3.0-1) unstable; urgency=low
 
   * New upstream release.
   * Upgraded to Standards-Version: 3.5.6.
-  * debian/control: 
+  * debian/control:
     - Change dependencies from the transitional "perl-5.005" and
-      "perl-5.6" packages to "perl" (closes: #113207). 
+      "perl-5.6" packages to "perl" (closes: #113207).
     - prcs-synch is moved into non-US, due to the recommendation on
-      ssh. (closes: #109405). 
-    - Added versioned dependencies on debhelper and textutils. 
+      ssh. (closes: #109405).
+    - Added versioned dependencies on debhelper and textutils.
   * The PRCS contributed software is now in contrib/ (it used to be in
     scripts/).  The debian/rules file has been modified accordingly.  In
     particular, a new variable called contribdir is created.  Also,
     debian/docs reflects now the new situation.
-  * debian/rules: 
+  * debian/rules:
     - Removed call to dh_testversion.
     - Removed unnecessary settings of CFLAGS and CXXFLAGS in the call of
-      make. 
+      make.
   * debian/prerm: Renamed from debian/postrm, due to the lintian
     warnign that install-info should be called from the prerm script.
   * debian/*copyright: Updated download URL.
@@ -69,13 +84,13 @@ prcs (1.2.15-10) unstable; urgency=low
     tar, ls, and gzip).  Thanks to Jiri Masik <masik@pc203b.fzu.cz>
     (closes: #90247).
   * debian/control: Fixed some typos and improved package descriptions.
-  
+
  -- Rafael Laboissiere <rafael@icp.inpg.fr>  Mon, 19 Mar 2001 15:30:13 +0100
 
 prcs (1.2.15-9) unstable; urgency=low
 
   * debian/control: Added flex to Build-Depends.  Thanks to Michael
-    Schmitz <schmitz@zirkon.biophys.uni-duesseldorf.de> (closes: #89746). 
+    Schmitz <schmitz@zirkon.biophys.uni-duesseldorf.de> (closes: #89746).
 
  -- Rafael Laboissiere <rafael@icp.inpg.fr>  Fri, 16 Mar 2001 09:43:24 +0100
 
@@ -105,7 +120,7 @@ prcs (1.2.15-6) frozen unstable; urgency=low
 
   * Added a debian/preinst file to delete the Emacs startup file
     (50prcs.el) that caused problems when upgrading a slink box to potato.
-    Closes: #58648.  It is a simple fix, worth to go into potato.  
+    Closes: #58648.  It is a simple fix, worth to go into potato.
 
  -- Rafael Laboissiere <rafael@icp.inpg.fr>  Mon, 10 Apr 2000 14:23:46 +0200
 
@@ -119,7 +134,7 @@ prcs (1.2.15-5) frozen unstable; urgency=low
     new code or new feature added, only a 20 lines patch to fix a nasty
     related to the emacs add-on package.  This only improves potato,
     without adding no new bug.
-  
+
  -- Rafael Laboissiere <rafael@icp.inpg.fr>  Tue, 28 Mar 2000 12:36:44 +0200
 
 prcs (1.2.15-4) frozen unstable; urgency=low
@@ -128,7 +143,7 @@ prcs (1.2.15-4) frozen unstable; urgency=low
     #DEBHELPER#.  This was preventing the prcs package from being really
     FHS compliant.
   * debian/doc-base: Added support for doc-base for proper registration of
-    Rafael Kitover's PRCS tutorial.  
+    Rafael Kitover's PRCS tutorial.
   * I also realized that version 1.2.15-3 has never been uploaded.
   * [To the Release Manager: there is no new code, no new features, only
     better integration with the Debian system.]
@@ -138,7 +153,7 @@ prcs (1.2.15-4) frozen unstable; urgency=low
 prcs (1.2.15-3) unstable; urgency=low
 
   * Created separated copyright files for prcs-el and prcs-synch
-    packages. 
+    packages.
 
  -- Rafael Laboissiere <rafael@icp.inpg.fr>  Tue, 14 Dec 1999 10:21:40 +0100
 
@@ -160,10 +175,10 @@ prcs (1.2.15-1) unstable; urgency=low
   * debian/docs: Removed {ANNOUNCE,README}.xdelta, which are not
     distributed anymore.
   * debian/{postinst,prerm,postrm}: Oops, these files were not really FHS
-    compliant... 
+    compliant...
   * debian/prcs-el.{postinst,prerm}: Removed, as debhelper takes care of
-    everything here. 
-  * debian/rules: 
+    everything here.
+  * debian/rules:
     - Test for debhelper version >= 2.0.72.
     - Correct dirs for installing man and info docs.
     - Generate man page for prcs-synch (using pod2man).
@@ -171,7 +186,7 @@ prcs (1.2.15-1) unstable; urgency=low
       installing Perl scripts.  This should avoid spurious diffs being
       included in the Debian diff.gz file.
   * debian/prcs-tutorial.html: Added file.  (Written by Rafael Kitover
-    <caelum@debian.org>.) 
+    <caelum@debian.org>.)
   * debian/copyright: Added upstream author name and copyright statement
     for prcs-tutorial.html.
   * New scripts included in the package: rprcs, prcs-javadoc, prcs-synch.
@@ -199,7 +214,7 @@ prcs (1.2.14-1) unstable; urgency=low
 
   * New upstream version (closes: bug #38820).
   * The new version of prcs.el (1.60) installs the PRCS menu in the
-    menubar of XEmacs only if the current buffer is in prcs-mode 
+    menubar of XEmacs only if the current buffer is in prcs-mode
     (closes: bug #32208).
   * Fixed bashism in debian/prcs-el.emacsen-install, thanks to Zack
     Weinberg <zack@rabi.columbia.edu> (closes: bug #35403, bug#37347).
@@ -213,7 +228,7 @@ prcs (1.2.14-1) unstable; urgency=low
     distribution (diff-command, merge-command, prcs-callback, prcs-ediff,
     and prcs-emerge).  Man pages have been written, for Policy compliance.
   * Made /etc/emacs/site-start.d/50prcs-el.el a conffile for the prcs-el
-    package. 
+    package.
   * Added documentation files ANNOUNCE.xdelta, README.xdelta, and Y2K.
   * Removed file debian/README.
 
@@ -240,7 +255,7 @@ prcs (1.2.11-6) unstable; urgency=low, closes=30473
     Changed also emacs/Makefile.in to avoid unnecessary byte-compilations.
   * Recompiled with new release of libc6 (cf discussion in debian-devel
     starting at
-    http://www.debian.org/Lists-Archives/debian-devel-9812/msg00998.html). 
+    http://www.debian.org/Lists-Archives/debian-devel-9812/msg00998.html).
   * Upgraded to Standards-Version 2.5.0.0
 
  -- Rafael Laboissiere <rafael@icp.inpg.fr>  Fri, 11 Dec 1998 19:25:36 +0100
@@ -248,7 +263,7 @@ prcs (1.2.11-6) unstable; urgency=low, closes=30473
 prcs (1.2.11-5) frozen unstable; urgency=low
 
   * Removed bashism from debian/Emacsen-install (suggested by Dirk
-    Eddelbuettel <edd@debian.org>). 
+    Eddelbuettel <edd@debian.org>).
 
  -- Rafael Laboissiere <rafael@icp.inpg.fr>  Tue, 24 Nov 1998 17:47:24 +0100
 
@@ -263,7 +278,7 @@ prcs (1.2.11-3) unstable; urgency=low, closes=29823 29828
   * Fixed prcs-startup.el to work with (X)Emacs19.  I was using `flavor'
     instead of `debian-emacs-flavor'.  (Fixes Bug#29828, reported by Carl
     R. Witty <cwitty@newtonlabs.com>.)
-  * For emacsen install, set the right option `-no-site-file' for Xemacsen 
+  * For emacsen install, set the right option `-no-site-file' for Xemacsen
     and `--no-site-file' for Emacsen (this is related to Bug#29823,
     reported by Antti-Juhani Kaijanaho <gaia@iki.fi>).
 
@@ -274,7 +289,7 @@ prcs (1.2.11-2) frozen unstable; urgency=low, closes=29493
   * Applied patch from Carl R. Witty <cwitty@newtonlabs.com> to make
     prcs.el installation work with Emacs19 (fixes Bug#29493).
   * Changed upstream file emacs/prcs.el to avoid byte-compilation
-    problems. 
+    problems.
   * Upload to frozen.
 
  -- Rafael Laboissiere <rafael@icp.inpg.fr>  Mon, 16 Nov 1998 13:05:48 +0100
@@ -306,7 +321,7 @@ prcs (1.2.10-0.1) unstable; urgency=low, closes=24801 28316 28466
 
   * Non-maintainer release.
   * New upstream release (fixes Bug#28316).
-  * Added prcs-startup.el and put it into /etc/emacs/init.d, in accordance 
+  * Added prcs-startup.el and put it into /etc/emacs/init.d, in accordance
     with the Debian Emacs Policy for packages with add-on support (see item
     5 of /usr/doc/emacsen-common/debian-emacs-policy.gz).
   * Also in accordance with the Debian Emacs Policy, ELisp files should be
@@ -314,11 +329,11 @@ prcs (1.2.10-0.1) unstable; urgency=low, closes=24801 28316 28466
     emacs-package-install (see item 6 of
     /usr/doc/emacsen-common/debian-emacs-policy.gz).
   * Applied my own patch to emacs/prcs.el for XEmacs 20.4 compatibility.
-    I sent the patch to the author (Jesse Glick <jglick@sig.bsh.com>). 
+    I sent the patch to the author (Jesse Glick <jglick@sig.bsh.com>).
   * Added a debian/dirs file to help creating the directories for the
     ELisp files.
   * Added debian/prerm file for purging byte-compiled ELisp files after
-    package removal. 
+    package removal.
   * The five last entries fix Bug#28466.
   * debian/control: Added dependency on rcs (fixes Bug#24801).
   * The .diff.gz file will no more contain files `confdefs.h' and

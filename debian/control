@@ -21,14 +21,14 @@ Description: The Project Revision Control System
  .
  Emacs-Lisp support is distributed in a separate package, prcs-el.  Another
  package called prcs-synch contains a tool to synchronize PRCS projects
- between repositories, both locallly and remotely.
+ between repositories, both locally and remotely.
  .
  For further information look at
-     http://www.XCF.Berkeley.EDU/~jmacd/prcs.html. 
+     http://prcs.sourceforge.net
 
 Package: prcs-el
 Architecture: all
-Depends: prcs, emacsen
+Depends: prcs, emacs21 | xemacs21 | emacsen
 Conflicts: prcs (<< 1.2.14)
 Description: ELisp support for the Project Revision Control System
  This package contains Emacs-Lisp add-on support for PRCS, the Project
@@ -36,7 +36,7 @@ Description: ELisp support for the Project Revision Control System
  PRCS commands (checkin, diff, info, and rekey) while editing project
  descriptor files (.prj).
  .
- prcs-el is distributed separately from the prcs package because it depends 
+ prcs-el is distributed separately from the prcs package because it depends
  on Emacs (or another "emacsen" flavor).
 
 Package: prcs-synch
@@ -48,7 +48,7 @@ Description: Synchronize PRCS projects between repositories
  The prcs-synch script tries to synchronize two PRCS (Project Revision
  Control System) repositories. It requires a "remote" repository, which is
  assumed  to have recent changes, vs. a "local" repository which is out of
- date. 
+ date.
 
 Package: prcs-visualtree
 Architecture: all
@@ -65,4 +65,3 @@ Description: Utilities for PRCS
  Control System).  Contains the following scripts: prcspatch, prcspatch2,
  prcsfind, prcsbranches, prcsguess, prcsentry, prcsstatus, and
  prcs_checkfiles.
- 
