@@ -1,0 +1,34 @@
+#! /bin/sh
+set -e
+
+PRJ=`prcsguess`
+
+prcs-what-may-move >$PRJ.move
+prcs-ttyask-move $PRJ.move $PRJ.move2
+
+echo
+echo "Please check:"
+echo
+cat $PRJ.move2
+echo
+
+ANS=
+while [ "x$ANS" != "xy" -a "x$ANS" != "xn" ]
+do
+    echo "OK ? [yn]"
+    read ANS
+done
+
+if [ $ANS = n ]
+then
+    echo "OK, aborting..."
+    exit 1
+fi
+
+grep -v '^.*	ADDED	' $PRJ.move2 |
+    grep -v '	DELETED$' |
+    cut -d'	' -f2- |
+    while read a b
+    do
+	prcs-mv -p "$a" "$b"
+    done

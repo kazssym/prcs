@@ -48,8 +48,13 @@ ErrorToken global_error_token;
 int return_if_fail_if_ne_val;
 #endif
 
-stdiobuf stdout_stream(stdout);
-stdiobuf stderr_stream(stderr);
+#if defined(__APPLE__)
+ stdiobuf stdout_stream(STDOUT_FILENO);
+ stdiobuf stderr_stream(STDERR_FILENO);
+#else
+ stdiobuf stdout_stream(stdout);
+ stdiobuf stderr_stream(stderr);
+#endif /* if defined(__APPLE__) */
 strstreambuf query_stream;
 
 static PrettyStreambuf pretty_stdout_stream(&stdout_stream, NULL);

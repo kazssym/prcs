@@ -10,10 +10,10 @@ PRCS_MAJOR_VERSION_NUMBER=1
 dnl $Format: "PRCS_MINOR_VERSION_NUMBER=$ReleaseMinorVersion$" $
 PRCS_MINOR_VERSION_NUMBER=3
 dnl $Format: "PRCS_MICRO_VERSION_NUMBER=$ReleaseMicroVersion$" $
-PRCS_MICRO_VERSION_NUMBER=1
+PRCS_MICRO_VERSION_NUMBER=2
 
 dnl $Format: "AM_INIT_AUTOMAKE(prcs, $ReleaseVersion$)" $
-AM_INIT_AUTOMAKE(prcs, 1.3.1)
+AM_INIT_AUTOMAKE(prcs, 1.3.2pre1)
 
 AC_SUBST(PRCS_MAJOR_VERSION_NUMBER)
 AC_SUBST(PRCS_MINOR_VERSION_NUMBER)
@@ -23,7 +23,7 @@ DEBUGFLAG=
 
 AC_ARG_ENABLE(debug, [  --enable-debug          turn on debugging],
 if eval "test x$enable_debug = xyes"; then
-  AC_DEFINE(PRCS_DEVEL)
+  AC_DEFINE([PRCS_DEVEL], 1, [Define for developer features.])
   DEBUGFLAG=-g
 fi)
 
@@ -46,9 +46,6 @@ else
 fi
 ,
 DO_LEX_CHECK=yes)
-
-dnl Checks for programs.  This crap is for new stuff in autoconf-2.13 that
-dnl automatically adds -O2 to CFLAGS, which is quite annoying.
 
 if test -z "$CFLAGS";   then test_CFLAGS=set;   fi
 if test -z "$CPPFLAGS"; then test_CPPFLAGS=set; fi
@@ -99,6 +96,27 @@ if eval "test x$LIBGPLUSPLUS != x -a x$GCC = xyes"; then
   LDFLAGS="-L$LIBGPLUSPLUS $LDFLAGS"
 fi
 
+AC_ARG_ENABLE(gcc3patch,
+  [  --enable-gcc3patch    Automatically apply gcc3patch], 
+  [case "${enableval}" in
+   yes) patch_it=true ;;
+    no) patch_it=false ;;
+     *) AC_MSG_ERROR(bad value ${enableval} for --enable-gcc3patch) ;;
+   esac],
+   [patch_it=auto])
+
+if test "$patch_it" = "auto"; then
+  if $CC -v 2>&1 | grep 'gcc version 3' > /dev/null; then
+    patch_it=true
+  else
+    patch_it=false
+  fi
+fi
+
+echo "checking whether to apply gcc3 patch... $patch_it"
+  
+AM_CONDITIONAL(GCC3PATCH, test x$patch_it = xtrue)
+	  
 dnl Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
@@ -163,7 +181,7 @@ ac_cv_no_fd_set=no,
 ac_cv_no_fd_set=yes)])
 
 if test $ac_cv_no_fd_set = yes; then
-  AC_DEFINE(NO_FD_SET)
+  AC_DEFINE([NO_FD_SET], 1, [Define if headers lack FDSET.])
 fi
 
 AC_LANG_CPLUSPLUS
@@ -279,72 +297,13 @@ ac_cv_select_type=FD_SET_TYPE),
 ac_cv_select_type=FD_SET_TYPE),
 ac_cv_select_type=FD_SET_TYPE)])
 
-AC_DEFINE_UNQUOTED(SELECT_TYPE, $ac_cv_select_type)
+AC_DEFINE_UNQUOTED(SELECT_TYPE, $ac_cv_select_type, [Defines the FDSET type.])
 
 CXXFLAGS=$ORIG_CXXFLAGS
 
 dnl end select check.
 
-dnl
-dnl Test for the C++ bool type.
-dnl
-
-AC_CACHE_CHECK([whether $CXX lacks bool], ac_cv_need_bool,
-[AC_TRY_RUN([
-#include <stdlib.h>
-int
-main ()
-{
-   bool f = false;
-   bool t = true;
-   exit(f == t);
-}],
-ac_cv_need_bool=no,
-ac_cv_need_bool=yes,
-ac_cv_need_bool=no)])
-
-if test $ac_cv_need_bool = yes; then
-  AC_DEFINE(bool, char)
-  AC_DEFINE(false, 0)
-  AC_DEFINE(true, 1)
-fi
-
-dnl
-dnl Test for -fno-implicit-templates
-dnl
-
-# mwcc under BeOS needs explicite template instantiations, but doesn't
-# grok '-fno-implicit-templates'.
-if test "`uname`" = "BeOS" -a \( "$ac_cv_prog_CC" = "mwcc" -o "$ac_cv_prog_CC" = "mwccx86" -o "$ac_cv_prog_CXX" = "c++" \) ; then
-  test -z "$ac_cv_inst_tmpl" && ac_cv_inst_tmpl=yes
-else
-  CXXFLAGS="$CXXFLAGS -fno-implicit-templates"
-fi
-
-TMP_CXXFLAGS=$CFLAGS
-AC_CACHE_CHECK([whether $CXX accepts -fno-implicit-templates], ac_cv_inst_tmpl,
-[AC_TRY_RUN([
-template <class A>
-class B {
-public:
-   B(A a0) :a(a0) { }
-   A a;
-};
-
-template class B<int>;
-
-int main()
-{
-   B<int> b(4);
-   return 0;
-}],
-ac_cv_inst_tmpl=yes,
-CXXFLAGS=$TMP_CXXFLAGS ac_cv_inst_tmpl=no,
-ac_cv_inst_tmpl=yes)])
-
-if test $ac_cv_inst_tmpl = yes ; then
-   AC_DEFINE(EXPLICIT_TEMPLATES, 1)
-fi
+AC_DEFINE(EXPLICIT_TEMPLATES, 1, [Used with -fno-implicit-templates.])
 
 dnl
 dnl Test working fnmatch.  Solaris 5.4's doesn't work.
@@ -367,8 +326,8 @@ ac_cv_sys_working_fnmatch=no,
 ac_cv_sys_working_fnmatch=no)])
 
 if test $ac_cv_sys_working_fnmatch = no; then
-  LIBOBJS="$LIBOBJS fnmatch.o"
-  AC_DEFINE(USE_SYS_FNMATCH, 1)
+  AC_LIBOBJ([fnmatch])
+  AC_DEFINE(USE_SYS_FNMATCH, 1, [System has fnmatch.])
 fi
 
 dnl
@@ -416,7 +375,7 @@ ac_cv_signal_arg_type=int,
 ac_cv_signal_arg_type=int),
 ac_cv_signal_arg_type=int)])
 
-AC_DEFINE_UNQUOTED(SIGNAL_ARG_TYPE, $ac_cv_signal_arg_type)
+AC_DEFINE_UNQUOTED(SIGNAL_ARG_TYPE, $ac_cv_signal_arg_type, [Argument type for signal().])
 
 dnl
 dnl End of my tests, back to C.

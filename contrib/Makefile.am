@@ -16,6 +16,11 @@ EXTRA_DIST = \
 	visualtree.tar.gz \
 	prcsutils.tar.gz \
 	pck.tar.gz \
-	bash-completion
+	bash-completion \
+	README.prcs-mv \
+	prcs-mv \
+	prcs-ttyask-move \
+	prcs-assist-move \
+	prcs-what-may-move
 
 bin_SCRIPTS = prcs-callback prcs-emerge prcs-ediff

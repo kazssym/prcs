@@ -30,6 +30,12 @@ pck           The 'Patch Control Kludge' by Chris Mason.  This Perl
               multiple project versions, and more described in the
               pck.README file.
 
+bash-completion A bash completion script written by Rafael Laboissiere.
+              Instructions are contained at the top of the file.
+
+prcs-mv       Tools for assisting with PRCS renames without manual
+              project file editing.  See the file README.prcs-mv for more
+              information.  Thanks to Yann Dirson.
 
 diff-command  An example of how to treat the arguments to the external
               PRCS_DIFF_COMMAND.

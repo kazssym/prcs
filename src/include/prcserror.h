@@ -27,12 +27,17 @@
 #include <iostream.h>
 #include <iomanip.h>
 #if defined(__GNUG__)
-#include <stdiostream.h>
-#include <strstream.h>
+# if defined(__APPLE__)
+#  include <streambuf.h>
+   typedef filebuf stdiobuf;
+# else
+#  include <stdiostream.h>
+# endif /* if defined(__APPLE__) */
+# include <strstream.h>
 #else
-#include <fstream.h>
-typedef filebuf stdiobuf;
-#include "be-strstream.h"
+# include <fstream.h>
+  typedef filebuf stdiobuf;
+# include "be-strstream.h"
 #endif
 
 

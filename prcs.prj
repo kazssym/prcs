@@ -1,11 +1,11 @@
 ;; -*- Prcs -*-
 (Project-Description "PRCS sources")
-(Created-By-Prcs-Version 1 3 1)
-(Project-Version prcs 1.3.1-release 2)
-(Parent-Version prcs 1.3.1-release 1)
-(Version-Log "add missing gcc3 patch to dist")
+(Created-By-Prcs-Version 1 3 0)
+(Project-Version prcs 1.3.1-release 8)
+(Parent-Version prcs 1.3.1-release 7)
+(Version-Log "1.3.2pre1 snapshot")
 (New-Version-Log "")
-(Checkin-Time "Sun, 17 Feb 2002 13:59:01 +0300")
+(Checkin-Time "Fri, 26 Apr 2002 19:06:23 +0400")
 (Checkin-Login jmacd)
 (Populate-Ignore ("~$" "\\.o$" "core$" "\\.emacs\\.desktop" "\\.a$"
 		  "src/prcs$" "src/docs.cc" "src/include/docs.h$"
@@ -18,19 +18,18 @@
 		  (ReleaseMicroVersion 2)
 		  (TodaysDate "Today's date is: $Date$")
 		  (ThisWontCrash "This is bad: $ThisWontCrash$")
-		  (ReleaseVersion "$ReleaseMajorVersion$.$ReleaseMinorVersion$.$ReleaseMicroVersion$"))
+		  (ReleaseVersion "$ReleaseMajorVersion$.$ReleaseMinorVersion$.$ReleaseMicroVersion$pre1"))
 (Files
 
   ;; Makefiles and configuration.
-  (Makefile.am (prcs/0_Makefile.am 1.9.1.23 644))
+  (Makefile.am (prcs/0_Makefile.am 1.9.1.28 644))
   (doc/Makefile.am (prcs/1_Makefile.am 1.3.1.2 644))
   (src/Makefile.am (prcs/2_Makefile.am 1.11.1.8.2.17 644))
   (src/include/Makefile.am (prcs/0_Makefile.a 1.6 644))
-  (contrib/Makefile.am (prcs/b/0_Makefile.am 1.10 644))
+  (contrib/Makefile.am (prcs/b/0_Makefile.am 1.11 644))
   (emacs/Makefile.am (prcs/b/0_Makefile.a 1.8 644))
   (m4/Makefile.am (prcs/c/0_Makefile.a 1.1 644))
-  (configure.in (prcs/0_configure.in 1.17.1.11.1.12.1.47 644))
-  (acconfig.h (prcs/0_acconfig.h 1.12 644))
+  (configure.in (prcs/0_configure.in 1.17.1.11.1.12.1.49 644))
   (config-be (prcs/c/45_config-be 1.2 644))
 
   ;; BeOS related configuration
@@ -49,21 +48,17 @@
   ;; Information.
   (README (prcs/2_README 1.15 644))
   (INSTALL (prcs/0_INSTALL 1.5.1.2.1.9.1.17 644))
-  (NEWS (prcs/0_NEWS 1.33.1.2.1.89.1.1.1.4 644))
+  (NEWS (prcs/0_NEWS 1.33.1.2.1.89.1.1.1.6 644))
   (AUTHORS (prcs/0_AUTHORS 1.3 644))
   (TODO (prcs/b/30_TODO 1.29 644))
   (FAQ (prcs/b/0_FAQ 1.7 644))
   (README.BE (prcs/d/0_README.BE 1.3 644))
 
   ;; Not really source, but stuff to keep automake happy.
-  (install-sh (prcs/b/0_install-sh 1.2 755))
-  (mkinstalldirs (prcs/b/23_mkinstalld 1.2 755))
   (COPYING (prcs/b/24_COPYING 1.1 644))
-  (ChangeLog (prcs/b/25_ChangeLog 1.5 644))
+  (ChangeLog (prcs/b/25_ChangeLog 1.6 644))
   (doc/texinfo.tex (prcs/b/29_texinfo.te 1.1 644))
-  (missing (prcs/b/0_missing 1.1 755))
-  (emacs/elisp-comp (prcs/c/9_elisp-comp 1.1 755))
-  (src/ylwrap (prcs/c/11_ylwrap 1.3 755))
+  (elisp-comp (prcs/c/9_elisp-comp 1.2 755))
 
   ;; PRCS original source files.
   (src/merge.cc (prcs/0_merge.cc 1.18.1.1.1.26.1.1.1.4.1.9.1.42 644))
@@ -85,8 +80,8 @@
   (src/checkout.cc (prcs/0_checkout.cc 1.16.1.24.1.3.1.8.1.1.1.27 644))
   (src/checkin.cc (prcs/0_checkin.cc 1.22.1.2.1.9.1.23.1.1.1.6.1.15.1.2.1.48 644))
   (src/lock.cc (prcs/0_lock.cc 1.10.1.1.1.11.1.6 644))
-  (src/rebuild.cc (prcs/0_rebuild.cc 1.3.1.1.1.8.1.21.1.4.1.4.1.14.1.4 644))
-  (src/prcserror.cc (prcs/1_prcserror.cc 1.8.1.11.1.3.1.7.1.11.2.1 644))
+  (src/rebuild.cc (prcs/0_rebuild.cc 1.3.1.1.1.8.1.21.1.4.1.4.1.14.1.5 644))
+  (src/prcserror.cc (prcs/1_prcserror.cc 1.8.1.11.1.3.1.7.1.11.2.2 644))
   (src/convert.cc (prcs/2_convert.cc 1.10.1.6 644))
   (src/memseg.cc (prcs/1_memory.cc 1.15.1.2.1.6 644))
   (src/quick.cc (prcs/0_quick.cc 1.7.1.2.2.8.1.1 644))
@@ -111,7 +106,7 @@
 
   ;; Library of string and hash table templates.
   (src/dynarray.cc (prcs/0_dynarray.cc 1.2.1.1.1.5.1.8.2.7.1.1 644))
-  (src/dstring.cc (prcs/0_dstring.cc 1.2.1.3.1.1.1.6.2.2 644))
+  (src/dstring.cc (prcs/0_dstring.cc 1.2.1.3.1.1.1.6.2.3 644))
   (src/hash.cc (prcs/0_hash.cc 1.2.1.1.1.3.2.13 644))
   (src/include/dstring.h (prcs/0_dstring.h 1.3.1.2.1.4.2.4.1.1 644))
   (src/include/dynarray.h (prcs/0_dynarray.h 1.2.1.1.1.8.2.6.1.2 644))
@@ -147,7 +142,7 @@
   (src/include/prcsdir.h (prcs/1_file.h 1.7.1.2 644))
   (src/include/typedefs.h (prcs/1_typedefs.h 1.8.1.10.1.6.2.1.1.6.1.11 644))
   (src/include/system.h (prcs/1_system.h 1.10.1.4 644))
-  (src/include/prcserror.h (prcs/1_prcserror.h 1.14.1.5.1.11 644))
+  (src/include/prcserror.h (prcs/1_prcserror.h 1.14.1.5.1.11.2.1 644))
   (src/include/rebuild.h (prcs/2_rebuild.h 1.9.1.3 644))
   (src/include/convert.h (prcs/0_convert.h 1.4.1.2 644))
   (src/include/memseg.h (prcs/1_memory.h 1.9.2.4 644))
@@ -229,7 +224,7 @@
   (emacs/1.60.log (prcs/d/6_1.60.log 1.2 644) :no-keywords)
 
   ;; Some experimental scripts.
-  (contrib/README (prcs/d/24_README 1.1 644))
+  (contrib/README (prcs/d/24_README 1.2 644))
   (contrib/prcs-clean (prcs/b/0_prcsclean 1.2 755))
   (contrib/prcs-emerge (prcs/c/0_emerge 1.2 755))
   (contrib/prcs-ediff (prcs/c/6_prcs-ediff 1.2 755))
@@ -240,6 +235,13 @@
   (contrib/prcs-callback (prcs/d/8_prcs-callb 1.3 744)) ; From Jesse
   (contrib/prcs-javadoc (prcs/d/10_prcs-javad 1.2 755))
   (contrib/prcs-javadoc.8 (prcs/d/14_prcs-javad 1.1 644))
+
+  (contrib/bash-completion (prcs/d/26_bash-compl 1.1 755) :no-keywords)
+  (contrib/README.prcs-mv (prcs/d/27_README.prc 1.1 644) :no-keywords)
+  (contrib/prcs-mv (prcs/d/28_prcs-mv 1.1 600) :no-keywords)
+  (contrib/prcs-ttyask-move (prcs/d/29_prcs-ttyas 1.1 600) :no-keywords)
+  (contrib/prcs-assist-move (prcs/d/30_prcs-assis 1.1 600) :no-keywords)
+  (contrib/prcs-what-may-move (prcs/d/31_prcs-what- 1.1 600) :no-keywords)
 
   (contrib/visualtree.tar.gz (prcs/d/18_visualtree 1.2 644) :no-keywords)
   (contrib/pfe.tar.gz (prcs/d/19_pfe.tar.gzx 1.1 644) :no-keywords)
@@ -254,7 +256,7 @@
   (test/cvstiming (prcs/c/42_cvstiming 1.1 754))
 
   ;; Historic patches
-  (prcs-1.3.1gcc3.diffs (prcs/d/25_prcs-1.3.0 1.3 644) :no-keywords)
+  (prcs-1.3gcc3.diffs (prcs/d/25_prcs-1.3.0 1.4 644) :no-keywords)
 )
 (Merge-Parents)
 (New-Merge-Parents)

@@ -1,0 +1,45 @@
+Thanks to Yann Dirson <Yann.Dirson@fr.alcove.com>
+
+Here are a couple of tools to help dealing with file renamings.  I
+wrote them quickly, they're not feature-complete yet, and lack a
+couple of safety checks, but I used them successfully to migrate a
+small project into PRCS, and I hope they can serve as a base for
+better tools.
+
+In short: an everyday-use tool to rename without having to perform
+manual error-prone editting of prj file, and an name-on-import-helper,
+in the spirit of what bitkeeper provides.
+
+All this is tty-based.  Maybe I'll try some day to make a perl-gtk gui
+to make things even more usable.
+
+All this is covered by the GNU GPL, version 2, although there's no
+copyright notice yet in the files.
+
+SYNOPSYS
+
+        prcs-mv <src> <dst>
+                Renames <src> into <dst>, both in the filesystem and
+                in the prj file (that's for everyday work)
+
+        prcs-mv -p <src> <dst>
+                The same, but only impact prj file, and don't check
+                anything in the filesystem (used by prcs-assist-move,
+                usable manually for renamings that can't be guessed)
+
+        prcs-what-may-move
+                Prints on stdout the list of files that are candidates
+                for renaming (those that would be ADDED or DELETED by
+                "prcs populate -d") in a format suitable as input for...
+        prcs-ttyask-move <file1> <file2>
+                Takes from <file1> a list of candidate files for
+                renaming, attempts to match them based on their
+                filenames (that is, only catch dir-hierarchy reorgs),
+                and asks the user what to do with matches (using perl
+                Term::Readline).  Records those renamings in <file2>
+                along with unchanged lines.
+
+        prcs-assist-move
+                Runs prcs-ttyask-move on prcs-what-may-move output,
+                then "prcs-mv -p" on the files the user specified as
+                renames.

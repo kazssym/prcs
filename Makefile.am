@@ -10,7 +10,20 @@ EXTRA_DIST = \
 	INSTALL \
 	README.BE \
 	config-be \
-	prcs-1.3.1gcc3.diffs
+	prcs-1.3gcc3.diffs
+
+if GCC3PATCH
+
+PATCHFILE = prcs-1.3gcc3.diffs
+BUILT_SOURCES = patch-stamp
+
+patch-stamp:
+	patch -p1 < ${PATCHFILE} && touch patch-stamp
+
+clean-local:
+	if test -f patch-stamp; then patch -p1 --reverse < ${PATCHFILE} && rm -f patch-stamp; fi
+
+endif
 
 ## This doesn't work with gmake -j, but I can't figure it out.
 all-local:

@@ -19,6 +19,10 @@
  * $Id$
  */
 
+extern "C"{
+#include <stdarg.h>
+}
+
 #include "prcs.h"
 
 #if defined(__GNUG__) || defined(__MWERKS__)

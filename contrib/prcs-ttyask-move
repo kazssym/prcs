@@ -1,0 +1,84 @@
+#!/usr/bin/perl -w
+
+use strict;
+use Data::Dumper;
+use File::Basename;
+use Term::ReadLine;
+
+my (%new, %old, %oldtypes, %newtypes);
+
+die "Usage: prcs-ttyask-move <oldlist> <newlist>" unless $#ARGV == 1;
+open OLD, "<" . $ARGV[0] or die "open: $!";
+open NEW, ">" . $ARGV[1] or die "open: $!";
+
+# index by basename
+for (<OLD>) {
+  chomp;
+  my @line = split (/\t/, $_);
+  if ($line[1] eq 'ADDED') {
+    $new{basename ($line[2])} = [] unless defined $new{basename ($line[2])};
+    push @{$new{basename ($line[2])}}, $line[2];
+    $newtypes{$line[2]} = $line[0];
+  } elsif ($line[2] eq 'DELETED') {
+    $old{basename ($line[1])} = [] unless defined $old{basename ($line[1])};
+    push @{$old{basename ($line[1])}}, $line[1];
+    $oldtypes{$line[1]} = $line[0];
+  }
+}
+close OLD;
+
+#print Dumper(\%old), Dumper(\%new);
+
+#open TTY, "/dev/tty";
+my $term = new Term::ReadLine 'Simple Perl calc';
+my $OUT = $term->OUT;
+
+# try to match by filename
+foreach my $name (keys %old) {
+  if (defined $new{$name}) {
+    foreach my $oldname (@{$old{$name}}) {
+      print "\n File: $oldname\n";
+      print "0: DELETED\n";
+
+      # filter by type
+      my @newnames;
+      foreach my $newname (@{$new{$name}}) {
+	push @newnames, $newname if $newtypes{$newname} eq $oldtypes{$oldname};
+      }
+
+      # display choices
+      my $i = 1;
+      foreach my $newname (@newnames) {
+	print "$i: $newname\n";
+	$i ++;
+      }
+      my $prompt = " your choice -> ";
+      my $res;
+      do {
+	$_ = $term->readline($prompt);
+      } until m/^[0-9]+$/ and ($_ >= 0) and ($_ < $i);
+      my $choice = $_;
+
+      if ($choice == 0) {
+	print NEW $oldtypes{$oldname}, "\t", $oldname, "\tDELETED\n";
+      } else {
+	print NEW $oldtypes{$oldname}, "\t", $oldname, "\t",
+	  $newnames[$choice - 1], "\n";
+	# remove the selected ADDED element
+	for (my $i = 0; $i <= $#{$new{$name}}; $i++) {
+	  if ($new{$name}->[$i] eq $newnames[$choice - 1]) {
+	    splice (@{$new{$name}}, $i, 1);
+	    last;
+	  }
+	}
+      }
+    }
+  }
+}
+
+# Output ADDED files not selected as renamed
+foreach my $name (keys %new) {
+  foreach my $newname (@{$new{$name}}) {
+    print NEW $newtypes{$newname}, "\tADDED\t", $newname, "\n";
+  }
+}
