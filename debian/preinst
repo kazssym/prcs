@@ -1,0 +1,26 @@
+#!/bin/sh -e
+# File: preinst
+# Description: Pre-installation file for the Debian prcs package
+# Author: Rafael Laboissière <rafael@icp.inpg.fr>
+# Created on: 29 Oct 1998 14:07:48 +0100
+# Last modified on: Mon Apr 10 14:17:57 CEST 2000
+
+set -e
+
+case "$1" in
+    install | upgrade)     
+        if [ -f /etc/emacs/site-start.d/50prcs.el ] ; then 
+	    rm -f /etc/emacs/site-start.d/50prcs.el
+	fi
+	exit 0
+        ;;
+
+    abort-upgrade)
+	;;
+    *)
+	echo "$0: incorrect arguments: $*" >&2
+	exit 1
+	;;
+esac
+
+#DEBHELPER#

@@ -1,0 +1,11 @@
+Document: prcs-tutorial
+Title: PRCS Quick-start Guide
+Author: Rafael Kitover
+Abstract: PRCS stands for Project Revision Control System, a system for
+ version control similar to CVS.  This manual is a concise, yet complete
+ tutorial to the main concepts and commands of PRCS.
+Section: Devel
+
+Format: HTML
+Index: /usr/share/doc/prcs/prcs-tutorial.html
+Files: /usr/share/doc/prcs/prcs-tutorial.html

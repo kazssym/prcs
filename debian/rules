@@ -1,0 +1,121 @@
+#!/usr/bin/make -f
+# -*- Makefile -*-
+#
+# File: rules
+# Description: debian/rules file for the prcs package
+# Author: Rafael Laboissiere <rafael@icp.inpg.fr>
+#         (with help from Samuel Tardieu <sam@debian.org>)
+# Created on: Thu Nov  5 15:42:22 CET 1998
+# $Id$
+
+package		= prcs
+
+# The following scheme for definitions was stollen from the Debian
+# octave package by Dirk Eddelbuetel <dirk@debian.org>
+debbase		:= $(shell pwd)/debian
+debtmp		:= $(debbase)/tmp
+debusr 		:= $(debtmp)/usr
+debbin 		:= $(debusr)/bin
+debshr 		:= /usr/share
+debman		:= $(debshr)/man
+debinf		:= $(debshr)/info
+deblsp		:= /usr/share/emacs/site-lisp/$(package)
+debema		:= $(debusr)/lib/emacsen-common/packages
+debest		:= $(debtmp)/etc/emacs/site-start.d/
+
+
+build: build-stamp
+build-stamp:
+	dh_testdir
+
+	./configure --prefix=/usr --disable-environment --disable-debug
+# Use EMACS=no on the command line to avoid useless compilation of
+# .elc files
+	make CFLAGS="-O2 -g -Wall" \
+		CXXFLAGS="-O2 -g -Wall -fno-implicit-templates" \
+		EMACS=no
+	pod2man scripts/prcs-synch > $(debbase)/man/prcs-synch.1
+	touch build-stamp
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp
+
+	if [ -f Makefile ]; then make distclean; fi
+
+	rm -f $(debbase)/man/prcs-synch.1 $(debbase)/prcs-javadoc.1
+	dh_clean
+
+install: install-stamp
+install-stamp: build-stamp
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+
+	make install EMACS=no DESTDIR=$(debtmp) lispdir=$(deblsp) \
+	  mandir=$(debman) infodir=$(debinf)
+	( cd $(debtmp)/$(deblsp) ; rm -f prcs-ediff.el* *.elc )
+	chmod +x $(debbase)/fix-perl-path.pl
+	( cd scripts ; \
+	  for i in *-command ; do \
+            install -c --mode=0755 $$i $(debbin)/prcs-$$i ; \
+          done ; \
+          for i in prcs-callback prcs-clean prcs-emerge prcs-synch ; do \
+            install -c --mode=0755 $$i $(debbin) ; \
+            $(debbase)/fix-perl-path.pl $(debbin)/$$i ; \
+	  done ;\
+          for i in rprcs prcs-javadoc ; do \
+            install -c --mode=0755 $$i $(debbin) ; \
+          done )
+
+# Fix broken section of prcs-javadoc man page
+	if [ -f scripts/prcs-javadoc.8 ] ; then \
+	  cp scripts/prcs-javadoc.8 $(debbase)/prcs-javadoc.1 ; \
+	  dh_installmanpages -a scripts/prcs-javadoc.8 ; \
+	else \
+	  dh_installmanpages -a ; \
+	fi
+
+	dh_movefiles -i
+# Do this hack until Bug#17111 is fixed - R.L.
+	( cd $(debtmp) ; rm -rf etc usr/lib usr/share/emacs )
+	touch install-stamp
+
+binary-indep: build install
+	dh_testversion ge 2.0.72
+	dh_testdir -i
+	dh_testroot -i
+	dh_installdocs -i
+	dh_installemacsen -i
+	dh_installchangelogs -i emacs/1.60.log
+	dh_compress -i
+	dh_fixperms -i
+	dh_installdeb -i
+	dh_perl -i
+	dh_gencontrol -i
+	dh_md5sums -i
+	dh_builddeb -i
+
+binary-arch: build install
+	dh_testversion ge 2.0.72
+	dh_testdir -a
+	dh_testroot -a
+	dh_installdocs -a
+	dh_installchangelogs -a ChangeLog
+	dh_strip -a
+	dh_compress -a
+	dh_fixperms -a
+	dh_installdeb -a
+	dh_shlibdeps -a
+	dh_gencontrol -a
+	dh_makeshlibs -a
+	dh_md5sums -a
+	dh_builddeb -a
+
+source diff:                                                                  
+	@echo >&2 'source and diff are obsolete - use dpkg-source -b'; false
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary

@@ -1,0 +1,20 @@
+#!/bin/sh -e
+# File: postrm
+# Description: Postrm file for the Debian prcs package
+# Author: Rafael Laboissière <rafael@icp.inpg.fr>
+# Created on: 29 Oct 1998 14:07:48 +0100
+# Last modified on: Tue Jan 18 09:19:43 CET 2000
+
+set -e
+
+case "$1" in
+abort-upgrade | abort-install | remove | upgrade | failed-upgrade | disappear | purge)
+        install-info --quiet --remove /usr/share/info/prcs.info
+	;;
+*)
+	echo "$0: incorrect arguments: $*" >&2
+	exit 1
+	;;
+esac
+
+#DEBHELPER#

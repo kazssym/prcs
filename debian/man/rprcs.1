@@ -1,0 +1,34 @@
+.\" -*- Nroff -*-
+.TH RPRCS 1 "PRCS Utilities" "Jun/03/1999" "PRCS Utilities"
+.SH NAME
+rprcs \- a front end for prcs to do checkins and checkouts at a remote site.
+.SH SYNOPSIS
+.B rprcs
+.I "PRCS_command [PRCS options] [-h remotehost] project"
+.SH "DESCRIPTION"
+This manual page documents briefly the
+.BR rprcs
+command.
+This manual page was written for the Debian GNU/Linux distribution
+because the original program does not have a manual page.
+.P
+.B rprcs
+is a front end for prcs that uses rsh and rsync to communicate with
+a remote site and do prcs's checkins and checkouts at the remote site.
+For the moment rprcs is one shell script that manages all related files,
+there is no real client and server as e.g. in prcs2. 
+.P
+.B rprcs 
+requires that a server containing the remote repository and running prcs
+and rsync be available. (See /usr/share/doc/prcs/README.rprcs for more
+information about the setup.)
+.SH "EXAMPLES"
+See /usr/share/doc/prcs/rprcs_session.log for an example of a session using 
+rprcs.
+.SH "SEE ALSO"
+.BR prcs (1)
+.P
+/usr/share/doc/prcs/README.rprcs 
+.SH AUTHOR
+This manual page was written by Rafael Laboissiere <rafael@icp.inpg.fr>,
+for the Debian GNU/Linux system (but may be used by others).

@@ -1,0 +1,29 @@
+.\" -*- Nroff -*-
+.\" $Id$
+.TH PRCS-CLEAN 1 "PRCS Utilities" "Jun/03/1999" "PRCS Utilities"
+.SH NAME
+prcs-clean \- clean up a directory tree containing a PRCS-controlled project
+.SH SYNOPSIS
+.B prcs-clean 
+.I "project"
+.SH "DESCRIPTION"
+This manual page documents briefly the
+.BR prcs-clean ,
+command.
+This manual page was written for the Debian GNU/Linux distribution
+because the original program does not have a manual page.
+.PP
+.B prcs-clean
+is a program that cleans up a directory tree containing a
+PRCS-controlled project.  The mandatory argument is the name of the
+project from which all the files will be deleted.  Be careful: only
+use
+.B prcs-clean
+after having done a checkin (otherwise you will loose your project!).
+.SH "SEE ALSO"
+.BR prcs (1)
+.PP
+Info documentation for PRCS (type "info prcs")
+.SH AUTHOR
+This manual page was written by Rafael Laboissiere <rafael@icp.inpg.fr>,
+for the Debian GNU/Linux system (but may be used by others).

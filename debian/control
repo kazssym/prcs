@@ -1,0 +1,53 @@
+Source: prcs
+Section: devel
+Priority: optional
+Maintainer: Rafael Laboissiere <rafael@icp.inpg.fr>
+Standards-Version: 3.1.1
+Build-Depends: debhelper, perl-5.005 | perl-5.6, flex, rcs
+
+Package: prcs
+Architecture: any
+Depends: rcs, ${shlibs:Depends}
+Suggests: prcs-el, prcs-synch
+Description: The Project Revision Control System
+ PRCS, the Project Revision Control System, is the front end to a set
+ of tools that (like CVS) provide a way to deal with sets of files and
+ directories as an entity, preserving coherent versions of the entire
+ set.
+ .
+ Its purpose is similar to that of SCCS, RCS, and CVS, but (according
+ to its authors, at least), it is much simpler than any of those
+ systems.
+ .
+ Emacs-Lisp support is distributed in a separate package, prcs-el.  Another
+ package called prcs-synch contains a tool to synchronize PRCS projects
+ between repositories, both locallly and remotely.
+ .
+ For further information look at
+     http://www.XCF.Berkeley.EDU/~jmacd/prcs.html. 
+
+Package: prcs-el
+Architecture: all
+Depends: prcs, emacsen
+Conflicts: prcs (<< 1.2.14)
+Description: ELisp support for the Project Revision Control System
+ This package contains Emacs-Lisp add-on support for PRCS, the Project
+ Revision Control System.  It provides a useful interface for some
+ PRCS commands (checkin, diff, info, and rekey) while editing project
+ descriptor files (.prj).
+ .
+ prcs-el is distributed separately from the prcs package because it depends 
+ on Emacs (or another "emacsen" flavor).
+
+Package: prcs-synch
+Architecture: all
+Depends: perl-5.005 | perl-5.6, prcs, textutils
+Recommends: ssh
+Conflicts: prcs (<< 1.2.15-1)
+Description: Synchronize PRCS projects between repositories
+ The prcs-synch tries to synchronize two PRCS (Project Revision Control
+ System) repositories. It requires a "remote" repository, which is assumed
+ to have recent changes, vs. a "local" repository which is out of date.
+ .
+ prcs-synch is distributed separately from the prcs package because it
+ depends on perl5.

@@ -1,0 +1,38 @@
+.\" -*- Nroff -*-
+.de Vb
+.ft CW
+.nf
+.ne \\$1
+..
+.de Ve
+.ft R
+
+.fi
+..
+.TH PRCS-EMERGE 1 "PRCS Utilities" "Jun/03/1999" "PRCS Utilities"
+.SH NAME
+prcs-emerge \- Sophisticated merge command for PRCS 
+.SH SYNOPSIS
+.B PRCS_MERGE_COMMAND=prcs-emerge prcs merge 
+[\fI...\fR]
+.SH "DESCRIPTION"
+This manual page documents briefly the
+.BR prcs-merge-command ,
+script.
+This manual page was written for the Debian GNU/Linux distribution
+because the original program does not have a manual page.
+.PP
+.B prcs-emerge
+is a sophisticated merge command for the 
+.BR prcs (1) 
+command, using the Ediff package for Emacs-Lisp through
+.BR gnudoit (1)
+and the \fIprcs.el\fR package.
+.SH "SEE ALSO"
+.BR prcs (1),
+.BR gnudoit (1),
+.PP
+Info documentation for PRCS (type "info prcs")
+.SH AUTHOR
+This manual page was written by Rafael Laboissiere <rafael@icp.inpg.fr>,
+for the Debian GNU/Linux system (but may be used by others).

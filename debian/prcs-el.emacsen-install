@@ -1,0 +1,52 @@
+#!/bin/sh
+#
+# emacsen install script for the Debian GNU/Linux octave package
+#
+# Written by Dirk Eddelbuettel <edd@debian.org>   
+#
+# Modified by Rafael Laboissiere <rafael@icp.inpg.fr> 
+# on Wed Oct 28 19:34:02 CET 1998   
+# for the prcs Debian package
+
+set -e
+
+# Canadian spelling ;-)
+flavour=$1
+
+package=prcs
+files="prcs.el prcs-hooks.el"
+source=/usr/share/emacs/site-lisp/${package}
+destination=/usr/share/${flavour}/site-lisp/${package}
+if [ `echo $flavour | cut -c-6` = xemacs ] ; then
+  flags="-no-site-file"
+else
+  flags="--no-site-file"
+fi
+flags="${flags} -q -batch -l path.el -f batch-byte-compile"
+
+if [ ${flavour} != emacs ]
+then
+    echo install/${package}: Byte-compiling for emacsen flavour ${flavour}
+
+    # Copy the temp .el files into the destination directory
+    install -c -m 0755 -d ${destination}
+    for i in $files
+    do 
+	cp $source/$i $destination
+    done
+
+    # Byte compile them 
+    # The lpath.el trick is from Davide Salvetti's auctec package
+    cd ${destination}
+    cat <<-EOF >path.el
+    	(setq load-path (cons "." load-path)
+     		byte-compile-warnings nil)
+	EOF
+    ${flavour} ${flags} ${files}
+    rm ${files} path.el
+else
+    echo install/${package}: Ignoring emacsen flavour ${flavour}
+fi
+
+exit 0;
+

@@ -1,0 +1,45 @@
+.\" -*- Nroff -*-
+.de Vb
+.ft CW
+.nf
+.ne \\$1
+..
+.de Ve
+.ft R
+
+.fi
+..
+.TH PRCS-CALLBACK 1 "PRCS Utilities" "Jun/03/1999" "PRCS Utilities"
+.SH NAME
+prcs-callback \- Callback script for Ediff support in prcs.el
+.SH SYNOPSIS
+.B (setq prcs-callback-program "prcs-callback")
+.SH "DESCRIPTION"
+This manual page documents briefly the
+.BR prcs-merge-command ,
+script.
+This manual page was written for the Debian GNU/Linux distribution
+because the original program does not have a manual page.
+.PP
+.B prcs-callback 
+is associated with \fIprcs.el\fR.  When called with some
+number of arguments, this script: 
+.PP
+.Vb 4
+\&    1. Prints a special magic token on a line by itself.
+\&    2. Prints the number of args on a line by itself.
+\&    3. Prints each of the args in turn on their own lines.
+\&    4. Waits for input.
+\&    5. Reads a line (should be an integer), and exits with 
+\&       that status.
+.Ve
+It is used by \fIprcs.el\fR as a value for $PRCS_DIFF_COMMAND or
+$PRCS_MERGE_COMMAND. The token is used to identify its execution in a
+general comint buffer. 
+.SH "SEE ALSO"
+prcs(1),
+.PP
+Info documentation for PRCS (type "info prcs")
+.SH AUTHOR
+This manual page was written by Rafael Laboissiere <rafael@icp.inpg.fr>,
+for the Debian GNU/Linux system (but may be used by others).
