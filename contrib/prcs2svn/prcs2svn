@@ -17,6 +17,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+# $Id$
+
 =head1 NAME
 
 prcs2svn - Convert a PRCS project to a SVN repository
@@ -33,8 +35,22 @@ accessed as a tagged version in the SVN repository.  This means that
 after running prcs2svn, the following commands will checkout the same
 set of files:
 
-    prcs checkout -r <revision> <project>
-    svn checkout <svn_repo>/<project>/tags/<revision> .
+  prcs checkout -r <revision> <prcs_project>
+  svn checkout <svn_repository>/tags/<revision> .
+
+The I<svn_repository> must already exist in the SVN server and the
+access rights must be already given to the user running the prcs2svn
+script, otherwise it will fail.  A typical usage would be:
+
+  [as root]
+  rm -rf /svn/repo/<prcs_project>
+  mkdir -p /svn/repo/<prcs_project>
+  chown -R <user>:<group> /svn/repo/<prcs_project>
+
+  [as user]
+  prcs2svn <prcs_project> file:///svn/repo/<prcs_project>
+  [or]
+  prcs2svn <prcs_project> svn+ssh://<user>@<host>/svn/repo/<prcs_project>
 
 prcs2svn completely ignores the merging tree of the PRCS project.  It
 follows a simple algorithm to do the conversion: first, the list of
@@ -155,7 +171,9 @@ mkdir $prcs_prj;
 mkdir "$prcs_prj/trunk";
 mkdir "$prcs_prj/tags";
 
+chdir $prcs_prj;
 run "svn import . $svn_repo --message 'Initial repository layout'";
+chdir "..";
 
 # Loop over PRCS versions
 
@@ -164,10 +182,10 @@ for $ver (@versions) {
   # Checkout the SVN directories trunk and tags
 
   run "rm -rf $prcs_prj";
-  run "svn checkout --non-recursive $svn_repo/$prcs_prj";
+  run "svn checkout --non-recursive $svn_repo";
   chdir "$prcs_prj";
-  run "svn checkout --non-recursive $svn_repo/$prcs_prj/tags";
-  run "svn checkout $svn_repo/$prcs_prj/trunk";
+  run "svn checkout --non-recursive $svn_repo/tags";
+  run "svn checkout $svn_repo/trunk";
 
   # Create tarball containing all the .svn directories
 
@@ -203,18 +221,38 @@ for $ver (@versions) {
       run "svn add $1";
     } elsif (/^\!\s+(.*)/) {
       run "svn delete $1";
+    } elsif (/^\~\s+(.*)/) {
+      run "rm $1";
+      run "svn delete $1";
+      run "prcs checkout -l -f -r $ver $prcs_prj.prj $1";
+      run "svn add $1";
     }
   } split ("\n", `svn status`);
 
-  # Commit the SVN version
+  # Commit the SVN version using as log message the Version-Log of the
+  # PRCS version
 
-  run "svn commit --message 'Committed PRCS version $ver'";
+  my $log = `prcs info -l -r$ver $prcs_prj.prj`
+    or die "Cannot run prcs info for version $ver";
+  $log =~ s/\n/"@@@@@"/g;
+  $log =~ /Version-Log:(.*)Project-Description:/m;
+  ($log = $1) =~ s/"@@@@@"/\n/g;
+  $log =~ s/^\s+//;
+  $log = "Committed PRCS version $ver\n\n" . $log;
+
+  my $logfile = `tempfile`;
+  chomp $logfile;
+  open (LOG, "> $logfile");
+  print LOG $log;
+  close LOG;
+  run "svn commit --file $logfile";
+  unlink $logfile;
 
   # Remove and checkout trunk, svn copying after to tags/<version>
 
   chdir "..";
   run "rm -rf trunk";
-  run "svn checkout $svn_repo/$prcs_prj/trunk";
+  run "svn checkout $svn_repo/trunk";
   run "svn copy trunk tags/$ver";
   run "svn commit tags/$ver --message 'Tagged PRCS version $ver'";
 
