@@ -1,8 +1,14 @@
+prcs (1.3.2-2) unstable; urgency=low
+
+  * debian/control: Added docbook-utils to Build-Depends (closes: #146744).
+
+ -- Rafael Laboissiere <rafael@debian.org>  Sun, 12 May 2002 22:00:09 +0200
+
 prcs (1.3.2-1) unstable; urgency=low
 
   * New upstream release.  There has been a total reorganisation of the
-    contrib dir, done by myself upstream.  All the files that used to
-    be in debian/man has been moved elsewhere.  MAny changes to the
+    contrib dir, done upstream by myself.  All the files that used to
+    be in debian/man have been moved elsewhere.  Many changes to the
     files debian/*.{files, odcs,manpages} due to the overhaul. Also, the
     prcsstatus script in the prcs-utils package does not die anymore when
     PRCS_REPOSITORY is unset (closes: #144568).
@@ -27,7 +33,7 @@ prcs (1.3.2-1) unstable; urgency=low
     Build-Depends.  Upgraded dependency of prcs-synch on ssh from Suggests
     to Recommends, since ssh is no more in non-us now.  Since some scripts
     have been moved from the prcs into the prcs-utils package, prcs-utils
-    confilcts with prcs << 1.3.2-1.
+    conflicts with prcs << 1.3.2-1.
   * debian/prcs-utils.manpages: Added man pages for Yann's suite.
   * debian/dirs: Added etc/bash_completion.d directory.
   * debian/conffiles: Added file.
