@@ -91,9 +91,8 @@ prcs(1)
 
 =head1 AUTHOR
 
-Hugo Cornelis <hugo@bbf.uia.ac.be> (prcs_checkfiles prcspatch,
-prcspatch2, prcsfind, prcsbranches, prcsguess, prcsentry, and
-prcs_checkfiles)
+Hugo Cornelis <hugo@bbf.uia.ac.be> (prcs_checkfiles, prcspatch,
+prcspatch2, prcsfind, prcsbranches, prcsguess, prcsentry)
 
 Austin Donnelly <and1000@cam.ac.uk> (prcsstatus)
 
