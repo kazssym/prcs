@@ -938,6 +938,8 @@ Major Commands
 * rekey::          Replacing keywords in working files
 * info::           Printing information about a project's versions
                             and their files
+* changes::        Printing information about what files were changed in
+                            a range of project versions.
 
 Less-common Commands
 
@@ -1195,6 +1197,7 @@ Prints the version of PRCS and exits.
 @deffn {Option} {-@b{-}version-log=@var{new version log}}
 Causes @code{prcs checkin} to set the Version-Log on the command line.
 You will be prompted if there is an existing New-Version-Log already.
+This option overrides the PRCS_LOGQUERY environment variable.
 @end deffn
 
 @deffn {Option} -z
@@ -1674,7 +1677,7 @@ performing a @code{prcs checkin}, which does not modify keyword values.
 @c END DOCSTRING
 
 
-@node info, admin, rekey, Subcommands
+@node info, changes, rekey, Subcommands
 @c 2
 @section Prcs info
 @c BEGIN DOCSTRING info_help_string
@@ -1713,8 +1716,50 @@ version creation date.
 @end deffn
 @c END DOCSTRING
 
+@node changes, admin, info, Subcommands
+@c 2
+@section Prcs changes
+@c BEGIN DOCSTRING changes_help_string
+@deffn Command {prcs changes} [option @dots{}] [project [file-or-dir @dots{}]]
 
-@node admin, config, info, Subcommands
+ADDITIONAL OPTIONS: @samp{-r} (once or twice)
+
+The changes subcommand helps you find what versions modify a specific
+file or files.  For example, suppose you fixed a bug a long time ago and
+now it shows up again in the current version.  You would like to know
+what project versions modify a certain file so you can find out who
+undid your bug-fix and blame them!
+
+Like @code{prcs diff}, the @var{option}s may specify zero, one, or two
+versions (using @samp{-r} options).  Specifying no @samp{-r} options is
+equivalent to supplying the single option @samp{-r.}, the version from
+which the current working directory was checked out.  A @samp{-r} option
+that specifies only a major version (leaving off the minor version and
+its preceding period) implicitly has a minor version of @code{@@}.  When
+one version specifier is given, only that version is scanned for
+changes.  Two version specifiers cause a range of versions to be
+scanned.  In the two version case, one version must be an ancestor of
+the other, and reversing the order of the two versions will reverse the
+order of the output.
+
+When @var{file-or-dir} arguments are present, they restrict the change
+report to the specified files or subdirectory trees.  Otherwise all
+files are reported.
+
+For each specified version that modifies a file (in the reporting set)
+relative to one of its parent versions, @code{changes} prints the
+project name, major and minor version identifiers, date and time checked
+in, and the user who checked in the version.  Then it prints the parent
+version and a listing of all the selected files that were modified,
+including: addition, deletion, rename, type change, symlink change, or
+version change.  For regular files, @code{changes} also prints the
+number of lines added and removed by the modification.  If a project
+version does not modify any of the selected files, nothing is printed.
+
+@end deffn
+@c END DOCSTRING
+
+@node admin, config, changes, Subcommands
 @c 2
 @section Prcs admin
 
@@ -3563,10 +3608,6 @@ Use the --help option with a command for further help.
 #include "prcs.h"
 #include "syscmd.h"
 #include "docs.h"
-
-const int prcs_version_number[3] = { @PRCS_MAJOR_VERSION_NUMBER@,
-				     @PRCS_MINOR_VERSION_NUMBER@,
-				     @PRCS_MICRO_VERSION_NUMBER@ };
 
 SystemCommand rcs_command(@SYS_RCS_COMMAND_PATH@, "RCS_PATH");
 SystemCommand ci_command(@SYS_CI_COMMAND_PATH@, "RCS_PATH");

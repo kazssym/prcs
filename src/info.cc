@@ -176,7 +176,6 @@ static PrVoidError print_info(ProjectVersionData* project_data, RepEntry *rep_en
         if(!project_data->rcs_version()) {
             /* its an empty version */
 
-	    prcserror << "Whatever, dude" << dotendl;
 	    ASSERT (false, "@@@ fixme");
 
 	    return NoError;

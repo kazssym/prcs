@@ -20,7 +20,7 @@
  */
 
 /* $Format: "static const char prcs_version_id[] = \"$ProjectVersion$ $ProjectAuthor$ $ProjectDate$\";"$ */
-static const char prcs_version_id[] = "1.2-release.99 jmacd Sun, 24 Jun 2001 22:51:30 -0700";
+static const char prcs_version_id[] = "1.2-release.103 jmacd Sun, 28 Oct 2001 00:54:02 -0700";
 
 #include "prcs.h"
 #include "lock.h"
@@ -43,8 +43,11 @@ extern "C" {
 #include "getopt.h"
 }
 
+/* $Format: "const int prcs_version_number[3] = { $ReleaseMajorVersion$, $ReleaseMinorVersion$, $ReleaseMicroVersion$ };" $ */
+const int prcs_version_number[3] = { 1, 3, 0 };
+
 /* $Format: "const char prcs_version_string[] = \"$ReleaseVersion$\";"$ */
-const char prcs_version_string[] = "1.2.16";
+const char prcs_version_string[] = "1.3.0pre1";
 
 /* The following classes are only used inside this file, and oraganize
  * several arrays of information used to select the command and
@@ -253,6 +256,10 @@ static PrcsCommand commands[] = {
     {"info", "*", "*", "*", AllowWildCards,
      info_command, info_help_string,
      OneRevisionArg, InsureProjectName, SORT_STR, NoDiffArgs, -1 },
+
+    {"changes", "", "", "@", NoFlags,
+     changes_command, changes_help_string,
+     TwoRevisionArgs, InsureProjectName, "", NoDiffArgs, -1 },
 
     {"execute", "", "", "@", NoFlags,
      execute_command, execute_help_string,

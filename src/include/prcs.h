@@ -139,6 +139,7 @@ extern PrPrcsExitStatusError depopulate_command();         /* populate.cc */
 extern PrPrcsExitStatusError diff_command();               /* diff.cc */
 extern PrPrcsExitStatusError execute_command();            /* execute.cc */
 extern PrPrcsExitStatusError info_command();               /* info.cc */
+extern PrPrcsExitStatusError changes_command();            /* changes.cc */
 extern PrPrcsExitStatusError package_command();            /* package.cc */
 extern PrPrcsExitStatusError unpackage_command();          /* package.cc */
 extern PrPrcsExitStatusError merge_command();              /* merge.cc */

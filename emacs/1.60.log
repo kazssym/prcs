@@ -7,14 +7,14 @@ Bugfixes:
 
 Project-Description: as above
 Project-Keywords:
-  PrcsModeVersion    $ProjectVersion: 1.2-release.99 $ on $Date$
+  PrcsModeVersion    $ProjectVersion: 1.2-release.103 $ on $Date$
 
 prcs-utils 1.56 Tue, 02 Feb 1999 01:34:53 -0500 by dude
 Parent-Version:      1.55
 Version-Log:         Added `prcs-info' binding.
 Project-Description: as above
 Project-Keywords:
-  PrcsModeVersion    $ProjectVersion: 1.2-release.99 $ on $Date$
+  PrcsModeVersion    $ProjectVersion: 1.2-release.103 $ on $Date$
 
 prcs-utils 1.57 Sat, 06 Feb 1999 12:11:49 -0500 by dude
 Parent-Version:      1.56
@@ -22,7 +22,7 @@ Version-Log:
 Created separate ToDo file, since prcs.el was getting cluttered.
 Project-Description: as above
 Project-Keywords:
-  PrcsModeVersion    $ProjectVersion: 1.2-release.99 $ on $Date$
+  PrcsModeVersion    $ProjectVersion: 1.2-release.103 $ on $Date$
 
 prcs-utils jesse.28 Sat, 06 Feb 1999 17:57:04 -0500 by dude
 Parent-Version:      1.57
@@ -30,21 +30,21 @@ Version-Log:
 Implemented process callbacks in preparation for EDiff support.
 Project-Description: as above
 Project-Keywords:
-  PrcsModeVersion    $ProjectVersion: 1.2-release.99 $ on $Date$
+  PrcsModeVersion    $ProjectVersion: 1.2-release.103 $ on $Date$
 
 prcs-utils jesse.29 Sat, 06 Feb 1999 18:43:23 -0500 by dude
 Parent-Version:      jesse.28
 Version-Log:         Gave callback methods state info, just like sentinels.
 Project-Description: as above
 Project-Keywords:
-  PrcsModeVersion    $ProjectVersion: 1.2-release.99 $ on $Date$
+  PrcsModeVersion    $ProjectVersion: 1.2-release.103 $ on $Date$
 
 prcs-utils jesse.30 Sun, 07 Feb 1999 11:12:25 -0500 by dude
 Parent-Version:      jesse.29
 Version-Log:         Untested EDiff code.
 Project-Description: as above
 Project-Keywords:
-  PrcsModeVersion    $ProjectVersion: 1.2-release.99 $ on $Date$
+  PrcsModeVersion    $ProjectVersion: 1.2-release.103 $ on $Date$
 
 prcs-utils jesse.31 Sun, 07 Feb 1999 14:11:20 -0500 by dude
 Parent-Version:      jesse.30
@@ -54,7 +54,7 @@ Real cleanup functionality, rather safe.
 
 Project-Description: as above
 Project-Keywords:
-  PrcsModeVersion    $ProjectVersion: 1.2-release.99 $ on $Date$
+  PrcsModeVersion    $ProjectVersion: 1.2-release.103 $ on $Date$
 
 prcs-utils 1.58 Sun, 07 Feb 1999 15:03:20 -0500 by dude
 Parent-Version:      jesse.31
@@ -65,18 +65,18 @@ Requiring EDiff to be loaded when needed.
 
 Project-Description: as above
 Project-Keywords:
-  PrcsModeVersion    $ProjectVersion: 1.2-release.99 $ on $Date$
+  PrcsModeVersion    $ProjectVersion: 1.2-release.103 $ on $Date$
 
 prcs-utils 1.59 Sun, 07 Feb 1999 15:23:03 -0500 by dude
 Parent-Version:      1.58
 Version-Log:         Doc strings use summary sentence properly.
 Project-Description: as above
 Project-Keywords:
-  PrcsModeVersion    $ProjectVersion: 1.2-release.99 $ on $Date$
+  PrcsModeVersion    $ProjectVersion: 1.2-release.103 $ on $Date$
 
 prcs-utils 1.60 Sun, 07 Feb 1999 19:05:45 -0500 by dude
 Parent-Version:      1.59
 Version-Log:         empty
 Project-Description: as above
 Project-Keywords:
-  PrcsModeVersion    $ProjectVersion: 1.2-release.99 $ on $Date$
+  PrcsModeVersion    $ProjectVersion: 1.2-release.103 $ on $Date$

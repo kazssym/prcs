@@ -132,6 +132,7 @@ PrPrcsExitStatusError checkin_command()
 static PrVoidError compute_modified(ProjectDescriptor *project,
 				    ProjectDescriptor *pred_project)
 {
+    /* This shares some structure with changes_command, not all of it though */
     bool project_modified = false;
 
     foreach_fileent(fe_ptr, project) {
@@ -213,7 +214,6 @@ static PrVoidError compute_modified(ProjectDescriptor *project,
 
 	    if (pred_fe &&
 		fe->descriptor_name() &&
-		fe->file_type() == RealFile &&
 		fe->file_type() == pred_fe->file_type())
 	      {
 		if (strcmp (fe->descriptor_name(), pred_fe->descriptor_name()) != 0 ||
@@ -438,20 +438,31 @@ static PrVoidError checkin_each_file(ProjectDescriptor *project)
 
     Return_if_fail(VC_checkin(NULL, NULL, NULL, rlog, NULL, checkin_hook));
 
-    /* This is a hack to fix a problem with RCS 5.7.  It does not
-     * respect the mode of a file created by rcs -i at the initial
-     * checkin, as it does at each subsequent checkin. */
+    /* @@@ Really should do some verification here.  It seems that the
+     * above chmod can reach an NFS server before the new RCS versions
+     * do... Dan Bonachea's problem. */
+
     foreach_fileent(fe_ptr, project) {
 	FileEntry *fe = *fe_ptr;
 
 	if(!fe->real_on_cmd_line() || fe->unmodified())
 	    continue;
 
-	if(strcmp(fe->descriptor_version_number(), "1.1") == 0)
+	RcsVersionData ver;
+
+	Return_if_fail (VC_get_one_version_data (fe->full_descriptor_name (),
+						 fe->descriptor_version_number (),
+						 & ver));
+
+	fe->set_lines (ver.plus_lines (), ver.minus_lines ());
+
+	/* RCS 5.7 does not preserve the mode of an empty version file
+	 * created by rcs -i, so we ignore the umask when registering
+	 * new files and just chmod the first version. */
+	if(strcmp(fe->descriptor_version_number(), "1.1") == 0) {
 	    Return_if_fail (project->repository_entry()->
 			    Rep_chown_file(fe->descriptor_name()));
-
-	// @@@ Verify!!!
+	}
     }
 
     return NoError;
@@ -568,7 +579,8 @@ static PrVoidError maybe_query_user(ProjectDescriptor* P)
     if(P->new_version_log()->length() > 0 ||
        !get_environ_var("PRCS_LOGQUERY") || /* either it has been edited or PRCS_LOGQUERY is not set */
        option_report_actions ||
-       option_force_resolution)
+       option_force_resolution ||
+       option_version_log)
         return NoError;
 
     tty = isatty(STDIN_FILENO);
@@ -842,21 +854,16 @@ PrVoidError ProjectDescriptor::checkin_project_file(ProjectVersionData *new_proj
 
     unlink (tmp_name);
 
-    /* RCS restores the RCS mode to this file, since it wasn't temp. */
-    /*If_fail(Err_chmod (project_file_path(), buf.st_mode & 0777))
-	pthrow prcserror << "Chmod failed on " << squote (project_file_path()) << perror;*/
+    // @@@ Really should do some verification here to work around NFS bugs
 
-    /* ->  964   X 970419 Paul Eggert       ( 30) Re: RCS file permissions */
-
-    /* Hack to get around RCS init bug.  It throws away the rcs -i
-     * mode, user, etc. at first checkin. */
     if (strcmp (new_rcs_version, "1.1") == 0) {
         Dstring desc_name (project_name());
 	desc_name.append (".prj");
 
+	/* RCS 5.7 does not preserve the mode of an empty version file
+	 * created by rcs -i, so we ignore the umask when registering
+	 * new files and just chmod the first version. */
 	Return_if_fail(repository_entry()->Rep_chown_file(desc_name));
-
-	// @@@ Verify!!!
     }
 
     new_project_data->rcs_version(new_rcs_version);
@@ -947,7 +954,7 @@ static PrVoidError slow_eliminate_prepare(ProjectDescriptor *project)
 	checksum = md5_buffer(output_buffer, output_len);
 
 	fe->set_checksum(checksum);
-	fe->set_keyed_length(output_len);
+	fe->set_unkeyed_length(output_len);
 
 	if(fe->descriptor_name()) {
 	    /* If it doesn't have an empty descriptor. */
@@ -1034,9 +1041,11 @@ void FileEntry::update_repository(RepEntry* rep_entry) const
 	RcsVersionData ver;
 	ver.date             (get_utc_time_t());
 	ver.author           (get_login());
-	ver.length           (keyed_length());
+	ver.length           (unkeyed_length());
 	ver.unkeyed_checksum (checksum());
 	ver.rcs_version      (descriptor_version_number());
+	ver.set_plus_lines   (plus_lines ());
+	ver.set_minus_lines  (minus_lines ());
 
 	rep_entry->add_rcs_file_data(descriptor_name(), &ver);
     }

@@ -45,7 +45,7 @@ FileEntry::FileEntry (Dstring *working_path,
      _stat_mtime(-1),
      _stat_size(0),
      _stat_ino(0),
-     _keyed_length(0),
+     _unkeyed_length(0),
      _unmodified(false),
      _present(false),
      _file_mode(mode),
@@ -86,19 +86,29 @@ off_t    FileEntry::stat_length()   const { return _stat_size; }
 time_t   FileEntry::stat_mtime()    const { return _stat_mtime; }
 ino_t    FileEntry::stat_inode()    const { return _stat_ino; }
 
+int         FileEntry::plus_lines()       const { return _plus_lines; }
+int         FileEntry::minus_lines()      const { return _minus_lines; }
+
+void        FileEntry::set_lines (int plus, int minus)
+{
+    _plus_lines = plus;
+    _minus_lines = minus;
+}
+
+
 bool        FileEntry::unmodified()       const { return _unmodified; }
 bool        FileEntry::present()          const { return _present; }
 bool        FileEntry::on_command_line()  const { return _on_command_line; }
 bool        FileEntry::real_on_cmd_line() const
     { return _on_command_line && file_type() == RealFile; }
-int         FileEntry::keyed_length()     const { return _keyed_length; }
+int         FileEntry::unkeyed_length()     const { return _unkeyed_length; }
 const char* FileEntry::checksum()         const { return _checksum; }
 
 void FileEntry::set_on_command_line(bool b) { _on_command_line = b; }
 void FileEntry::set_unmodified(bool b)      { _unmodified = b; }
 void FileEntry::set_present(bool b)         { _present = b; }
 void FileEntry::set_checksum(const char* c) { memcpy(_checksum, c, 16); }
-void FileEntry::set_keyed_length(int len)   { _keyed_length = len; }
+void FileEntry::set_unkeyed_length(int len)   { _unkeyed_length = len; }
 void FileEntry::set_file_mode(mode_t mode)  { _file_mode = mode; }
 void FileEntry::set_working_path(const char* name) { _work_path->assign (name); }
 
@@ -256,6 +266,8 @@ PrVoidError FileEntry::get_repository_info(RepEntry* rep_entry)
     _stat_mtime = data->date();
     _user  = new Dstring(data->author());
     _date  = new Dstring(time_t_to_rfc822(_stat_mtime));
+    _plus_lines = data->plus_lines ();
+    _minus_lines = data->minus_lines ();
 
     return NoError;
 }

@@ -66,11 +66,11 @@ static PrVoidError repository_alarm_handler(void* data, bool);
 
 /* The lowest version which may use a repository last touched by this
  * version of PRCS */
-static int const prcs_usable_number[3] = { 1, 2, 0 };
+static int const prcs_usable_number[3] = { 1, 3, 0 };
 
 /* The lowest version which this version of PRCS may use without being
  * converted.  */
-static int const prcs_may_use_number[3] = { 1, 2, 0 };
+static int const prcs_may_use_number[3] = { 1, 3, 0 };
 
 /* Rep_guess_repository_path --
  *
@@ -293,6 +293,11 @@ static bool version_less_than(const int* a, const int* b)
     return false;
 }
 
+PrVoidError RepEntry::Rep_make_default_tag()
+{
+    return Rep_make_tag(prcs_version_number, prcs_usable_number);
+}
+
 PrVoidError RepEntry::Rep_make_tag(const int created[3], const int usable[3])
 {
     const char* file_name = Rep_name_in_entry(prcs_tagname);
@@ -467,7 +472,7 @@ PrVoidError RepEntry::Rep_verify_tag(UpgradeRepository* upgrades)
     /* If we have a write lock, modify the tag with the up to date
      * versions */
     if(version_less_than(created, prcs_version_number) && _writeable) {
-	Return_if_fail(Rep_make_tag(prcs_version_number, prcs_usable_number));
+	Return_if_fail(Rep_make_default_tag());
     }
 
     return NoError;
@@ -484,7 +489,7 @@ PrVoidError RepEntry::Rep_create_repository_entry()
 	    pthrow prcserror << "Cannot create repository entry " << squote(_entry_name) << perror;
 	}
 
-	Return_if_fail(Rep_make_tag(prcs_version_number, prcs_usable_number));
+	Return_if_fail(Rep_make_default_tag());
 
 	Return_if_fail(VC_register(_project_file));
 
@@ -582,7 +587,7 @@ PrVoidError RepEntry::init(const char* entry, bool writeable0, bool create, bool
 	pthrow prcserror << "Stat failed on repository entry "
 			 << squote(Rep_entry_path()) << perror;
 
-    _rep_mask = (_rep_stat_buf.st_mode & 0x1ff) ^ 0777;
+    _rep_mask = (_rep_stat_buf.st_mode & 0777) ^ 0777;
 
     Return_if_fail(Rep_lock(_writeable));
 
@@ -598,6 +603,8 @@ PrVoidError RepEntry::init(const char* entry, bool writeable0, bool create, bool
     }
 
     if (require_db) {
+	Return_if_fail(Rep_verify_tag(entry_upgrades));
+
 	if(!fs_file_exists(Rep_name_in_entry(prcs_data_file_name))) {
 	    pthrow prcserror << "Repository entry " << squote(entry)
 			    << " is missing its data file, please run "
@@ -632,8 +639,6 @@ PrVoidError RepEntry::init(const char* entry, bool writeable0, bool create, bool
 	_log_pstream->set_fill_prefix ("log: ");
 	_log = new PrettyOstream (_log_pstream, NoError);
     }
-
-    Return_if_fail(Rep_verify_tag(entry_upgrades));
 
     return NoError;
 }
@@ -1257,6 +1262,12 @@ void RepEntry::common_version_dfs_3(ProjectVersionData* node) const
 	common_version_dfs_1 (project_summary()->index(node->parent_index(i)));
 }
 
+void RepEntry::clear_flags() const
+{
+    foreach (pvd_ptr, project_summary(), ProjectVersionDataPtrArray::ArrayIterator)
+	(*pvd_ptr)->clear_flags();
+}
+
 ProjectVersionDataPtrArray* RepEntry::common_version(ProjectVersionData* one,
 						     ProjectVersionData* two) const
 {
@@ -1268,8 +1279,7 @@ ProjectVersionDataPtrArray* RepEntry::common_version(ProjectVersionData* one,
     /* Reset flags */
     one->clear_flags();
     two->clear_flags();
-    foreach (pvd_ptr, project_summary(), ProjectVersionDataPtrArray::ArrayIterator)
-	(*pvd_ptr)->clear_flags();
+    clear_flags ();
 
     /* Mark all versions visible from one */
     common_version_dfs_1 (one);
@@ -1278,8 +1288,7 @@ ProjectVersionDataPtrArray* RepEntry::common_version(ProjectVersionData* one,
     common_version_dfs_2 (two, tmppvda);
 
     /* Reset flags */
-    foreach (pvd_ptr, project_summary(), ProjectVersionDataPtrArray::ArrayIterator)
-	(*pvd_ptr)->clear_flags();
+    clear_flags ();
 
     /* Mark all parents of all versions in tmppvda. */
     foreach (pvd_ptr, tmppvda, ProjectVersionDataPtrArray::ArrayIterator)
@@ -1300,6 +1309,84 @@ ProjectVersionDataPtrArray* RepEntry::common_version(ProjectVersionData* one,
     delete tmppvda;
 
     return pvda;
+}
+
+bool RepEntry::common_version_dfs_4(ProjectVersionData* from,
+				    ProjectVersionData* to,
+				    ProjectVersionDataPtrArray* res) const
+{
+    bool ret = false;
+
+    if (from->flag1(true))
+	return from == to;
+
+    for (int i = 0; i < from->parent_count(); i += 1) {
+	ProjectVersionData *child = project_summary()->index(from->parent_index(i));
+
+	if (common_version_dfs_4 (child, to, res)) {
+	    if (!child->flag2(true)) {
+		res->append (child);
+	    }
+	    ret = true;
+	}
+    }
+
+    return ret;
+}
+
+static ProjectVersionDataPtrArray* reverse_pvda (ProjectVersionDataPtrArray* a)
+{
+    ProjectVersionDataPtrArray* reversed = new ProjectVersionDataPtrArray;
+
+    for (int i = a->length () - 1; i >= 0; i -= 1) {
+	reversed->append (a->index (i));
+    }
+
+    delete a;
+
+    return reversed;
+}
+
+ProjectVersionDataPtrArray* RepEntry::common_lineage (ProjectVersionData* one,
+						      ProjectVersionData* two) const
+{
+    /* This returns all versions that are in the ancestry lineage of
+     * both versions.  The return should be ordered such that if one
+     * or two is the ancestor of one another, then reversing them with
+     * reverse the order. */
+    ASSERT (one && two, "need both");
+
+    ProjectVersionDataPtrArray* result = new ProjectVersionDataPtrArray;
+
+    /* Mark all versions ancestor to one */
+    clear_flags ();
+    common_version_dfs_1 (one);
+
+    if (two->flag1()) {
+	/* Two is an ancestor of one, mark all ancestors of two instead. */
+	clear_flags ();
+	common_version_dfs_1 (two);
+	/* Fill the array with versions starting at one, ending at two. */
+	common_version_dfs_4 (one, two, result);
+	result->append (one);
+	return reverse_pvda (result);
+    }
+
+    /* Mark all versions ancestor to two */
+    clear_flags ();
+    common_version_dfs_1 (two);
+
+    if (one->flag1()) {
+	/* One is an ancestor of two, mark all ancestors of one instead. */
+	clear_flags ();
+	common_version_dfs_1 (one);
+	/* Fill the array with versions starting at one, ending at two. */
+	common_version_dfs_4 (two, one, result);
+	result->append (two);
+	return result;
+    }
+
+    return NULL;
 }
 
 PrRcsVersionDataPtrError RepEntry::lookup_rcs_file_data(const char* filename,
@@ -1429,10 +1516,10 @@ static void print_user_access(int r, int w, int x)
     }
 }
 
-static void print_access(struct stat *buf, struct passwd *pwd, struct group *grp)
+static void print_access(struct stat *buf, const char *pwd_name, const char *grp_name)
 {
-    prcsoutput << "Repository entry owner:  " << pwd->pw_name << prcsendl;
-    prcsoutput << "Repository entry group:  " << grp->gr_name << prcsendl;
+    prcsoutput << "Repository entry owner:  " << pwd_name << prcsendl;
+    prcsoutput << "Repository entry group:  " << grp_name << prcsendl;
     prcsoutput << "Repository entry access: " << prcsendl;
     prcsoutput << "Owner:                   ";
     print_user_access(buf->st_mode & S_IRUSR,
@@ -1454,33 +1541,28 @@ PrIntError RepEntry::Rep_print_access()
     struct group *grp;
 
     pwd = getpwuid(_rep_stat_buf.st_uid);
-
-    if(!pwd)
-	pthrow prcserror << "Can't lookup repository owner's name (getpwuid)" << dotendl;
-
     grp = getgrgid(_rep_stat_buf.st_gid);
 
-    if(!grp)
-	pthrow prcserror << "Can't lookup repository group owner's name (getgrgid)" << dotendl;
+    _owner_name = p_strdup((pwd && pwd->pw_name) ? pwd->pw_name : "nouser");
+    _group_name = p_strdup((grp && grp->gr_name) ? grp->gr_name : "nogroup");
 
-    _owner_name = p_strdup(pwd->pw_name ? pwd->pw_name : "nobody");
-    _group_name = p_strdup(grp->gr_name ? grp->gr_name : "nogroup");
-
-    print_access(&_rep_stat_buf, pwd, grp);
+    print_access(&_rep_stat_buf, _owner_name, _group_name);
 
     return _rep_stat_buf.st_mode;
 }
 
 static PrVoidError can_set_group(const char* group_name, const char *current_group_name)
 {
-    struct group *grp;
+    /* The reason for this function is just to give a nice error
+     * message.  If you wait until chmod then you get "Operation not
+     * permitted".  */
+    if (strcmp(group_name, current_group_name) != 0) {
 
-    if(strcmp(group_name, current_group_name) != 0) {
+	struct group *grp;
 
 	if((grp = getgrnam(group_name)) == NULL)
 	    pthrow prcserror << "Can't lookup group " << squote(group_name) << dotendl;
 
-	bool found = false;
 	char** grp_members = grp->gr_mem;
 
 	if (get_user_id() == 0)
@@ -1488,13 +1570,19 @@ static PrVoidError can_set_group(const char* group_name, const char *current_gro
 
 	while(*grp_members) {
 	    if(strcmp(get_login(), *grp_members++) == 0) {
-		found = true;
-		break;
+		return NoError;
 	    }
 	}
 
-	if(!found)
-	    pthrow prcserror << "You are not a member of that group" << dotendl;
+	/* Linux (at least) doesn't return users whose default group
+	 * is this group, check that too. */
+	struct passwd *pwd = getpwuid (get_user_id ());
+
+	if (pwd && pwd->pw_gid == grp->gr_gid) {
+	    return NoError;
+	}
+
+	pthrow prcserror << "You are not a member of that group" << dotendl;
     }
 
     return NoError;
@@ -1688,11 +1776,15 @@ PrPrcsExitStatusError admin_access_command()
 
 	Return_if_fail(old_mode << rep_entry->Rep_print_access());
 
-	if (!fs_same_file_owner(rep_entry->Rep_entry_path()) && uid != 0)
+	if (option_report_actions)
+	    return ExitSuccess;
+
+	if (! fs_same_file_owner(rep_entry->Rep_entry_path()) && uid != 0) {
 	    pthrow prcserror <<"Only the owner of this repository entry may modify its "
 		"access permissions" << dotendl;
+	}
 
-	if (uid == 0 || true) {
+	if (uid == 0) {
 	    prcsquery << "Enter a user"
 		      << definput(rep_entry->Rep_owner_name())
 		      << string_query("");
@@ -1711,9 +1803,6 @@ PrPrcsExitStatusError admin_access_command()
 	Return_if_fail (can_set_group(group_name, rep_entry->Rep_group_name()));
 
 	Return_if_fail (mask << query_mask(old_mode));
-
-	if (option_report_actions)
-	    return ExitSuccess;
 
 	Return_if_fail(rep_entry->Rep_chown(user_name, group_name));
 
@@ -1737,19 +1826,15 @@ PrPrcsExitStatusError admin_access_command()
 	    pthrow prcserror << "Stat failed on " << squote(rep_name) << perror;
 
 	pwd = getpwuid(stat_buf.st_uid);
-
-	if(!pwd)
-	    pthrow prcserror << "Can't lookup repository owner's name (getpwuid)" << dotendl;
-
 	grp = getgrgid(stat_buf.st_gid);
 
-	if(!grp)
-	    pthrow prcserror << "Can't lookup repository group owner's name (getgrgid)" << dotendl;
+	owner_name = p_strdup((pwd && pwd->pw_name) ? pwd->pw_name : "nouser");
+	group_name = p_strdup((grp && grp->gr_name) ? grp->gr_name : "nogroup");
 
-	owner_name = p_strdup(pwd->pw_name ? pwd->pw_name : "nobody");
-	group_name = p_strdup(grp->gr_name ? grp->gr_name : "nogroup");
+	print_access(&stat_buf, owner_name, group_name);
 
-	print_access(&stat_buf, pwd, grp);
+	if(option_report_actions)
+	    return ExitSuccess;
 
 	if(!fs_same_file_owner(rep_name) && uid != 0) {
 	    pthrow prcserror <<"Only the owner of this repository may modify its "
@@ -1775,9 +1860,6 @@ PrPrcsExitStatusError admin_access_command()
 	Return_if_fail(can_set_group(new_group_name, group_name));
 
 	Return_if_fail(mask << query_mask(stat_buf.st_mode));
-
-	if(option_report_actions)
-	    return ExitSuccess;
 
 	If_fail(Err_chmod(rep_name, (0777 ^ mask) | S_ISGID | 01000))
 	    pthrow prcserror << "Chmod failed on " << squote(rep_name) << perror;

@@ -1,12 +1,52 @@
 PRCS NEWS -- history of user-visible changes. -*- Text -*-
 $Date$
-$ReleaseVersion: 1.2.16 $
+$ReleaseVersion: 1.3.0pre1 $
 
 Please send bug reports to prcs-bugs@XCF.Berkeley.EDU.  See the file
 `README' for a description of how to report bugs.
 
 
 ** Changes since version 1.2.16
+
+* A new command 'prcs changes' command has been added to help find
+  what versions modify a certain file.  From the documentation:
+
+  - Command: prcs changes [option ...] [project [file-or-dir ...]]
+     ADDITIONAL OPTIONS: `-r' (once or twice)
+
+     The changes subcommand helps you find what versions modify a
+     specific file or files.  For example, suppose you fixed a bug a
+     long time ago and now it shows up again in the current version.
+     You would like to know what project versions modify a certain
+     file so you can find out who undid your bug-fix and blame them!
+
+     Like `prcs diff', the OPTIONs may specify zero, one, or two
+     versions (using `-r' options).  Specifying no `-r' options is
+     equivalent to supplying the single option `-r.', the version from
+     which the current working directory was checked out.  A `-r'
+     option that specifies only a major version (leaving off the
+     minor version and its preceding period) implicitly has a minor
+     version of `@'.  When one version specifier is given, only that
+     version is scanned for changes.  Two version specifiers cause a
+     range of versions to be scanned.  In the two version case, one
+     version must be an ancestor of the other, and reversing the
+     order of the two versions will reverse the order of the output.
+
+     When FILE-OR-DIR arguments are present, they restrict the change
+     report to the specified files or subdirectory trees.  Otherwise
+     all files are reported.
+
+     For each specified version that modifies a file (in the
+     reporting set) relative to one of its parent versions, `changes'
+     prints the project name, major and minor version identifiers,
+     date and time checked in, and the user who checked in the
+     version.  Then it prints the parent version and a listing of all
+     the selected files that were modified, including: addition,
+     deletion, rename, type change, symlink change, or version
+     change.  For regular files, `changes' also prints the number of
+     lines added and removed by the modification.  If a project
+     version does not modify any of the selected files, nothing is
+     printed.
 
 * Fix a keyword-substitution bug reported by Daniel Villeneuve whereby
   a string of the form "$Key = 4 * $Key" (i.e., some Perl code).  The
@@ -23,6 +63,11 @@ Please send bug reports to prcs-bugs@XCF.Berkeley.EDU.  See the file
   declaration was probably there because SunOS 4.3 headers were
   lacking...  I guess this means SunOS 4.3 is no longer supported.
 
+* Fix for non-existant group handling in 'prcs admin access'
+
+* Fix for checkin and merge commands to preserve the project file
+  mode, reported by Dan Bonachea.
+
 * Add a new --no-keywords option to 'prcs populate' to add files with
   the :no-keywords attribute.  Remember that you can make an entire
   files section have :no-keywords as follows:
@@ -38,6 +83,19 @@ Please send bug reports to prcs-bugs@XCF.Berkeley.EDU.  See the file
 
 * Fix prcs.el to support Emacs 21, which for some reason renames
   shared-lisp-mode-map to lisp-mode-shared-map.
+
+* Updated 'prcsutils' contrib package by Hugo Cornelis.
+
+* Updated 'visualtree' contrib package by Hugo Cornelis.
+
+* New contrib package 'pck', the 'Patch Control Kludge' by Chris
+  Mason.  This Perl utility is designed for those of you who get
+  headaches working in the patch-oriented world of Linux kernel
+  development.  It helps you maintain external patches in named sets
+  including order dependencies, import new versions based on patches
+  with minimal work (using partial checkout/checkin), export compound
+  differences between multiple project versions, and more described in
+  the pck.README file.
 
 
 ** Changes since version 1.2.15
@@ -416,7 +474,7 @@ Please send bug reports to prcs-bugs@XCF.Berkeley.EDU.  See the file
 
    (TodaysDate "Today's date is: $\Date$")
 
-  produces: $TodaysDate: Today's date is: Sun, 24 Jun 2001 22:51:30 -0700 $
+  produces: $TodaysDate: Today's date is: Sun, 28 Oct 2001 00:54:02 -0700 $
 
    (ThisWontCrash "This is bad: $\ThisWontCrash$")
 

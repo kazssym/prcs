@@ -616,6 +616,9 @@ VC_get_project_version_data(const char* versionfile)
 	    if(vclex == RlogVersion || vclex == NoTokenMatch)
 		break;
 	    switch(vclex) {
+	    case RlogLines:
+		/* Don't care for the PVD lines */
+		break;
 	    case RlogDate:
 		pvd->date(timestr_to_time_t(rcs_text));
 		break;
@@ -828,6 +831,9 @@ VC_get_version_data(const char* versionfile)
 	    case RlogAuthor:
 		pvd->author(p_strdup(rcs_text));
 		break;
+	    case RlogLines:
+		pvd->set_lines (rcs_text);
+		break;
 	    case PrcsMajorVersion:
 	    case PrcsMinorVersion:
 	    case PrcsParentMajorVersion:
@@ -866,6 +872,92 @@ error:
 		    << squote(versionfile) << dotendl;
 
 }
+
+PrVoidError
+VC_get_one_version_data (const char* versionfile, const char *versionnum, RcsVersionData *rvd)
+{
+    ArgList *argl;
+    RcsToken vclex;
+
+    Return_if_fail(argl << rlog_command.new_arg_list());
+
+    Dstring vstr;
+
+    vstr.append ("-r");
+    vstr.append (versionnum);
+
+    argl->append(vstr.cast ());
+    argl->append(versionfile);
+
+    Return_if_fail(rlog_command.open(true, false));
+
+    if (VC_get_token(rlog_command.standard_out()) != RlogTotalRevisions) {
+	pthrow prcserror << "Unrecognized output from RCS rlog command on RCS file "
+			<< squote(versionfile) << dotendl;
+    }
+
+    if (VC_get_token(NULL) != RlogVersion || strcmp(versionnum, rcs_text) != 0) {
+	goto error;
+    }
+
+    rvd->rcs_version(p_strdup(rcs_text));
+
+    while(true) {
+	vclex = (RcsToken)VC_get_token(NULL);
+	if(vclex == RlogVersion)
+	    goto error;
+	if (vclex == NoTokenMatch)
+	    break;
+	switch(vclex) {
+	case RlogDate:
+	    rvd->date(timestr_to_time_t(rcs_text));
+	    break;
+	case RlogAuthor:
+	    rvd->author(p_strdup(rcs_text));
+	    break;
+	case RlogLines:
+	    rvd->set_lines (rcs_text);
+	    break;
+	case PrcsMajorVersion:
+	case PrcsMinorVersion:
+	case PrcsParentMajorVersion:
+	case PrcsParentMinorVersion:
+	case PrcsDescendsMajorVersion:
+	case PrcsDescendsMinorVersion:
+	    /* These are okay to make really really ancient repositories
+	     * work, probably only the prcs repository. */
+	    break;
+	case PrcsVersionDeleted:
+	case PrcsParents:
+	case NoTokenMatch:
+	case RlogTotalRevisions:
+	case RlogVersion:
+	case PrevRevision:
+	case NewRevision:
+	case InitialRevision:
+	case RcsAbort:
+	    goto error;
+	}
+    }
+
+    if(!rvd->OK()) {
+	pthrow prcserror << "Incomplete version log information in RCS file "
+			 << squote(versionfile) << dotendl;
+    }
+
+    Return_if_fail_if_ne(rlog_command.close(), 0) {
+	pthrow prcserror << "RCS rlog command returned non-zero status on RCS file "
+			 << squote(versionfile) << dotendl;
+    }
+
+    return NoError;
+
+error:
+    pthrow prcserror << "Error scanning RCS rlog output on RCS file "
+		    << squote(versionfile) << dotendl;
+
+}
+
 
 PrBoolError VC_delete_version(const char* version,
 			      const char* revisionfile)
@@ -1064,15 +1156,61 @@ bool RcsDelta::DeltaIterator::finished() const { return _finished; }
 /* RcsVersionData */
 
 RcsVersionData::RcsVersionData()
-    :_date(0), _author(NULL),
-     _rcs_version(NULL), _gc_mark(NotReferenced) { }
+    :_date(0),
+     _author(NULL),
+     _rcs_version(NULL),
+     _plus_lines (0),
+     _minus_lines (0),
+     _gc_mark(NotReferenced)  { }
+
 RcsVersionData::~RcsVersionData() { }
+
+void RcsVersionData::set_lines(const char *lines)
+{
+    ASSERT (lines[0] == '+', "the format is...");
+    char *endp, *endp2;
+    long pl = strtol (lines+1, &endp, 10);
+    ASSERT (strncmp (endp, " -", 2) == 0, "the format is...");
+    long ml = strtol (endp + 2, & endp2, 10);
+    ASSERT (endp2[0] == '\n', "the format is...");
+    _plus_lines = pl;
+    _minus_lines = ml;
+    //prcsoutput << "set lines: " << lines << " plus " << pl << " minus " << ml << prcsendl;
+}
+
+void RcsVersionData::set_plus_lines(int pls)
+{
+    _plus_lines = pls;
+}
+
+void RcsVersionData::set_minus_lines(int mls)
+{
+    _minus_lines = mls;
+}
+
+void RcsVersionData::set_plus_lines(const char *pls)
+{
+    char *endp;
+    long  pl = strtol (pls, &endp, 10);
+    ASSERT (endp[0] == 0, "bad format");
+    _plus_lines = pl;
+}
+
+void RcsVersionData::set_minus_lines(const char *mls)
+{
+    char *endp;
+    long  ml = strtol (mls, &endp, 10);
+    ASSERT (endp[0] == 0, "bad format");
+    _minus_lines = ml;
+}
 
 time_t RcsVersionData::date() const { return _date; }
 int RcsVersionData::length() const { return _length; }
 const char* RcsVersionData::author() const { return _author; }
 const char* RcsVersionData::rcs_version() const { return _rcs_version; }
 const char* RcsVersionData::unkeyed_checksum() const { return _unkeyed_checksum; }
+int RcsVersionData::plus_lines() const { return _plus_lines; }
+int RcsVersionData::minus_lines() const { return _minus_lines; }
 RcsVersionData::GCMark RcsVersionData::referenced() const { return _gc_mark; }
 
 void RcsVersionData::date(time_t t0) { _date = t0; }

@@ -74,6 +74,7 @@ time    {num}":"{num}":"{num}
 tad	{date}" "{time}
 login   {dig}*{idchar}({dig}|{idchar})*
 label	[A-Za-z0-9#^_+,][A-Za-z0-9#^\-_+=,.]*
+lines   "+"{num}" -"{num}
 
 %%
 
@@ -103,7 +104,9 @@ label	[A-Za-z0-9#^_+,][A-Za-z0-9#^\-_+=,.]*
 		return RlogDate; }
 ";  author: "{login} { rcs_text = yytext + 11;
 		       return RlogAuthor; }
-";  state: ".*\n { }
+";  state: "{label}";"(\n)? { }
+"  lines: "{lines}\n { rcs_text = yytext + 9;
+                        return RlogLines; }
 
    /* checkin stuff */
 ^"new revision: "{rcnum} { rcs_text = yytext + 14;

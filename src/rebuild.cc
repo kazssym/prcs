@@ -185,6 +185,8 @@ static void write_data_file_rcs_info(ostream& os, RcsVersionData* ver)
     os << ver->length() << ends;
     os << ver->author() << ends;
     os << ver->rcs_version() << ends;
+    os << ver->plus_lines () << ends;
+    os << ver->minus_lines () << ends;
 
     os.write(ver->unkeyed_checksum(), 16);
 }
@@ -545,6 +547,8 @@ PrVoidError admin_rebuild_command_no_open(RepEntry* rep, bool valid_rep_data)
 
     Return_if_fail(rep->Rep_compress_all_files());
 
+    Return_if_fail(rep->Rep_make_default_tag ());
+
     return NoError;
 }
 
@@ -707,6 +711,7 @@ PrRcsVersionDataPtrError RebuildFile::read_rcs_version()
 {
     RcsVersionData* ver = new RcsVersionData;
     const char* cksum;
+    const char *pls, *mls;
 
     ver->date(get_size());
     ver->length(get_size());
@@ -719,6 +724,12 @@ PrRcsVersionDataPtrError RebuildFile::read_rcs_version()
 
     if(!(ver->author() && ver->rcs_version()))
 	return bad_data_file();
+
+    if (! (pls = get_string ()) || ! (mls = get_string ()))
+	return bad_data_file ();
+
+    ver->set_plus_lines (pls);
+    ver->set_minus_lines (mls);
 
     if(!(cksum = get_string(16)))
 	return bad_data_file();

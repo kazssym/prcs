@@ -271,10 +271,19 @@ PrVoidError ProjectDescriptor::init_from_file(const char* full_name,
     _project_aux_path.sprintf("%s.%s.prcs_aux", _project_path.cast(), _project_name);
 
     if(infile0 == NULL) {
+	struct stat buf;
+
         if((infile = fopen(filename, "r")) == NULL)
 	    pthrow prcserror << "Can't open file " << squote(filename) << perror;
+
+	If_fail(Err_stat(filename, & buf))
+	    pthrow prcserror << "Stat failed on project file "
+			     << squote (filename) << perror;
+
+	_read_mode = buf.st_mode & 0777;
     } else {
 	infile = infile0;
+	_read_mode = 0;
     }
 
     _prj_source_name = filename;
@@ -1710,6 +1719,11 @@ PrVoidError ProjectDescriptor::write_project_file(const char* filename)
     really_write_project_file (outfile.stream());
 
     Return_if_fail (outfile.close());
+
+    if (_read_mode != 0) {
+	If_fail (Err_chmod (filename, _read_mode))
+	    prcswarning << "Could not reset permissions on file " << squote (filename) << dotendl;
+    }
 
     return NoError;
 }

@@ -103,9 +103,9 @@ enum MergeAction {
 };
 
 enum FileType {
-    SymLink,
-    Directory,
-    RealFile
+    SymLink = 1,
+    Directory = 2,
+    RealFile = 3
 };
 
 enum MergeParentState {

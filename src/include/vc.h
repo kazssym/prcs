@@ -57,6 +57,12 @@ PrVoidError VC_set_log(const char* new_log_text,
 		       const char* version,
 		       const char* revisionfile);
 
+/* Used to check a single version after checkin, needed for getting
+ * +lines and -lines */
+PrVoidError VC_get_one_version_data (const char     *versionfile,
+				     const char     *versionnum,
+				     RcsVersionData *rvd);
+
 /*
  * RcsVersionData --
  *
@@ -76,6 +82,8 @@ public:
     const char* author() const;
     const char* rcs_version() const;
     const char* unkeyed_checksum() const;
+    int plus_lines () const;
+    int minus_lines () const;
     GCMark referenced() const;
 
     void date(time_t t0);
@@ -84,6 +92,11 @@ public:
     void rcs_version(const char* rv0);
     void unkeyed_checksum(const char* ck0);
     void reference(GCMark gc0);
+    void set_lines(const char *l0);
+    void set_plus_lines(const char *pl);
+    void set_minus_lines(const char *ml);
+    void set_plus_lines(int pl);
+    void set_minus_lines(int ml);
 
     virtual bool OK() const;
 
@@ -91,6 +104,8 @@ protected:
     time_t _date;
     const char* _author;
     const char* _rcs_version;
+    int         _plus_lines;
+    int         _minus_lines;
     char _unkeyed_checksum[16];
     int _length;
     GCMark _gc_mark;
@@ -226,7 +241,8 @@ enum RcsToken {
 
     RlogVersion,                 /* Possible rlog outputs. */
     RlogDate,                    /* RlogVersion also matches the co output */
-    RlogAuthor,
+    RlogAuthor,                  /* author: */
+    RlogLines,                   /* lines: +x -x */
 
     PrcsMajorVersion,
     PrcsMinorVersion,

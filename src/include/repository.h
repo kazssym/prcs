@@ -142,7 +142,7 @@ public:
     PrVoidError Rep_new_filename(const char* base,
 				 Dstring* new_filename);
 
-    PrVoidError init(const char* name, bool write, bool create, bool require);
+    PrVoidError init(const char* name, bool write, bool create, bool require_db);
 
     /* Rep_unlock_repository --
      *
@@ -191,10 +191,15 @@ public:
     ProjectVersionDataPtrArray* common_version(ProjectVersionData* one,
 					       ProjectVersionData* two) const;
 
+    ProjectVersionDataPtrArray* common_lineage (ProjectVersionData* one,
+						ProjectVersionData* two) const;
+
 
     /* Lookup file version data. */
 
     PrRcsVersionDataPtrError lookup_rcs_file_data(const char* filename, const char* vesion_num) const;
+
+    PrVoidError Rep_make_default_tag();
 
 private:
     /*
@@ -210,6 +215,10 @@ private:
     void common_version_dfs_2(ProjectVersionData* node,
 			      ProjectVersionDataPtrArray* res) const;
     void common_version_dfs_3(ProjectVersionData* node) const;
+    bool common_version_dfs_4(ProjectVersionData* from,
+			      ProjectVersionData* to,
+			      ProjectVersionDataPtrArray* res) const;
+    void clear_flags() const;
 
     ProjectVersionDataPtrArray *_project_data_array;
     RcsFileTable *_rcs_file_table;

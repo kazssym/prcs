@@ -85,16 +85,19 @@ public:
     bool        real_on_cmd_line() const;
     bool        on_command_line()  const;
     bool        empty_descriptor() const;
-    int         keyed_length()     const;
+    int         unkeyed_length()   const;
     const char* checksum()         const;
+    int         plus_lines()       const;
+    int         minus_lines()      const;
 
     void set_on_command_line(bool b);
     void set_unmodified(bool b);
     void set_present(bool b);
     void set_checksum(const char* c);
-    void set_keyed_length(int len);
+    void set_unkeyed_length(int len);
     void set_file_mode(mode_t mode);
     void set_link_name(const char* c);
+    void set_lines (int plus, int minus);
     void set (FileEntry *fe);
     void set_working_path (const char* name);
 
@@ -112,11 +115,14 @@ private:
     off_t  _stat_size;
     ino_t  _stat_ino;
     uid_t  _stat_uid;
-    long _keyed_length;
+    long _unkeyed_length;
     char _checksum[16];        /* You can get rid of this, except its 104 bytes
 				* before removal, and probably won't save anything. */
     bool _unmodified;          /* True if this file is known to be unmodified from its predecessor. */
     bool _present;
+
+    int _plus_lines;
+    int _minus_lines;
 
     mode_t   _file_mode;
     bool _on_command_line;     /* true if this file was selected */

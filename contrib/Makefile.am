@@ -1,5 +1,6 @@
 
 EXTRA_DIST = \
+	README \
 	prcs-clean \
 	merge-command \
 	prcs-emerge \
@@ -9,11 +10,11 @@ EXTRA_DIST = \
 	prcs-javadoc \
 	prcs-javadoc.8 \
 	dos2unixdiff3 \
-	merge-udiff11 \
 	prcs-synch \
 	rprcs.tar.gz \
 	pfe.tar.gz \
 	visualtree.tar.gz \
-	prcsutils.tar.gz
+	prcsutils.tar.gz \
+	pck.tar.gz
 
 bin_SCRIPTS = prcs-callback

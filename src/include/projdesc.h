@@ -272,6 +272,7 @@ public:
     void merge_log(PrettyOstream& rep);
 
     PrFileEntryPtrError match_fileent (FileEntry* fe);
+    FileEntry*          match_working (const char* name);
     bool can_add (FileEntry *fe);
 
     const char* project_full_name() const;
@@ -376,6 +377,7 @@ private:
     /* Parsing data. */
     const char* _prj_source_name;
     ProjectReadData _read_flags;
+    mode_t          _read_mode;
 
     /* QE buffer, if it was available. */
     QuickElim* _quick_elim;

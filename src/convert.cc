@@ -43,6 +43,10 @@ static const char description1_1_0to1_2_0[] =
 "The repository data file's format changes slightly to accomodate "
 "the new merge algorithm";
 
+static const char description1_2_0to1_3_0[] =
+"The repository data file's format changes to accomodate "
+"the new changes command, which now reports +lines and -lines";
+
 static PrBoolError just_rebuild(RepEntry* rep)
 {
     Return_if_fail(admin_rebuild_command_no_open(rep, false));
@@ -76,5 +80,6 @@ UpgradeRepository entry_upgrades[] = {
     {{1,0,5},  {1,1,0},just_rebuild,description1_0_4to1_0_5},
     {{1,1,0},  {1,1,0},just_rebuild,description1_0_9to1_1_0},
     {{1,2,0},  {1,2,0},just_rebuild,description1_1_0to1_2_0},
+    {{1,3,0},  {1,3,0},just_rebuild,description1_2_0to1_3_0},
     {{0,0,0},  {0,0,0},NULL, NULL},
 };
