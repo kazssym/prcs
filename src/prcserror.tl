@@ -52,15 +52,9 @@ template class PrError<Dstring*>;
 template class PrError<FileEntry*>;
 template class PrError<const PrcsAttrs*>;
 
-#if defined(__GNUG__) && __GNUC__ >= 2 && __GNUC_MINOR__ < 8
-#define WACK
-#else
-#define WACK <>
-#endif
-
 #define MkTemplate(errtype, tclass) \
     template const errtype<tclass>& \
-    operator<< WACK(tclass&, const errtype<tclass>&)
+    operator<< <>(tclass&, const errtype<tclass>&)
 
 #if defined(PRCS_DEVEL) && defined(__GNUG__)
 MkTemplate(NprError, FILE*);
@@ -96,7 +90,7 @@ MkTemplate(PrError, const PrcsAttrs*);
 #undef MkTemplate
 #define MkTemplate(tclass) \
     template class omanip<tclass>; \
-    template ostream& operator<< WACK(ostream&, const omanip<tclass>&)
+    template ostream& operator<< <>(ostream&, const omanip<tclass>&)
 
 MkTemplate(const char*);
 MkTemplate(CharAndStr);

@@ -109,12 +109,9 @@ ProjectDescriptor::~ProjectDescriptor()
     }
 
     if (_log_pstream) {
-#ifdef __GNUG__
-	if (_log_pstream->sync())
-#else
-        if (_log_pstream->pubsync())
-#endif
+        if (_log_pstream->pubsync()) {
 	    prcserror << "warning: Write to merge log failed" << perror;
+	}
 
 	delete _log_pstream;
 	delete _log_stream;
@@ -351,12 +348,7 @@ PrVoidError ProjectDescriptor::init_merge_log()
 
     _log_stream = new filebuf;
 
-#ifndef __GNUG__
-#  define APPENDTAG ios::out|ios::app
-#else
-#  define APPENDTAG "a"
-#endif
-    if (!_log_stream->open(logname, APPENDTAG))
+    if (!_log_stream->open(logname, ios::out|ios::app))
 	pthrow prcserror << "Failed opening merge log file " << squote(logname) << perror;
 
     _log_pstream = new PrettyStreambuf (_log_stream, &option_report_actions);
@@ -1851,18 +1843,11 @@ void ProjectDescriptor::really_write_project_file (ostream& os)
 		print_protected (project_name(), os);
 		os << "/";
 		print_protected (fe->descriptor_name(), os);
-#ifdef __GNUG__
-		os.form(" %s %03o",
-			fe->descriptor_version_number(),
-			fe->file_mode());
-#else
-                {
-                  char buf[8];
-                  sprintf(buf, "%03o", fe->file_mode());
-                  os << " " << fe->descriptor_version_number()
-                     << " " << buf;
-                }
-#endif
+
+		char buf[8];
+		sprintf(buf, "%03o", fe->file_mode());
+		os << " " << fe->descriptor_version_number()
+		   << " " << buf;
 	    }
 
 	    os << ")";

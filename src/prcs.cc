@@ -20,7 +20,7 @@
  */
 
 /* $Format: "static const char prcs_version_id[] = \"$ProjectVersion$ $ProjectAuthor$ $ProjectDate$\";"$ */
-static const char prcs_version_id[] = "1.3-release.1 jmacd Sun, 28 Oct 2001 18:18:09 -0800";
+static const char prcs_version_id[] = "1.3-release.4 jmacd Sun, 04 Nov 2001 19:57:51 +0300";
 
 #include "fnmatch.h"
 
@@ -46,10 +46,10 @@ extern "C" {
 }
 
 /* $Format: "const int prcs_version_number[3] = { $ReleaseMajorVersion$, $ReleaseMinorVersion$, $ReleaseMicroVersion$ };" $ */
-const int prcs_version_number[3] = { 1, 3, 0 };
+const int prcs_version_number[3] = { 1, 3, 1 };
 
 /* $Format: "const char prcs_version_string[] = \"$ReleaseVersion$\";"$ */
-const char prcs_version_string[] = "1.3.0";
+const char prcs_version_string[] = "1.3.1";
 
 /* The following classes are only used inside this file, and oraganize
  * several arrays of information used to select the command and
@@ -841,7 +841,7 @@ static bool read_command_line(int argc, char** argv)
 	char *min;
 	switch (c) {
 	case 'v':
-	    prcsoutput << "Version " << prcs_version_string << endl;
+	    prcsoutput << "Version " << prcs_version_string << prcsendl;
 	    exit(0);
 	    break;
 	case 'h': case 'H': return false; break;
@@ -1035,7 +1035,7 @@ static bool read_command_line(int argc, char** argv)
 static void usage(char** argv)
 {
     if (illegal_option) {
-	cout << options_summary << endl;
+	cout << options_summary << '\n';
     } else if(command == NULL) {
 	cout << "Usage: " << strip_leading_path(argv[0])
 	     << " command [subcommand] [option ...] "

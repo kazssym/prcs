@@ -23,8 +23,6 @@
 #ifndef _DSTRING_H_
 #define _DSTRING_H_
 
-#include <iostream.h>
-
 #define DSTRING_DEFAULT_SIZE 16
 
 #include "dynarray.h"

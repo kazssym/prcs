@@ -41,18 +41,40 @@ extern "C" {
 #include "utils.h"
 }
 
-/* EGCS doesn't have this header. */
-#ifdef HAVE_STD_H
-#include <std.h>
-#endif
+#include <iostream>
+#include <fstream>
+#include <streambuf>
+#include <sstream>
 
-#include <iostream.h>
-#include <fstream.h>
+using std::ostream;
+using std::streambuf;
+using std::char_traits;
+using std::basic_streambuf;
+using std::filebuf;
+using std::ofstream;
+using std::ifstream;
+using std::cout;
+using std::cerr;
+using std::ios;
+using std::stringbuf;
+using std::string;
+using std::ostringstream;
 
-#ifdef __GNUG__
-/* This gets defined in config.h now. */
-/*#define PRCS_DEVEL*/
-#endif
+/* Backwards C++ compatibility, thanks to Lars Duening <lars@bearnip.com>
+ * I can't explain why I used so many different, overlapping C++
+ * features to begin with.  */
+class strstreambuf : public stringbuf {
+  private:
+    string tmpstr; // holds result of str()
+  public:
+    int out_waiting() { return pptr() - pbase() - (0 == *pptr() ? 1 : 0); }
+    const char * str() {
+      tmpstr = stringbuf::str();
+      return tmpstr.c_str();
+    }
+    void freeze(int n=1)
+      { ASSERT(n==0, "strstreambuf::freeze(1) not implemented."); }
+};
 
 #ifdef NULL
 #undef NULL

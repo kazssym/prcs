@@ -19,23 +19,15 @@
  * $Id$
  */
 
-#include "dstring.h"
-#include "config.h"
-#ifdef HAVE_STD_H
-#include <std.h>
-#endif
-#include <stdarg.h>
+#include "prcs.h"
 
-#if defined(__GNUG__) || defined(__MWERKS__)
-#if defined(__GNUG__)
-#include <strstream.h>
-#else
-#include "be-strstream.h"
-#endif
-static ostrstream sprintfbuf;
-#endif
+static strstreambuf sprintfbuf;
 
-#include "utils.h"
+/* I used to use strstreambuf::vform to get printf-like formatting
+ * into a growing buffer, but that's been taken away.  So there's
+ * this, which can buffer-overrun. @@@ */
+const int DSTRSZ = (1<<12);
+char hack_buf[DSTRSZ];
 
 ostream& operator<<(ostream& os, const Dstring* S)
 {
@@ -64,15 +56,12 @@ void Dstring::sprintfa(const char* fmt, ...)
     va_start(args, fmt);
 
     sprintfbuf.freeze(0);
-#ifdef __GNUG__
-    sprintfbuf.rdbuf()->seekoff(0, ios::beg);
-#else
-    sprintfbuf.rdbuf()->pubseekoff(0, ios::beg, ios::out);
-#endif
+    sprintfbuf.pubseekoff(0, ios::beg, ios::out);
 
-    sprintfbuf.vform(fmt, args);
-
-    sprintfbuf << ends;
+    hack_buf[DSTRSZ-1] = '\0';
+    vsprintf(hack_buf, fmt, args);
+    ASSERT('\0' == hack_buf[DSTRSZ-1], "Output buffer bounds exceeded");
+    sprintfbuf.sputn (hack_buf, strlen (hack_buf) + 1);
 
     append(sprintfbuf.str());
 
@@ -88,15 +77,12 @@ void Dstring::sprintf(const char* fmt, ...)
     truncate(0);
 
     sprintfbuf.freeze(0);
-#ifdef __GNUG__
-    sprintfbuf.rdbuf()->seekoff(0, ios::beg);
-#else
-    sprintfbuf.rdbuf()->pubseekoff(0, ios::beg, ios::out);
-#endif
+    sprintfbuf.pubseekoff(0, ios::beg, ios::out);
 
-    sprintfbuf.vform(fmt, args);
-
-    sprintfbuf << ends;
+    hack_buf[DSTRSZ-1] = '\0';
+    vsprintf(hack_buf, fmt, args);
+    ASSERT('\0' == hack_buf[DSTRSZ-1], "Output buffer bounds exceeded");
+    sprintfbuf.sputn (hack_buf, strlen (hack_buf)+1);
 
     append(sprintfbuf.str());
 

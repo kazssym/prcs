@@ -16,13 +16,6 @@ The following makes PROTOTYPES default to 0 if it has not already
 /* POINTER defines a generic pointer type */
 typedef unsigned char *POINTER;
 
-/* UINT2 defines a two byte word */
-#if SIZEOF_SHORT == 2
-typedef unsigned short UINT2;
-#else
-#error "can't find a 2-byte type"
-#endif
-
 /* UINT4 defines a four byte word */
 #if SIZEOF_LONG == 4
 typedef unsigned long UINT4;

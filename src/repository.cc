@@ -306,8 +306,8 @@ PrVoidError RepEntry::Rep_make_tag(const int created[3], const int usable[3])
 
     ofstream tag_file(file_name, ios::out);
 
-    tag_file << prcs_created_by << created[0] << ' ' << created[1] << ' ' << created[2] << endl
-	     << prcs_usable_by  << usable[0]  << ' ' << usable[1]  << ' ' << usable[2]  << endl;
+    tag_file << prcs_created_by << created[0] << ' ' << created[1] << ' ' << created[2] << "\n"
+	     << prcs_usable_by  << usable[0]  << ' ' << usable[1]  << ' ' << usable[2]  << "\n";
 
     tag_file.close();
 
@@ -625,14 +625,9 @@ PrVoidError RepEntry::init(const char* entry, bool writeable0, bool create, bool
 
     _compressed = fs_file_exists(Rep_name_in_entry(prcs_compression_tag));
 
-#ifndef __GNUG__
-#  define APPENDTAG ios::out|ios::app
-#else
-#  define APPENDTAG "a"
-#endif
     if (_writeable) {
 	_log_stream = new filebuf;
-	if (!_log_stream->open(Rep_name_in_entry("prcs_log"), APPENDTAG))
+	if (!_log_stream->open(Rep_name_in_entry("prcs_log"), ios::out|ios::app))
 	    pthrow prcserror << "Failed opening repository log file" << perror;
 	_log_pstream = new PrettyStreambuf(_log_stream, NULL);
 	_log_pstream->set_fill_width (1<<20);
@@ -1410,12 +1405,9 @@ PrRcsVersionDataPtrError RepEntry::lookup_rcs_file_data(const char* filename,
 RepEntry::~RepEntry()
 {
     if(_log) {
-#ifdef __GNUG__
-	if (_log_pstream->sync())
-#else
-        if (_log_pstream->pubsync())
-#endif
+        if (_log_pstream->pubsync()) {
 	    prcserror << "warning: Write to repository log failed" << perror;
+	}
 
 	delete _log;
 	delete _log_pstream;

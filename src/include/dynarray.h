@@ -23,7 +23,7 @@
 #ifndef _DYNARRAY_H_
 #define _DYNARRAY_H_
 
-#include <iostream.h>
+#include <iostream>
 #include "config.h"
 
 #define generic template<class T, int DefaultSize, bool ZeroTerm>

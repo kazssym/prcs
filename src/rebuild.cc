@@ -163,30 +163,30 @@ PrVoidError create_empty_data(const char* project, const char* filename0)
 /* Write out the ProjectVersionData structure */
 static void write_data_file_project_info(ostream& os, ProjectVersionData* ver)
 {
-    os << ver->date() << ends;
-    os << ver->author() << ends;
-    os << ver->rcs_version() << ends;
+    os << ver->date() << '\0';
+    os << ver->author() << '\0';
+    os << ver->rcs_version() << '\0';
 
-    os << (int)ver->deleted() << ends;
+    os << (int)ver->deleted() << '\0';
 
-    os << ver->prcs_major() << ends
-       << ver->prcs_minor() << ends;
+    os << ver->prcs_major() << '\0'
+       << ver->prcs_minor() << '\0';
 
-    os << ver->parent_count() << ends;
+    os << ver->parent_count() << '\0';
 
     for (int i = 0; i < ver->parent_count(); i += 1)
-	os << ver->parent_index(i) << ends;
+	os << ver->parent_index(i) << '\0';
 }
 
 /* Write out the RcsVersionData structure */
 static void write_data_file_rcs_info(ostream& os, RcsVersionData* ver)
 {
-    os << ver->date() << ends;
-    os << ver->length() << ends;
-    os << ver->author() << ends;
-    os << ver->rcs_version() << ends;
-    os << ver->plus_lines () << ends;
-    os << ver->minus_lines () << ends;
+    os << ver->date() << '\0';
+    os << ver->length() << '\0';
+    os << ver->author() << '\0';
+    os << ver->rcs_version() << '\0';
+    os << ver->plus_lines () << '\0';
+    os << ver->minus_lines () << '\0';
 
     os.write(ver->unkeyed_checksum(), 16);
 }
@@ -195,7 +195,7 @@ static void write_data_file_rcs_info(ostream& os, RcsVersionData* ver)
 static void write_data_file_project_summary(ostream& os,
 					    ProjectVersionDataPtrArray *project_summary)
 {
-    os << project_summary_header << project_summary->length() << ends;
+    os << project_summary_header << project_summary->length() << '\0';
 
     foreach(proj_ptr2, project_summary, ProjectVersionDataPtrArray::ArrayIterator)
 	write_data_file_project_info(os, *proj_ptr2);
@@ -207,8 +207,8 @@ static void write_data_file_rcs_file_summary(ostream&os, const char* name, RcsDe
     /* Here because reference_files isn't removing files it deletes
      * from the table and this is easier. */
 
-    os << rcs_file_summary_header << name << ends;
-    os << version_count_header << delta->count() << ends;
+    os << rcs_file_summary_header << name << '\0';
+    os << version_count_header << delta->count() << '\0';
 
     foreach(ver, delta, RcsDelta::DeltaIterator)
 	write_data_file_rcs_info(os, *ver);
@@ -908,13 +908,8 @@ bool RebuildFile::done() { return offset == seg->length(); }
 void RebuildFile::init_stream()
 {
     if(!buf) {
-#ifdef __GNUG__
-	buf = new filebuf(seg->fd());
-	buf->seekoff(0,ios::end);
-#else
-        buf = new filebuf(fdopen(dup(seg->fd()), "a+"));
-        buf->pubseekoff(0,ios::end, ios::out);
-#endif
+        buf = new filebuf(fdopen(dup(seg->fd()), "a+"), ios::out);
+        buf->pubseekoff(0, ios::end, ios::out);
 	os = new ostream(buf);
     }
 }
@@ -924,7 +919,7 @@ void RebuildFile::add_project_data(ProjectVersionData* data)
 {
     init_stream();
 
-    (*os) << project_summary_header << 1 << ends;
+    (*os) << project_summary_header << 1 << '\0';
 
     write_data_file_project_info(*os, data);
 }
@@ -933,8 +928,8 @@ void RebuildFile::add_rcs_file_data(const char* new_file_name, RcsVersionData* d
 {
     init_stream();
 
-    (*os) << rcs_file_summary_header << new_file_name << ends;
-    (*os) << version_count_header << 1 << ends;
+    (*os) << rcs_file_summary_header << new_file_name << '\0';
+    (*os) << version_count_header << 1 << '\0';
 
     write_data_file_rcs_info(*os, data);
 }

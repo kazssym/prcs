@@ -183,7 +183,7 @@ static PrVoidError print_info(ProjectVersionData* project_data, RepEntry *rep_en
     prcsoutput << cmd_root_project_name << ' '
 	       << project_data << ' '
 	       << time_t_to_rfc822(project_data->date()) << " by "
-	       << project_data->author() << endl;
+	       << project_data->author() << prcsendl;
 
     if(option_long_format) {
 
@@ -288,16 +288,11 @@ static PrVoidError print_info(ProjectVersionData* project_data, RepEntry *rep_en
 
 		    prcsoutput << " MD5=";
 
-		    for(int i = 0; i < 16; i += 1)
-#ifdef __GNUG__
-			prcsoutput.form("%02x", 0xff & version_data->unkeyed_checksum()[i]);
-#else
-                    {
+		    for(int i = 0; i < 16; i += 1) {
                       char buf[8];
                       sprintf(buf, "%02x", 0xff & version_data->unkeyed_checksum()[i]);
                       prcsoutput << buf;
                     }
-#endif
 		}
 
 		if (last_attrs == fe->file_attrs())

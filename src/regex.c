@@ -1496,9 +1496,9 @@ static const size_t re_error_msgid_idx[] =
 #   if defined MATCH_MAY_ALLOCATE
 /* 4400 was enough to cause a crash on Alpha OSF/1,
    whose default stack limit is 2mb.  */
-long int re_max_failures = 4000;
+long int re2_max_failures = 4000;
 #   else
-long int re_max_failures = 2000;
+long int re2_max_failures = 2000;
 #   endif
 #  endif
 
@@ -1523,9 +1523,9 @@ typedef struct
 #   if defined MATCH_MAY_ALLOCATE
 /* 4400 was enough to cause a crash on Alpha OSF/1,
    whose default stack limit is 2mb.  */
-int re_max_failures = 4000;
+int re2_max_failures = 4000;
 #   else
-int re_max_failures = 2000;
+int re2_max_failures = 2000;
 #   endif
 #  endif
 
@@ -1580,7 +1580,7 @@ typedef struct
 # endif
 
 
-/* Double the size of FAIL_STACK, up to approximately `re_max_failures' items.
+/* Double the size of FAIL_STACK, up to approximately `re2_max_failures' items.
 
    Return 1 if succeeds, and 0 if either ran out of memory
    allocating space for it or it was already too large.
@@ -1588,7 +1588,7 @@ typedef struct
    REG2EX2_REALLOCATE_STACK requires `destination' be declared.   */
 
 # define DOUBLE_FAIL_STACK(fail_stack)					\
-  ((fail_stack).size > (unsigned) (re_max_failures * MAX_FAILURE_ITEMS)	\
+  ((fail_stack).size > (unsigned) (re2_max_failures * MAX_FAILURE_ITEMS)	\
    ? 0									\
    : ((fail_stack).stack = (PREFIX(fail_stack_elt_t) *)			\
         REG2EX2_REALLOCATE_STACK ((fail_stack).stack, 			\
@@ -4255,11 +4255,11 @@ PREFIX(reg2ex2_compile) (ARG_PREFIX(pattern), ARG_PREFIX(size), syntax, bufp)
     int num_regs = bufp->re_nsub + 1;
 
     /* Since DOUBLE_FAIL_STACK refuses to double only if the current size
-       is strictly greater than re_max_failures, the largest possible stack
-       is 2 * re_max_failures failure points.  */
-    if (fail_stack.size < (2 * re_max_failures * MAX_FAILURE_ITEMS))
+       is strictly greater than re2_max_failures, the largest possible stack
+       is 2 * re2_max_failures failure points.  */
+    if (fail_stack.size < (2 * re2_max_failures * MAX_FAILURE_ITEMS))
       {
-	fail_stack.size = (2 * re_max_failures * MAX_FAILURE_ITEMS);
+	fail_stack.size = (2 * re2_max_failures * MAX_FAILURE_ITEMS);
 
 # ifdef emacs
 	if (! fail_stack.stack)
