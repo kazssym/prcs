@@ -13,10 +13,10 @@ prcs_LDADD = @LIBOBJS@
 
 prcs_DEPENDENCIES = @LIBOBJS@
 
-prcs_SOURCES = prcserror.cc rebuild.cc prcs.cc changes.cc sexp.cc fileent.cc projdesc.cc checkin.cc \
+prcs_SOURCES = prcs.cc changes.cc sexp.cc fileent.cc projdesc.cc checkin.cc \
 	checkout.cc repository.cc populate.cc syscmd.cc vc.cc diff.cc \
-	info.cc misc.cc package.cc merge.cc lock.cc \
-	convert.cc memseg.cc prcsver.cc setkeys.cc \
+	info.cc misc.cc package.cc merge.cc lock.cc rebuild.cc \
+	prcserror.cc convert.cc memseg.cc prcsver.cc setkeys.cc \
 	quick.cc rekey.cc dstring.cc dynarray.cc hash.cc execute.cc \
 	docs.cc attrs.cc utils.c getopt.c getopt1.c md5c.c maketime.c \
 	partime.c vclex.l prcs-keys.c prjlex.l regex.c

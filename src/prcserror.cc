@@ -48,8 +48,8 @@ ErrorToken global_error_token;
 int return_if_fail_if_ne_val;
 #endif
 
-filebuf stdout_stream(stdout, ios::out);
-filebuf stderr_stream(stderr, ios::out);
+stdiobuf stdout_stream(stdout);
+stdiobuf stderr_stream(stderr);
 strstreambuf query_stream;
 
 static PrettyStreambuf pretty_stdout_stream(&stdout_stream, NULL);
@@ -96,13 +96,17 @@ int PrettyStreambuf::overflow(int c)
 {
     line_buffer.append(c);
     if(isspace(c))
-	sputn(NULL, 0);
+	xsputn(NULL, 0);
 
     return 1;
 }
 
 int PrettyStreambuf::xsputn(const char* s0, int n0)
 {
+#ifndef __GNUG__
+#  define xsputn sputn
+#endif
+
     if (dont_print && *dont_print)
 	return n0;
 
@@ -128,11 +132,11 @@ int PrettyStreambuf::xsputn(const char* s0, int n0)
 
 		if(!new_line) {
 		    for(int j = prefix.length(); j; j -= 1) {
-			forward->sputn(" ", 1);
+			forward->xsputn(" ", 1);
 			col += 1;
 		    }
 		} else {
-		    forward->sputn(prefix.cast(), prefix.length());
+		    forward->xsputn(prefix.cast(), prefix.length());
 		    col += prefix.length();
 		}
 
@@ -152,40 +156,48 @@ int PrettyStreambuf::xsputn(const char* s0, int n0)
 	    if(wordlen == 0) {
 		if(*s == '\n' || (col + 1 > width)) {
 		    new_line = false;
-		    forward->sputn("\n", 1);
+		    forward->xsputn("\n", 1);
 		    advance_buffer(s, n, col, 1);
 		    col = 0;
 		} else {
-		    forward->sputn(s, 1);
+		    forward->xsputn(s, 1);
 		    advance_buffer(s, n, col, 1);
 		}
 	    } else if(wordlen + col <= width) {
-		forward->sputn(s, wordlen);
+		forward->xsputn(s, wordlen);
 		advance_buffer(s, n, col, wordlen);
 	    } else if((wordlen + prefix.length() >= width) && (col == prefix.length())) {
-		forward->sputn(s, wordlen);
+		forward->xsputn(s, wordlen);
 		advance_buffer(s, n, col, wordlen);
 	    } else if(wordlen == 1 && col == width) {
 		new_line = false;
-		forward->sputn(s, 1);
+		forward->xsputn(s, 1);
 		advance_buffer(s, n, col, wordlen);
-		forward->sputn("\n", 1);
+		forward->xsputn("\n", 1);
 		col = 0;
 	    } else {
 		new_line = false;
-		forward->sputn("\n", 1);
+		forward->xsputn("\n", 1);
 		col = 0;
 	    }
 	}
     }
 
     return n;
+
+#ifndef __GNUG__
+#  undef xsputn
+#endif
 }
 
 int PrettyStreambuf::sync()
 {
-    sputn(NULL, 0);
+    xsputn(NULL, 0);
+#ifdef __GNUG__
+    return forward->sync();
+#else
     return forward->pubsync();
+#endif
 }
 
 static int tty_width(int fileno)
@@ -203,8 +215,13 @@ static int tty_width(int fileno)
 
 void re_query()
 {
+#ifdef __GNUG__
+    stdout_stream.xsputn(re_query_message, re_query_len);
+    stdout_stream.sync();
+#else
     stdout_stream.sputn(re_query_message, re_query_len);
     stdout_stream.pubsync();
+#endif
 }
 
 void continue_handler(SIGNAL_ARG_TYPE)
@@ -302,7 +319,11 @@ ostream& __omanip_setcol(ostream& o, int col)
 {
     PrettyStreambuf& ps = ((PrettyOstream&)o).ostreambuf();
 
+#ifdef __GNUG__
+    ps.xsputn(NULL, 0);
+#else
     ps.sputn(NULL, 0);
+#endif
     ps.set_column(col);
 
     return o;
@@ -363,7 +384,7 @@ int PrettyStreambuf::set_column(int col0)
 
     Dstring spaces(' ', diff);
     bool cb = set_fill_break(false);
-    sputn(spaces.cast(), diff);
+    xsputn(spaces.cast(), diff);
     set_fill_break(cb);
 
     return col0;
@@ -379,11 +400,13 @@ ostream& prcsendl(ostream& s)
 {
     PrettyStreambuf &ps = ((PrettyOstream&)s).ostreambuf();
 
+#ifdef __GNUG__
+    ps.xsputn("\n", 1);
+#else
     ps.sputn("\n", 1);
+#endif
 
     ps.reset_column();
-
-    ps.pubsync ();
 
     return s;
 }
@@ -392,11 +415,13 @@ ostream& dotendl(ostream& s)
 {
     PrettyStreambuf &ps = ((PrettyOstream&)s).ostreambuf();
 
+#ifdef __GNUG__
+    ps.xsputn(".\n", 2);
+#else
     ps.sputn(".\n", 2);
+#endif
 
     ps.reset_column();
-
-    ps.pubsync ();
 
     return s;
 }
@@ -408,8 +433,6 @@ ostream& perror(ostream& s)
     s << ": " << strerror(errno) << '\n';
 
     ps.reset_column();
-
-    ps.pubsync ();
 
     return s;
 }
@@ -424,11 +447,14 @@ PrettyStreambuf::PrettyStreambuf(streambuf *forward0, int* dont_print0)
 }
 
 /* QueryOstream */
-QueryOstream::QueryOstream(strstreambuf    *base_stream0,
-			   PrettyStreambuf *query_stream0,
-			   filebuf         *stdout_stream0,
-			   filebuf         *stderr_stream0)
-    :ios(query_stream0),
+QueryOstream::QueryOstream(strstreambuf* base_stream0,
+			   PrettyStreambuf* query_stream0,
+			   stdiobuf* stdout_stream0,
+			   stdiobuf* stderr_stream0)
+    :
+#ifndef __GNUG__
+     ios(query_stream0),
+#endif
      PrettyOstream(query_stream0, NoError),
      base_stream(base_stream0),
      query_stream(query_stream0),
@@ -485,30 +511,35 @@ ostream& QueryOstream::bang(BangFlag* flag)
 
 ostream& QueryOstream::string_query_manip(const char* message)
 {
+#ifndef __GNUG__
+#  define xsputn       sputn
+#  define sync         pubsync
+#  define seekoff(p,w) pubseekoff((p),(w), ios::out)
+#endif
     if(option_force_resolution && option_be_silent) {
 	/* silence */
     } else if(option_force_resolution) {
 	*this << " -- " << default_input << prcsendl;
 	string_val = PrConstCharPtrError(default_input);
-	stderr_stream->sputn(base_stream->str(),
-			     base_stream->out_waiting());
-	stderr_stream->pubsync();
+	stderr_stream->xsputn(base_stream->str(),
+			      base_stream->out_waiting());
+	stderr_stream->sync();
     } else if(option_report_actions) {
 	*this << " -- " << default_input << prcsendl;
 	string_val = PrConstCharPtrError(default_input);
-	stdout_stream->sputn(base_stream->str(),
-			     base_stream->out_waiting());
-	stdout_stream->pubsync();
+	stdout_stream->xsputn(base_stream->str(),
+			      base_stream->out_waiting());
+	stdout_stream->sync();
     } else {
 	*this << "[" << default_input << "] " << message;
-	query_stream->pubsync();
+	query_stream->sync();
 
 	re_query_message = base_stream->str();
 	re_query_len = base_stream->out_waiting();
 
 	while(true) {
-	    stdout_stream->sputn(re_query_message, re_query_len);
-	    stdout_stream->pubsync();
+	    stdout_stream->xsputn(re_query_message, re_query_len);
+	    stdout_stream->sync();
 
 	    Dstring *ans = new Dstring; /* leak */
 
@@ -534,13 +565,18 @@ ostream& QueryOstream::string_query_manip(const char* message)
 
     query_stream->reset_column();
     base_stream->freeze(0);
-    base_stream->pubseekoff(0, ios::beg, ios::out);
+    base_stream->seekoff(0, ios::beg);
     option_count = 0;
     force_option = 0;
     bang_flag = NULL;
     help_string = NULL;
 
     return *this;
+#ifndef __GNUG__
+#  undef xsputn
+#  undef sync
+#  undef seekoff
+#endif
 }
 
 ostream& QueryOstream::help_manip(const char* message)
@@ -551,6 +587,11 @@ ostream& QueryOstream::help_manip(const char* message)
 
 ostream& QueryOstream::query_manip(const char* message)
 {
+#ifndef __GNUG__
+#  define xsputn  sputn
+#  define sync    pubsync
+#  define seekoff(p,w) pubseekoff((p),(w), ios::out)
+#endif
     if(force_option != 0 && option_force_resolution) {
         for (int i = 0; i < option_count; i += 1) {
 	    if (force_option == options[i].let) {
@@ -565,24 +606,24 @@ ostream& QueryOstream::query_manip(const char* message)
 	val = options[default_option].val;
     } else if(option_report_actions) {
 	*this << report_message << dotendl;
-	query_stream->pubsync();
-	stdout_stream->sputn(base_stream->str(),
+	query_stream->sync();
+	stdout_stream->xsputn(base_stream->str(),
 			      base_stream->out_waiting());
-	stdout_stream->pubsync();
+	stdout_stream->sync();
 	val = options[default_option].val;
     } else if(option_force_resolution) {
 	*this << force_message << dotendl;
-	query_stream->pubsync();
-	stderr_stream->sputn(base_stream->str(),
+	query_stream->sync();
+	stderr_stream->xsputn(base_stream->str(),
 			      base_stream->out_waiting());
-	stderr_stream->pubsync();
+	stderr_stream->sync();
 	val = options[default_option].val;
     } else if(bang_flag && bang_flag->flag) {
 	*this << force_message << dotendl;
-	query_stream->pubsync();
-	stdout_stream->sputn(base_stream->str(),
+	query_stream->sync();
+	stdout_stream->xsputn(base_stream->str(),
 			      base_stream->out_waiting());
-	stdout_stream->pubsync();
+	stdout_stream->sync();
 	val = options[default_option].val;
     } else {
 	char query_buf[40];
@@ -611,7 +652,7 @@ ostream& QueryOstream::query_manip(const char* message)
 
 	*this << message << query_buf;
 
-	query_stream->pubsync();
+	query_stream->sync();
 
 	re_query_message = base_stream->str();
 	re_query_len = base_stream->out_waiting();
@@ -620,8 +661,8 @@ ostream& QueryOstream::query_manip(const char* message)
 	    char c;
 	    int found = false;
 
-	    stdout_stream->sputn(re_query_message, re_query_len);
-	    stdout_stream->pubsync();
+	    stdout_stream->xsputn(re_query_message, re_query_len);
+	    stdout_stream->sync();
 
 	    c = get_user_char();
 
@@ -672,13 +713,18 @@ ostream& QueryOstream::query_manip(const char* message)
 
     query_stream->reset_column();
     base_stream->freeze(0);
-    base_stream->pubseekoff(0, ios::beg, ios::out);
+    base_stream->seekoff(0, ios::beg);
     force_option = 0;
     option_count = 0;
     bang_flag = NULL;
     help_string = NULL;
 
     return *this;
+#ifndef __GNUG__
+#  undef xsputn
+#  undef sync
+#  undef seekoff
+#endif
 }
 
 ostream& __omanip_query(ostream& s, const char* message) {

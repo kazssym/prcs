@@ -20,7 +20,7 @@
  */
 
 /* $Format: "static const char prcs_version_id[] = \"$ProjectVersion$ $ProjectAuthor$ $ProjectDate$\";"$ */
-static const char prcs_version_id[] = "1.3-release.4 jmacd Sun, 04 Nov 2001 19:57:51 +0300";
+static const char prcs_version_id[] = "1.3-release.14 jmacd Sat, 09 Feb 2002 05:02:20 +0300";
 
 #include "fnmatch.h"
 
@@ -1035,7 +1035,7 @@ static bool read_command_line(int argc, char** argv)
 static void usage(char** argv)
 {
     if (illegal_option) {
-	cout << options_summary << '\n';
+	cout << options_summary << "\n";
     } else if(command == NULL) {
 	cout << "Usage: " << strip_leading_path(argv[0])
 	     << " command [subcommand] [option ...] "
@@ -1324,10 +1324,11 @@ int main(int argc, char** argv)
 	exit(2);
     }
 
-    if(subcommand == NULL)
+    if(subcommand == NULL) {
 	exitval = invoke_command(command);
-    else
+    } else { 
 	exitval = invoke_command(subcommand);
+    }
 
     bool clean_failed = false;
 
@@ -1335,8 +1336,9 @@ int main(int argc, char** argv)
 	clean_failed = true;
 
     if(Failure(exitval) || clean_failed) {
-	if(exitval.error_val() != UserAbort || clean_failed)
+	if(exitval.error_val() != UserAbort || clean_failed) {
 	    prcserror << "Command failed" << dotendl;
+	}
 	return 2;
     }
 

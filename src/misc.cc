@@ -103,10 +103,10 @@ const char* temp_file_2 = NULL;
 const char* temp_file_3 = NULL;
 const char* temp_directory = NULL;
 
+const char* maintainer = "prcs-bugs@XCF.Berkeley.EDU";
+
 PrVoidError bug (void)
 {
-  static const char maintainer[] = "prcs-bugs@XCF.Berkeley.EDU";
-
   pthrow prcserror << "Please report this to " << maintainer << dotendl
 		  << "When sending bug reports, always include:" << prcsendl
 		  << "-- a complete description of the problem encountered" << prcsendl

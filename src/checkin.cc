@@ -43,8 +43,8 @@ static PrVoidError checkin_each_file(ProjectDescriptor*);
 static PrVoidError maybe_query_user(ProjectDescriptor*);
 static PrVoidError slow_eliminate_prepare(ProjectDescriptor*);
 static PrVoidError checkin_cleanup_handler(void* data, bool);
-static PrVoidError compute_modified(ProjectDescriptor  *project,
-				    ProjectDescriptor  *pred_project);
+static PrVoidError compute_partial_modified(ProjectDescriptor  *project,
+					    ProjectDescriptor  *pred_project);
 
 PrPrcsExitStatusError checkin_command()
 {
@@ -62,10 +62,10 @@ PrPrcsExitStatusError checkin_command()
 
     Return_if_fail(project->init_repository_entry(cmd_root_project_name, true, true));
 
-    /* remove files which were not named on the command line */
+    /* remove files that were not named on the command line */
     eliminate_unnamed_files(project);
 
-    /* warn the user about filenames on the command line which didn't match anything */
+    /* warn the user about filenames on the command line that didn't match any files */
     Return_if_fail(warn_unused_files(true));
 
     /* select the new version and possibly warn the user of unwise checkins */
@@ -80,18 +80,19 @@ PrPrcsExitStatusError checkin_command()
     Return_if_fail(eliminate_working_files(project, QueryUserRemoveFromCommandLine));
     Return_if_fail(check_project(project));
 
-    /* if the auxiliary database is present, read it and eliminate files which
+    /* if the auxiliary database is present, read it and eliminate files that
      * have not been touched since the last checkout or rekey */
     project->read_quick_elim();
     project->quick_elim_unmodified();
 
-    if (pred_project_data)
+    if (pred_project_data) {
 	Return_if_fail (pred_project << project->repository_entry()->
 			                   checkout_prj_file (project->project_full_name(),
 							      pred_project_data->rcs_version(),
 							      KeepNothing));
+    }
 
-    /* now eliminate files which have not changed by reading and unkeying files,
+    /* now eliminate files that have not changed by reading and unkeying files,
      * comparing the unkeyed length, then computing their checksum and comparing
      * the unkeyed checksum.  with the unkeyed file in memory, prepare the repository
      * file (possibly uncompress), and write it out into the temporary location
@@ -99,10 +100,14 @@ PrPrcsExitStatusError checkin_command()
 
     Return_if_fail(slow_eliminate_prepare(project));
 
-    Return_if_fail(compute_modified(project, pred_project));
+    /* report changes to the user, and also make partial checkins use
+     * the pred_project's versions for files omitted from the command
+     * line of this checkin. */
+    Return_if_fail(compute_partial_modified(project, pred_project));
 
-    if(option_report_actions)
+    if(option_report_actions) {
 	return ExitSuccess;
+    }
 
     /* check if the user wants to enter a log. */
     Return_if_fail(maybe_query_user(project));
@@ -129,11 +134,16 @@ PrPrcsExitStatusError checkin_command()
     return ExitSuccess;
 }
 
-static PrVoidError compute_modified(ProjectDescriptor *project,
-				    ProjectDescriptor *pred_project)
+static PrVoidError compute_partial_modified(ProjectDescriptor *project,
+					    ProjectDescriptor *pred_project)
 {
-    /* This shares some structure with changes_command, not all of it though */
+    /* This shares some structure with changes_command, not all of it
+     * though.  We know that pred_project is not deleted. */
     bool project_modified = false;
+
+    /* if pred_project is non-null, this function makes an ugly use of
+     * the on_command_line() status bit to mean something else:
+     * whether the preceding project versions' file was deleted. */
 
     foreach_fileent(fe_ptr, project) {
 	FileEntry *fe = *fe_ptr;
@@ -144,8 +154,9 @@ static PrVoidError compute_modified(ProjectDescriptor *project,
 	bool        new_file = false;
 	FileEntry  *pred_fe = NULL;
 
-	if (pred_project)
+	if (pred_project) {
 	    Return_if_fail (pred_fe << pred_project->match_fileent (fe));
+	}
 
 	if (pred_fe) {
 	    pred_fe->set_on_command_line (false);
@@ -153,35 +164,53 @@ static PrVoidError compute_modified(ProjectDescriptor *project,
 	    project_modified = true;
 	    new_file = true;
 
-	    if (option_long_format)
+	    if (option_long_format) {
 		prcsoutput << format_type (fe->file_type(), true)
 			   << " " << squote (name) << " was added" << dotendl;
+	    }
 	}
 
 	if (pred_fe && fe->file_type() != pred_fe->file_type()) {
 	    project_modified = true;
 
-	    if (option_long_format)
+	    if (option_long_format) {
 		prcsoutput << "File " << squote (name) << " changes from type "
 			   << format_type (pred_fe->file_type()) << " to "
 			   << format_type (fe->file_type()) << dotendl;
+	    }
 	}
 
-	if (pred_fe)
-	  {
+	if (pred_fe) {
+
 	    const char* a = pred_fe->working_path(), *b = fe->working_path();
-	    if (!pathname_equal (a, b))
-	      {
+
+	    if (!pathname_equal (a, b)) {
 		project_modified = true;
 
-		if (option_long_format)
-		  prcsoutput << "File " << squote (name) << " is renamed from "
-			     << squote (pred_fe->working_path()) << dotendl;
-	      }
-	  }
+		if (option_long_format) {
+		    prcsoutput << "File " << squote (name) << " is renamed from "
+			       << squote (pred_fe->working_path()) << dotendl;
+		}
+	    }
+	}
 
-	if (!fe->on_command_line())
+	if (!fe->on_command_line()) {
+	    if ((pred_fe != NULL) &&
+		(pred_fe->file_type () == fe->file_type ()) &&
+		(fe->file_type () == RealFile) &&
+		(strcmp (fe->descriptor_name(), pred_fe->descriptor_name()) != 0 ||
+		 strcmp (fe->descriptor_version_number(), pred_fe->descriptor_version_number()) != 0))
+	    {
+		if (option_long_format) {
+		    prcsoutput << "Non-selected file " << squote (name) << " assumes pre-existing version" << dotendl;
+		}
+
+		/* Note: This is the side effect of this call. */
+		fe->set_descriptor_name (pred_fe->descriptor_name ());
+		fe->set_version_number  (pred_fe->descriptor_version_number ());
+	    }
 	    continue;
+	}
 
 	switch (fe->file_type()) {
 	case Directory:
@@ -193,14 +222,16 @@ static PrVoidError compute_modified(ProjectDescriptor *project,
 
 	    if (!pred_fe ||
 		!pred_fe->link_name() ||
-		strcmp (lname, pred_fe->link_name()) != 0)
+		strcmp (lname, pred_fe->link_name()) != 0) {
 		modified = true;
+	    }
 
 	    if (!new_file) {
-		if (!modified && option_really_long_format)
+		if (!modified && option_really_long_format) {
 		    prcsoutput << "Symlink " << squote(name) << " is unmodified" << dotendl;
-		else if (modified && option_long_format)
+		} else if (modified && option_long_format) {
 		    prcsoutput << "Symlink " << squote(name) << " is modified" << dotendl;
+		}
 	    }
 
 	    break;
@@ -208,35 +239,40 @@ static PrVoidError compute_modified(ProjectDescriptor *project,
 	    if (!fe->unmodified()) {
 		modified = true;
 
-		if (option_long_format && !new_file)
+		if (option_long_format && !new_file) {
 		    prcsoutput << "New version of file " << squote(name) << dotendl;
+		}
 	    }
 
 	    if (pred_fe &&
 		fe->descriptor_name() &&
-		fe->file_type() == pred_fe->file_type())
-	      {
+		fe->file_type() == pred_fe->file_type()) {
+
 		if (strcmp (fe->descriptor_name(), pred_fe->descriptor_name()) != 0 ||
 		    strcmp (fe->descriptor_version_number(),
-			    pred_fe->descriptor_version_number()) != 0)
-		  {
+			    pred_fe->descriptor_version_number()) != 0) {
+
 		    modified = true;
-		    if (option_long_format)
+		    if (option_long_format) {
 		      prcsoutput << "File " << squote (name) << " changes versions" << dotendl;
-		  }
-	      }
+		    }
+		}
+	    }
 
 	    if (fe->file_mode() != fe->stat_permissions()) {
-		if (option_long_format && !new_file)
-		    prcsoutput << "File " << squote(name) << " has new mode" << dotendl;
 
+		if (option_long_format && !new_file) {
+		    prcsoutput << "File " << squote(name) << " has new mode" << dotendl;
+		}
+		
 		modified = true;
 
 		fe->set_file_mode (fe->stat_permissions());
 	    }
 
-	    if (!new_file && !modified && option_really_long_format && option_long_format)
+	    if (!new_file && !modified && option_really_long_format && option_long_format) {
 		prcsoutput << "File " << squote(name) << " is unmodified" << dotendl;
+	    }
 
 	    break;
 	}
@@ -248,7 +284,7 @@ static PrVoidError compute_modified(ProjectDescriptor *project,
 	foreach_fileent (fe_ptr, pred_project) {
 	    FileEntry *fe = *fe_ptr;
 
-	    if (fe->on_command_line()) {
+	    if (fe->on_command_line()) { 
 		project_modified = true;
 
 		if (option_long_format) {
@@ -355,10 +391,10 @@ PrVoidError check_project(ProjectDescriptor *project)
 
 	    If_fail(data << project->repository_entry()->
 		    lookup_rcs_file_data(fe->descriptor_name(),
-					 fe->descriptor_version_number()))
-		pthrow prcserror << "The missing file may have been in a project version "
-		           "which was deleted" << dotendl;
-
+					 fe->descriptor_version_number())) {
+		pthrow prcserror << "The missing file may have been in a deleted project version"
+				 << dotendl;
+	    }
 	}
     }
 
@@ -383,15 +419,17 @@ static PrVoidError write_new_prjfile(ProjectDescriptor *P, ProjectVersionData *p
 
     Return_if_fail(P->write_project_file(temp_file_1));
 
-    If_fail(copy << read_project_file(P->project_full_name(), temp_file_1, false, KeepNothing))
+    If_fail(copy << read_project_file(P->project_full_name(), temp_file_1, false, KeepNothing)) {
 	return invalid();
+    }
 
     foreach_fileent(fe_ptr, copy) {
 	FileEntry* fe = *fe_ptr;
 
-	if ( fe->empty_descriptor() )
+	if ( fe->empty_descriptor() ) {
 	    /* Hopefully this will catch Gene's problem. */
 	    return invalid();
+	}
     }
 
     /*delete copy;*/
@@ -647,6 +685,7 @@ ProjectDescriptor::resolve_checkin_version(const char          *maj,
 					   ProjectVersionData **pred_project_data)
 {
     ProjectVersionData *cur_project_data = new ProjectVersionData(-1);
+    ProjectVersionData *first_parent_project_data = NULL;
     Dstring *new_major = new Dstring; /* Most of this stuff leaks. */
     Dstring *new_minor = new Dstring;
     int prev_highest_minor;
@@ -658,37 +697,47 @@ ProjectDescriptor::resolve_checkin_version(const char          *maj,
     if(strcmp(*project_version_minor(), "0") != 0) {
 	/* Don't beleive what's in the project file, make sure its in the
 	 * repository. */
-	ProjectVersionData *first_parent_project_data;
 
+	/* @@@ I am concerned that all callers of lookup_version are
+	 * forced to check the same error conditions (NULL &&
+	 * ->deleted()), but I don't know why it should be this way.
+	 */
 	first_parent_project_data = repository_entry()->lookup_version(this);
 
-	if(!first_parent_project_data)
-	    pthrow prcserror << "Illegal version, " << full_version()
-			    << ", in project file, it may have been deleted" << dotendl;
+	if(!first_parent_project_data) {
+	    pthrow prcserror << "Illegal version " << full_version() << " in working project file" << dotendl;
+	}
+
+	if(first_parent_project_data->deleted ()) {
+	    pthrow prcserror << "Project version " << first_parent_project_data << " has been deleted" << dotendl;
+	}
 
 	cur_project_data->new_parent(first_parent_project_data->version_index());
 
 	if (_merge_parents->length() > 0) {
 
 	    /* See if the previous merge was complete. */
-	    if (_merge_parents->last_index()->state & MergeStateIncomplete)
+	    if (_merge_parents->last_index()->state & MergeStateIncomplete) {
 		/* Last merge is incomplete, ask to abort this one and finish last one. */
 		Return_if_fail (merge_help_query_incomplete(_merge_parents->last_index()));
+	    }
 
 	    /* Add in any merge parents. */
 	    foreach (ent_ptr, _merge_parents, MergeParentEntryPtrArray::ArrayIterator) {
 		MergeParentEntry *ent = *ent_ptr;
 
-		if (ent->state & MergeStateParent)
+		if (ent->state & MergeStateParent) {
 		    cur_project_data->new_parent(ent->project_data->version_index());
+		}
 	    }
 	}
     } else {
 	/* We assume that the first parent is a the Parent-Version field, so we can't
 	 * add Merge-Parents if we didn't add a Parent-Version. */
-	if (_merge_parents->length() > 0)
+	if (_merge_parents->length() > 0) {
 	    pthrow prcserror << "Kind of strange to have merge parents when you're an empty "
 		"version, isn't it?" << prcsendl;
+	}
     }
 
     /* Compute the new major version. */
@@ -712,7 +761,7 @@ ProjectDescriptor::resolve_checkin_version(const char          *maj,
     }
 
     /* Compute the new minor version. */
-    prev_highest_minor = repository_entry()->highest_minor_version(*new_major);
+    prev_highest_minor = repository_entry()->highest_minor_version(*new_major, true);
     new_minor->assign_int(prev_highest_minor + 1);
 
     cur_project_data->prcs_major (*new_major);
@@ -751,6 +800,8 @@ ProjectDescriptor::resolve_checkin_version(const char          *maj,
 
 	    Return_if_fail(prcsquery.result());
 	}
+
+	*pred_project_data = first_parent_project_data;
 
     } else {
 	/* We've already got a ProjectVersionData entry for the working
@@ -797,8 +848,11 @@ ProjectDescriptor::resolve_checkin_version(const char          *maj,
 	    Return_if_fail (prcsquery.result());
 	}
 
-	if (!new_data->deleted())
+	/* You're allowed to checkin past the deleted end of a branch.  In that case its
+	 * as if the ancestry starts fresh with this checkin. */
+	if (!new_data->deleted()) {
 	    *pred_project_data = new_data;
+	}
 
 	delete ancestors;
     }
@@ -867,6 +921,11 @@ PrVoidError ProjectDescriptor::checkin_project_file(ProjectVersionData *new_proj
     }
 
     new_project_data->rcs_version(new_rcs_version);
+
+    /* Keith Owens 1.3.0 bug: if we crash right here then the RCS file
+     * has been updated but not the prcs_data file.  This causes
+     * future checkins to get the wrong parent version index.  This is
+     * now checked during RepEntry::init. */
 
     repository_entry()->add_project_data(new_project_data);
 

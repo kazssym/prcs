@@ -271,7 +271,7 @@ static PrVoidError ignoring(ProjectVersionData* project_data)
     return NoError;
 }
 
-/* Mark all versions referenced by the a single version of a project
+/* Mark all versions referenced by a single version of a project
  * in the file table. */
 static PrVoidError reference_versions(const char* project_file_name,
 				      ProjectVersionData* project_data,
@@ -338,6 +338,8 @@ static PrVoidError reference_versions(const char* project_file_name,
 
 	version_data->reference(RcsVersionData::Referenced);
     }
+
+    /* @@@ This is where the more-complete parent-version consistency check should go. */
 
     delete project;
 
@@ -409,6 +411,8 @@ static PrRcsDeltaPtrError rebuild_repository_file(RepEntry* rep_entry,
 	return (RcsDelta*)0;
     }
 
+    /* @@@ Ideally, the cksum would get stored in the RCS log message so that this step
+     * could actually verify, not simply re-compute the cksum. */
     foreach(rev_ptr, data, RcsDelta::DeltaIterator) {
 	Return_if_fail(compute_cksum(name, *rev_ptr));
     }
@@ -476,16 +480,95 @@ static PrRcsFileTablePtrError rebuild_file_table(RepEntry* rep_ptr)
     return file_table;
 }
 
+/* This mainly checks for duplicate version numbers, a symptom of the
+ * bug reported by Keith Owens in versions up to 1.3.0.  Also checks
+ * for invalid parent-version indices. */
+static PrVoidError rebuild_check_project_summary (ProjectVersionDataPtrArray* project_summary)
+{
+    ProjectVersionDataPtrArray copy (*project_summary);
 
-/* This is the top-level call to rebuilding a repository data file. */
+    /* Loop through a copy of the project summary, once for each major
+     * version, checking for duplicate minor version numbers.  (Note:
+     * similarly ugly code to info_array() -- need to simplify this
+     * kind of iteration) */
+    for (int i = 0; i < copy.length (); i += 1) {
+
+	if (copy.index (i) != NULL) {
+
+	    const char *major = copy.index(i)->prcs_major ();
+	    int         minor = 0;
+
+	    for (int j = i; j < copy.length (); j += 1) {
+
+		ProjectVersionData *check = copy.index(j);
+
+		if (check == NULL) {
+		    continue;
+		}
+
+		if (strcmp (major, check->prcs_major ()) == 0) {
+
+		    int this_minor = check->prcs_minor_int ();
+
+		    if (this_minor <= minor) {
+			pthrow prcserror << ((this_minor <= 0) ? "Invalid" : "Duplicate")
+					 << " project version "
+					 << check
+					 << " found, please contact "
+					 << maintainer
+					 << " for assistance with this problem"
+					 << dotendl;
+		    }
+
+		    while (++minor < this_minor) {
+			/* I made this a warning not an error simply because there is a
+			 * missing version in PRCS's own repository (from Feb 20, 1996,
+			 * and I don't remember why).  If this is a genuine error it needs
+			 * to be caught somewhere else.  A check should be inserted in
+			 * reference_versions when the project file is actually
+			 * checked-out that the parent-indices match reality. */
+			prcswarning << "Missing any record of project version "
+				    << major << "." << minor
+				    << prcsendl;
+		    }
+
+		    ASSERT (check->version_index () == j, "set by VC_get_project_version_data");
+
+		    for (int k = 0; k < check->parent_count (); k += 1) {
+
+			int p_i = check->parent_index (k);
+
+			if (p_i < 0 || p_i >= j) {
+			    pthrow prcserror << "Invalid parent-version index found for project version "
+					     << check << ", please contact "
+					     << maintainer
+					     << " for assitance with this problem"
+					     << dotendl;
+			}
+		    }
+
+		    copy.index (j, (ProjectVersionData*)0);
+		}
+	    }
+	}
+    }
+
+    return NoError;
+}
+
+/* This is the top-level call to rebuild a repository data file. */
 static PrVoidError rebuild_repository(RepEntry *rep_ptr,
 				      ProjectVersionDataPtrArray* project_summary,
 				      RcsFileTable* file_table)
 {
-    if(!file_table || !project_summary) {
+    if(!project_summary) {
 	Return_if_fail(project_summary <<
 		       VC_get_project_version_data(rep_ptr->Rep_name_of_version_file()));
+    }
 
+    Return_if_fail(rebuild_check_project_summary (project_summary));
+
+    if(!file_table) {
 	Return_if_fail(file_table << rebuild_file_table(rep_ptr));
     }
 
@@ -908,8 +991,13 @@ bool RebuildFile::done() { return offset == seg->length(); }
 void RebuildFile::init_stream()
 {
     if(!buf) {
+#if __GNUG__ < 3
+	buf = new filebuf(seg->fd());
+	buf->seekoff(0,ios::end);
+#else
         buf = new filebuf(fdopen(dup(seg->fd()), "a+"), ios::out);
         buf->pubseekoff(0, ios::end, ios::out);
+#endif
 	os = new ostream(buf);
     }
 }

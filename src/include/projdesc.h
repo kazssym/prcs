@@ -151,6 +151,10 @@ public:
     const char* merge_tool () const;
     const char* diff_tool () const;
 
+    /* Its a bug, really, but group attributes don't print right now.
+     * This tells you how many *do* print. */
+    int nprint () const { return _vals.length () - _ngroup; }
+
 private:
     PrcsAttrs (const DstringPtrArray *vals0, int ngroup);
 

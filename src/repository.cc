@@ -27,6 +27,10 @@ extern "C" {
 #include <grp.h>
 }
 
+#if __GNUG__ < 3
+#define pubsync sync
+#endif
+
 #include "prcs.h"
 
 #include "hash.h"
@@ -619,6 +623,24 @@ PrVoidError RepEntry::init(const char* entry, bool writeable0, bool create, bool
 	_project_data_array = _rebuild_file->get_project_summary();
 
 	_rcs_file_table = _rebuild_file->get_rcs_file_summary();
+
+	/* Keith Owens 1.3.0 bug: a consistency check here for the
+	 * case where a checkin aborts after finishing the RCS checkin
+	 * but before updating the repository entry. */
+
+	int rev_count;
+
+	If_fail (rev_count << VC_get_version_count (Rep_name_of_version_file ())) {
+	    pthrow prcserror << "Cannot determine the number of versions for repository entry "
+			     << squote(entry) << dotendl;
+	}
+
+	if (_project_data_array->length () != rev_count) {
+	    pthrow prcserror << "Detected an inconsistent data file in repository entry " << squote(entry)
+			     << " (possibly due to an aborted checkin), please run "
+			     << squote("prcs admin rebuild")
+			     << " to generate this file" << dotendl;
+	}
     }
 
     _rfl = new RepFreeFilename(Rep_entry_path(), _rep_mask);
@@ -1177,18 +1199,25 @@ int RepEntry::highest_major_version() const /* -1 if none */
     return max;
 }
 
-ProjectVersionData* RepEntry::highest_minor_version_data(const char* major) const
+ProjectVersionData* RepEntry::highest_minor_version_data(const char* major, bool may_be_deleted) const
 {
     int max = 0;
     ProjectVersionData* data = NULL;
 
     for(int i = 0; i < version_count(); i += 1) {
-	if (strcmp(_project_data_array->index(i)->prcs_major(), major) == 0) {
-	    int val = _project_data_array->index(i)->prcs_minor_int();
+	ProjectVersionData* pd = _project_data_array->index(i);
+
+	if (strcmp(pd->prcs_major(), major) == 0) {
+
+	    if (! may_be_deleted && pd->deleted ()) {
+		continue;
+	    }
+
+	    int val = pd->prcs_minor_int();
 
 	    if(val > max) {
-		data = _project_data_array->index(i);
-		max = val;
+		data = pd;
+		max  = val;
 	    }
 	}
     }
@@ -1197,9 +1226,9 @@ ProjectVersionData* RepEntry::highest_minor_version_data(const char* major) cons
 }
 
 
-int RepEntry::highest_minor_version(const char* major) const /* 0 if none */
+int RepEntry::highest_minor_version(const char* major, bool may_be_deleted) const /* 0 if none */
 {
-    ProjectVersionData* data = highest_minor_version_data(major);
+    ProjectVersionData* data = highest_minor_version_data(major, may_be_deleted);
 
     if(!data)
 	return 0;

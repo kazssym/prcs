@@ -19,7 +19,6 @@
  * $Id$
  */
 
-
 #include "prcs.h"
 
 #define generic template<class T, int DefaultSize, bool ZeroTerm>
@@ -240,21 +239,21 @@ generic member operator const T*() const
 
 generic const T* member cast() const
 {
-    ASSERT(this != NULL, "no null objects please");
-
-    if (_vec) {
-        if(ZeroTerm)
-            ASSERT(_vec[_filled] == 0, "not zero-terminated");
-
-        return _vec;
-    } else {
-        /*ASSERT (_filled == 0 && ZeroTerm, "what?");*/
-
-        _alloc = 16;
-        _vec = MAYBECNEWVEC(ZeroTerm, T, 16);
-
-        return _vec;
-    }
+    ASSERT(this != NULL, "no null objects please");                                                                                                                               
+                                                                                                                                                                                  
+    if (_vec) {                                                                                                                                                                   
+        if(ZeroTerm)                                                                                                                                                              
+            ASSERT(_vec[_filled] == 0, "not zero-terminated");                                                                                                                    
+                                                                                                                                                                                  
+        return _vec;                                                                                                                                                              
+    } else {                                                                                                                                                                      
+        /*ASSERT (_filled == 0 && ZeroTerm, "what?");*/                                                                                                                           
+                                                                                                                                                                                  
+        _alloc = 16;                                                                                                                                                              
+        _vec = MAYBECNEWVEC(ZeroTerm, T, 16);                                                                                                                                     
+                                                                                                                                                                                  
+        return _vec;                                                                                                                                                              
+    }                                                                                                                                                                             
 }
 
 generic int member length() const

@@ -958,6 +958,33 @@ error:
 
 }
 
+PrIntError
+VC_get_version_count(const char* versionfile)
+{
+    ArgList *argl;
+    int rev_count;
+
+    Return_if_fail(argl << rlog_command.new_arg_list());
+
+    argl->append("-h");
+    argl->append(versionfile);
+
+    Return_if_fail(rlog_command.open(true, false));
+
+    if(VC_get_token(rlog_command.standard_out()) == RlogTotalRevisions) {
+	rev_count = atoi(rcs_text);
+    } else {
+	pthrow prcserror << "Unrecognized output from RCS 'rlog -h' command on RCS file "
+			 << squote(versionfile) << dotendl;
+    }
+
+    Return_if_fail_if_ne(rlog_command.close(), 0) {
+	pthrow prcserror << "RCS rlog command returned non-zero status on RCS file "
+			 << squote(versionfile) << dotendl;
+    }
+    
+    return rev_count;
+}
 
 PrBoolError VC_delete_version(const char* version,
 			      const char* revisionfile)

@@ -106,8 +106,9 @@ PrVoidError PseudoRepEntry::lock()
 
 PrVoidError PseudoRepEntry::exists()
 {
-    if(!fs_is_directory(ent_path))
+    if(!fs_is_directory(ent_path)) {
 	pthrow prcserror << "Repository entry " << squote(_name) << " does not exist" << dotendl;
+    }
 
     return NoError;
 }
@@ -115,10 +116,11 @@ PrVoidError PseudoRepEntry::exists()
 PrVoidError PseudoRepEntry::remove(bool being_replaced)
 {
     if(fs_is_directory(ent_path)) {
-	if (being_replaced)
+	if (being_replaced) {
 	    prcsquery << "Project " << squote(_name) << " already exists.  ";
-	else
+	} else {
 	    prcsquery << "Remove project " << squote(_name) << ".  ";
+	}
 
 	prcsquery << force("Deleting")
 		  << report("Delete")
@@ -136,7 +138,7 @@ PrVoidError PseudoRepEntry::remove(bool being_replaced)
 			     << squote(ent_path) << dotendl;
 	}
     } else if (! being_replaced) {
-      prcswarning << "Project does not exist: " << squote(_name) << dotendl;
+	prcswarning << "Project does not exist: " << squote(_name) << dotendl;
     }
 
     return NoError;
@@ -538,7 +540,7 @@ PrPrcsExitStatusError admin_prename_command()
     Return_if_fail (old_entry->exists());
     Return_if_fail (old_entry->lock());
 
-    Return_if_fail (new_entry->remove(false));
+    Return_if_fail (new_entry->remove(true));
     /* locking here doesn't really work.... */
 
     /* All it takes is two rename() calls */

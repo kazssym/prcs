@@ -84,7 +84,7 @@ PrProjectVersionDataPtrError resolve_version(const char* maj,
 	new_minor_version.assign(local_project_data->prcs_minor());
     } else if(strcmp(min, "@") == 0) {
 	/* Highest_minor_version returns 0 if no major is found */
-	new_minor_version.assign_int(rep_entry->highest_minor_version(new_major_version));
+	new_minor_version.assign_int(rep_entry->highest_minor_version(new_major_version, false));
     } else {
 	new_minor_version.assign(min);
     }
@@ -101,7 +101,7 @@ PrProjectVersionDataPtrError resolve_version(const char* maj,
 
     if(new_project_data) {
 	if(new_project_data->deleted())
-	    pthrow prcserror << "Project version " << new_project_data << " is deleted" << dotendl;
+	    pthrow prcserror << "Project version " << new_project_data << " has been deleted" << dotendl;
 
 	return new_project_data;
     } else {

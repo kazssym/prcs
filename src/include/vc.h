@@ -63,6 +63,9 @@ PrVoidError VC_get_one_version_data (const char     *versionfile,
 				     const char     *versionnum,
 				     RcsVersionData *rvd);
 
+/* Used for a consistency check of P.prj,v and prcs_data files. */
+PrIntError  VC_get_version_count    (const char* versionfile);
+
 /*
  * RcsVersionData --
  *

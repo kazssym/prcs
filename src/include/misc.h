@@ -149,7 +149,7 @@ const char* get_environ_var (const char* var);
 #define foreach(P, INIT, TYPE) \
     for (TYPE P(INIT); ! (P).finished (); (P).next ())
 
-PrVoidError bug(void);
+PrVoidError bug (void);
 const char* bug_name (void);
 
 #endif

@@ -183,9 +183,9 @@ public:
     ProjectVersionData* lookup_version(const char* major, const char* minor) const;
     ProjectVersionData* lookup_version(ProjectDescriptor* project) const;
     ProjectVersionData* lookup_version(const char* major, int minor) const;
-    ProjectVersionData* highest_minor_version_data(const char* major) const;
+    ProjectVersionData* highest_minor_version_data(const char* major, bool may_be_deleted) const;
     int highest_major_version() const;
-    int highest_minor_version(const char* major) const; /* 0 if none */
+    int highest_minor_version(const char* major, bool may_be_deleted) const; /* 0 if none */
     bool major_version_exists(const char* major) const;
 
     ProjectVersionDataPtrArray* common_version(ProjectVersionData* one,

@@ -227,19 +227,27 @@ extern const char *default_merge_descs[14] =
 
 extern const MergeAction default_merge_actions[14] =
 {
-    MergeActionNoPrompt,
+    /* There is a problem in 1.3.0 reported by Dan Bonachea not really
+     * having to do with NoPrompt merge actions -- but I'm writing
+     * this comment anyway.  When you do a merge and get noprompt
+     * because your working file is the same as the selected version
+     * and then do a partial checkin, excluding that file, you should
+     * not clobber that version when you checkin to the selected
+     * branch.  Alas, the problem is with partial checkin, not merge.
+     */
+    MergeActionNoPrompt, /* 1 == selected */
     MergeActionMerge,
     MergeActionReplace,
-    MergeActionNoPrompt,
-    MergeActionNoPrompt,
+    MergeActionNoPrompt, /* 4 != selected */
+    MergeActionNoPrompt, /* 5 == selected */
     MergeActionNothing,
     MergeActionDelete,
-    MergeActionNoPrompt,
+    MergeActionNoPrompt, /* 8 == selected */
     MergeActionNothing,
     MergeActionDelete,
     MergeActionMerge,
-    MergeActionNoPrompt,
-    MergeActionNoPrompt,
+    MergeActionNoPrompt, /* 12 no selected */
+    MergeActionNoPrompt, /* 13 no selected */
     MergeActionAdd
 };
 
@@ -639,6 +647,9 @@ static PrPrcsExitStatusError merge_command2()
 
     if(!pred_project_data)
 	pthrow prcserror << "Invalid version in working project file, cannot merge" << dotendl;
+
+    if(pred_project_data->deleted ())
+	pthrow prcserror << "Project version " << pred_project_data << " has been deleted" << dotendl;
 
     eliminate_unnamed_files(working);
 
@@ -2239,6 +2250,9 @@ PrVoidError MergeControl::run_merge (Mergeable* selected,
 
     ASSERT (found == 1, "no SKIP_FILE");
 
+    /* There was a thought that merge should treat NoPrompt actions
+     * differently by moving this if-statement into finish_merge(),
+     * see comment by default_merge_actions. */
     if (file_merge_action (selected, common, working, found_defs[0]->rule_no) == MergeActionNoPrompt) {
 
 	int rule = (found == 0) ? 0 : found_defs[0]->rule_no;

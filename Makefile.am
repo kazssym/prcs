@@ -3,7 +3,14 @@
 
 SUBDIRS = src doc contrib emacs m4 be
 
-EXTRA_DIST = prcs.prj FAQ TODO INSTALL README.BE config-be
+EXTRA_DIST = \
+	prcs.prj \
+	FAQ \
+	TODO \
+	INSTALL \
+	README.BE \
+	config-be \
+	prcs-1.3.1gcc3.diffs
 
 ## This doesn't work with gmake -j, but I can't figure it out.
 all-local:

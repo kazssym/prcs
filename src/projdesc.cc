@@ -23,6 +23,10 @@ extern "C" {
 #include <stdarg.h>
 }
 
+#if __GNUG__ < 3
+#define pubsync sync
+#endif
+
 #include "prcs.h"
 #include "projdesc.h"
 #include "sexp.h"
@@ -348,8 +352,9 @@ PrVoidError ProjectDescriptor::init_merge_log()
 
     _log_stream = new filebuf;
 
-    if (!_log_stream->open(logname, ios::out|ios::app))
+    if (!_log_stream->open(logname, ios::out|ios::app)) {
 	pthrow prcserror << "Failed opening merge log file " << squote(logname) << perror;
+    }
 
     _log_pstream = new PrettyStreambuf (_log_stream, &option_report_actions);
 

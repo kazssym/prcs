@@ -47,45 +47,67 @@ static ProjectVersionData* create_pseudo_empty_version(ProjectVersionData *first
 static ProjectVersionDataPtrArray* info_array (ProjectVersionDataPtrArray* pvda,
 					       const char* minpat)
 {
+    /* This implements the sorting of -r VERSION for the info command.
+     * It only filters out versions in case the minor pattern is "0"
+     * or "@", otherwise it just takes care of the order and leaves
+     * the minor pattern matching for later.  */
     ProjectVersionDataPtrArray *ret = new ProjectVersionDataPtrArray;
-    ProjectVersionDataPtrArray *copy = new ProjectVersionDataPtrArray;
     bool byversion = strcmp (option_sort_type, "version") == 0;
-    bool bydate = strcmp (option_sort_type, "date") == 0;
-    bool iszero = strcmp (minpat, "0") == 0;
-    bool islast = strcmp (minpat, "@") == 0;
+    bool bydate    = strcmp (option_sort_type, "date") == 0;
+    bool iszero    = strcmp (minpat, "0") == 0;
+    bool islast    = strcmp (minpat, "@") == 0;
 
-    copy->assign (*pvda);
-
+    /* If any of these three variables are set, then we loop through
+     * the PVDA array, which is sorted by checkin-time. */
     if (iszero || islast || byversion) {
-	/* Insert only the appropriate zero or last versions */
+
+	/* Copy is destroyed by the loop below */
+	ProjectVersionDataPtrArray copy (*pvda);
+
 	for (int i = 0; i < pvda->length(); i += 1) {
-	    if (copy->index (i)) {
+
+	    /* The inner loop sets array entries to NULL as it
+	     * processes them.  The outer loop finds the first minor
+	     * version for a given major. */
+	    if (copy.index (i) != NULL) {
 		ProjectVersionData *last = NULL;
 
-		if (iszero)
+		if (iszero) {
 		    ret->append (create_pseudo_empty_version(pvda->index(i)));
+		} 
 
+		/* The second loop processes all the minor versions of
+		 * the major version. */
 		for (int j = i; j < pvda->length(); j += 1) {
 
 		    if (strcmp (pvda->index(i)->prcs_major(),
 				pvda->index(j)->prcs_major()) == 0) {
-			if (!islast && !iszero)
+
+			/* islast and iszero are special, otherwise just insert
+			 * this version into the resulting order. */
+			if (!islast && !iszero) {
 			    ret->append (pvda->index(j));
-			last = pvda->index (j);
-			copy->index(j, (ProjectVersionData*)0);
+			}
+
+			/* the "@" pattern only matches non-deleted versions. */
+			if (islast && ! pvda->index (j)->deleted ()) {
+			    last = pvda->index (j);
+			}
+			
+			copy.index(j, (ProjectVersionData*)0);
 		    }
 		}
-
-		if (islast)
+		    
+		if (islast && (last != NULL)) {
 		    ret->append (last);
+		}
 	    }
 	}
+
     } else {
 	ASSERT (bydate, "read_command_line checked this");
 	ret->assign (*pvda);
     }
-
-    delete copy;
 
     return ret;
 }
@@ -160,30 +182,31 @@ static bool matches(const char* pat, const char* text)
 
 static PrVoidError print_info(ProjectVersionData* project_data, RepEntry *rep_entry)
 {
+    /* Up until version 1.3.1, print_info returned without printing anything for
+     * deleted versions. */
     ProjectDescriptor *P = NULL;
     const PrcsAttrs *last_attrs = NULL;
 
-    if (project_data->deleted())
-	return NoError;;
-
     if(option_long_format || option_really_long_format) {
-        if(!project_data->rcs_version()) {
-            /* its an empty version */
-
-	    ASSERT (false, "@@@ fixme");
-
-	    return NoError;
-        } else {
+        if(project_data->rcs_version()) {
 	    Return_if_fail(P << rep_entry->checkout_prj_file(cmd_root_project_full_name,
 							     project_data->rcs_version(),
 							     KeepNothing));
         }
+	/* Otherwise its an empty version... return later... (P == NULL) */
     }
 
     prcsoutput << cmd_root_project_name << ' '
 	       << project_data << ' '
 	       << time_t_to_rfc822(project_data->date()) << " by "
-	       << project_data->author() << prcsendl;
+	       << project_data->author()
+	       << (project_data->deleted () ? " *DELETED*" : "")
+	       << prcsendl;
+
+
+    if (P == NULL) {
+	return NoError;
+    }
 
     if(option_long_format) {
 
@@ -243,7 +266,10 @@ static PrVoidError print_info(ProjectVersionData* project_data, RepEntry *rep_en
 	}
     }
 
-    if(option_really_long_format) {
+    /* Can't print deleted file info because the descriptors have
+     * possibly been reused--we don't know all their attributes any
+     * longer. */
+    if(option_really_long_format && !project_data->deleted ()) {
 
         if(P->file_entries()->length() == 0) {
             prcsoutput << "No working files" << dotendl;
@@ -289,15 +315,18 @@ static PrVoidError print_info(ProjectVersionData* project_data, RepEntry *rep_en
 		    prcsoutput << " MD5=";
 
 		    for(int i = 0; i < 16; i += 1) {
-                      char buf[8];
-                      sprintf(buf, "%02x", 0xff & version_data->unkeyed_checksum()[i]);
-                      prcsoutput << buf;
+			char buf[8];
+			sprintf(buf, "%02x", 0xff & version_data->unkeyed_checksum()[i]);
+			prcsoutput << buf;
                     }
 		}
 
-		if (last_attrs == fe->file_attrs())
-		    prcsoutput << " attributes as above";
-		else {
+		/* @@@ Note: this doesn't print group attributes. */
+		if (last_attrs == fe->file_attrs()) {
+		    if (last_attrs->nprint () > 0) {
+			prcsoutput << " attributes as above";
+		    }
+		} else {
 		    fe->file_attrs()->print (prcsoutput, true);
 		    last_attrs = fe->file_attrs();
 		}

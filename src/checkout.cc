@@ -131,8 +131,9 @@ PrPrcsExitStatusError checkout_command()
 static PrPrcsExitStatusError create_empty_project()
 {
     if (strcmp(cmd_version_specifier_major, "@") == 0 ||
-        cmd_version_specifier_major[0] == '\0')
+        cmd_version_specifier_major[0] == '\0') {
         cmd_version_specifier_major = "0";
+    }
 
     ProjectDescriptor* new_project;
 
