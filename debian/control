@@ -1,7 +1,7 @@
 Source: prcs
 Section: devel
 Priority: optional
-Maintainer: Rafael Laboissiere <rafael@debian.org>
+Maintainer: Debian QA Group <packages@qa.debian.org>
 Standards-Version: 3.6.1
 Build-Depends: debhelper (>= 2.0.72), perl, rcs, patch, texinfo, docbook-utils, autotools-dev, dpatch
 

@@ -16,3 +16,4 @@ contrib/prcs-move/prcs-mv.1
 contrib/prcs-move/prcs-ttyask-move.1
 contrib/prcs-move/prcs-what-may-move.1
 contrib/rprcs/rprcs.1
+contrib/prcs2svn/prcs2svn.1

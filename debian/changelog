@@ -1,3 +1,14 @@
+prcs (1.3.3-3) unstable; urgency=low
+
+  * I am orphaning this package.  Consider this upload as an NMU.
+  * debian/control: Set maintainer to Debian QA Group
+    <packages@qa.debian.org>.
+  * debian/patches/50_prcs2svn.dpatch: Patch containing a contributed
+    script prcs2svn.
+  * debian/rules: Install prcs2svn script and man page.
+
+ -- Rafael Laboissiere <rafael@debian.org>  Sat,  5 Feb 2005 20:24:31 +0100
+
 prcs (1.3.3-2) unstable; urgency=low
 
   * debian/rules: Remove /usr/share/info/dir* files after make install
@@ -9,7 +20,7 @@ prcs (1.3.3-1) unstable; urgency=low
 
   * New upstream release.
   * debian/control:
-    - Bumped Standards-VErsion to 3.6.1 (no changes needed).
+    - Bumped Standards-Version to 3.6.1 (no changes needed).
     - Build-Depend on dpatch.
   * debian/rules:
     - Removed call to make patch-stamp and the Debian specific patches

@@ -13,3 +13,4 @@ usr/bin/prcs-assist-move
 usr/bin/prcs-javadoc
 usr/bin/prcs-clean
 usr/bin/rprcs
+usr/bin/prcs2svn

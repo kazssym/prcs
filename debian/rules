@@ -49,6 +49,7 @@ contrib_perl    := contrib/misc/prcs-clean \
 contrib_sh      := contrib/rprcs/rprcs \
                    contrib/javadoc/prcs-javadoc \
                    contrib/visualtree/prcs-show-tree \
+                   contrib/prcs2svn/prcs2svn
 
 autotools-stamp:
 	-rm -f config.sub config.guess
@@ -70,6 +71,7 @@ build-stamp: patch-stamp autotools-stamp
 	( cd $(contribdir)/prcsstatus ; docbook2man prcsstatus.sgml )
 	( cd $(contribdir)/prcs-move ; docbook2man prcs-move.sgml )
 	( cd $(contribdir)/prcsutils ; docbook2man prcs-utils.sgml )
+	( cd $(contribdir)/prcs2svn ; pod2man prcs2svn > prcs2svn.1 )
 	makeinfo --html --output $(debhtml) doc/prcs.texi
 	touch build-stamp
 
@@ -80,14 +82,13 @@ clean: unpatch
 	-rm -f config.sub config.guess
 	rm -f build-stamp install-stamp autotools-stamp
 
-	-patch -p0 --force --reverse < debian/rebuild.cc-patch
-	-patch -p0 --force --reverse < debian/prcserror.cc-patch
 	if [ -f Makefile ]; then make distclean; fi
 
 	rm -rf $(debhtml)
 	( cd $(contribdir) ; \
 	  rm -f misc/prcs-synch.1 prcsutils/prcs-utils.1 \
-                prcs-move/prcs-move.1 prcsstatus/prcsstatus.1 ; \
+                prcs-move/prcs-move.1 prcsstatus/prcsstatus.1 \
+                prcs2svn/prcs2svn.1 ; \
           find . -name manpage.\* | xargs rm -f )
 
 	dh_clean
