@@ -1,0 +1,12 @@
+-*- Outline -*-
+
+* prcs-mode
+See prcs.el.
+
+* prcs-fakeout
+See if these are still actually necessary.
+
+* prcs-ediff
+** handle erroneous exit correctly
+** name C-buffer as relative name, not absolute
+** turn off overwrite-protect on C-buffer

@@ -1,0 +1,83 @@
+-*- Text -*-
+
+Here are some frequently asked questions:
+
+======================================================================
+
+PRCS prints something like the following, it can happen anytime, not
+just at initial checkout (which is often when people discover this).
+
+$ prcs command P
+prcs: Cannot determine project name, there must be a single project
+      file in the directory `P'.
+$
+
+The problem is described in the "Naming Projects" section of the
+documentation.  Basically, you can name a project by giving the
+directory in which it resides.  You can also name a project by its
+name, or by the name of its project file.  If you leave off the
+project name argument, "." is defaulted.  There are then three ways to
+determine the name, given in the order of precedence:
+
+1. If the name is of the form P.prj or D/P.prj, the project is assumed
+to be P, optionally in the directory D.
+
+2. If the name is of the form D and D is a directory, it looks for a
+unique project file in the directory D.  This handles the default
+case.
+
+3. Otherwise, the name is of the form P or D/P, it assumes the name of
+the project is P, optionally in the directory D.
+
+So, in the above example, replace P with P.prj, and it will succeed.
+
+======================================================================
+
+At checkin, PRCS prints out something like:
+
+prcs: RCS failed on file /home/user/PRCS/P/13_overview.P,v
+rcs error: unknown option: -T
+rcs usage: rcs -{ae}logins -Afile -{blu}[rev] ...
+rcs aborted
+
+Your version of RCS is too old, you need GNU RCS 5.7, PRCS does not
+work with older versions.  You can use the same binary by setting the
+RCS_PATH environment variable.  You can check that your version of RCS
+is up to date without running checkin, by running 'prcs config', which
+reports the values of all environment variables and compiled in
+settings.
+
+======================================================================
+
+I try to do something with a binary which I did not compile and it
+complains about not being able to find one of the binaries that was
+compiled in.  For example:
+
+$  prcs package P P.pkg
+prcs: System command `/usr/sww/bin/GNU/tar' does not exist.
+prcs: Command failed.
+
+To fix this, set RCS_PATH to a colon-separated list of directories in
+which PRCS should look and run the 'prcs config' command to see that
+everything is okay.
+
+======================================================================
+
+You experience the following:
+
+$ prcs checkin -l
+prcs: Checking in project `P' version 0.2.
+.../PRCS/P/8_P.o,v  <--  .../PRCS/P/8_P.o
+new revision: 1.2; previous revision: 1.1
+Binary files /tmp/da001ND and /tmp/T2a001N7 differ
+ci: .../PRCS/P/8_P.o,v: diff failed
+ci aborted
+prcs: RCS ci failed on batch command.
+prcs: Command failed.
+$
+
+Your version of RCS was not configured to use GNU diff, and therefore
+it cannot handle binary files.  Rebuild RCS with its diff path set to
+a GNU version of diff.
+
+======================================================================

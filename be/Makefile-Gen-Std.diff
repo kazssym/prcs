@@ -1,0 +1,81 @@
+--- Makefile-Gen	Fri Oct  2 00:22:01 1998
++++ Makefile	Fri Oct  2 00:22:01 1998
+@@ -114,10 +114,10 @@
+ PROGRAMS =  $(bin_PROGRAMS)
+ 
+ 
+-DEFS = -DHAVE_CONFIG_H -I. -I$(srcdir) -I..
++DEFS = -DHAVE_CONFIG_H -DMSIPL_DEF_TEMPARG -DUSG -I. -I$(srcdir) -I..
+ CPPFLAGS = 
+-LDFLAGS = 
+-LIBS = 
++LDFLAGS =
++LIBS = -lmslcpp_2_2
+ prcs_OBJECTS =  prcs.o sexp.o fileent.o projdesc.o checkin.o checkout.o \
+ repository.o populate.o syscmd.o vc.o diff.o info.o misc.o package.o \
+ merge.o lock.o rebuild.o prcserror.o convert.o memseg.o prcsver.o \
+@@ -128,10 +128,10 @@
+ LEX_OUTPUT_ROOT = lex.yy
+ LEXLIB = 
+ YLWRAP = $(srcdir)/ylwrap
+-CXXFLAGS = -g
++CXXFLAGS = -g -opt full -nodup
+ CXXCOMPILE = $(CXX) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CXXFLAGS)
+ CXXLINK = $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@
+-CFLAGS = -g
++CFLAGS = -g -opt full -nodup
+ COMPILE = $(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
+ LINK = $(CC) $(CFLAGS) $(LDFLAGS) -o $@
+ DIST_COMMON =  Makefile.am Makefile.in docs.cc.in fnmatch.c memcmp.c \
+@@ -175,8 +175,10 @@
+ 
+ clean-binPROGRAMS:
+ 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
++	-test -z "$(bin_PROGRAMS).xSYM" || rm -f $(bin_PROGRAMS).xSYM
+ 
+ distclean-binPROGRAMS:
++	-test -d .deps || rm -r .deps
+ 
+ maintainer-clean-binPROGRAMS:
+ 
+@@ -325,23 +327,23 @@
+ 	-rm -rf .deps
+ 
+ %.o: %.c
+-	@echo '$(COMPILE) -c $<'; \
+-	$(COMPILE) -Wp,-MD,.deps/$(*F).P -c $<
++	$(COMPILE) -c $< 
++	$(COMPILE) -make -c $< > .deps/$(*F).P
+ 
+ %.lo: %.c
+-	@echo '$(LTCOMPILE) -c $<'; \
+-	$(LTCOMPILE) -Wp,-MD,.deps/$(*F).p -c $<
++	$(LTCOMPILE) -c $<
++	$(LTCOMPILE) -make -c $< > .deps/$(*F).p
+ 	@-sed -e 's/^\([^:]*\)\.o:/\1.lo \1.o:/' \
+ 	  < .deps/$(*F).p > .deps/$(*F).P
+ 	@-rm -f .deps/$(*F).p
+ 
+ %.o: %.cc
+-	@echo '$(CXXCOMPILE) -c $<'; \
+-	$(CXXCOMPILE) -Wp,-MD,.deps/$(*F).P -c $<
++	$(CXXCOMPILE) -c $<
++	$(CXXCOMPILE) -make -c $< > .deps/$(*F).P
+ 
+ %.lo: %.cc
+-	@echo '$(LTCXXCOMPILE) -c $<'; \
+-	$(LTCXXCOMPILE) -Wp,-MD,.deps/$(*F).p -c $<
++	$(LTCXXCOMPILE) -c $<
++	$(LTCXXCOMPILE) -make -c $< > .deps/$(*F).p
+ 	@-sed -e 's/^\([^:]*\)\.o:/\1.lo \1.o:/' \
+ 	  < .deps/$(*F).p > .deps/$(*F).P
+ 	@-rm -f .deps/$(*F).p
+@@ -385,7 +387,7 @@
+ 	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
+ 
+ distclean-generic:
+-	-rm -f Makefile $(DISTCLEANFILES)
++	-rm -f Makefile Makefile-Gen $(DISTCLEANFILES)
+ 	-rm -f config.cache config.log stamp-h stamp-h[0-9]*
+ 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
+ 

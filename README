@@ -1,0 +1,73 @@
+ -*- Text -*-
+
+	       PRCS -- Project Revision Control System
+
+
+Announcing version 1.2.16 of PRCS, the Project Revision Control
+System.  PRCS is the front end to a set of tools that (like CVS)
+provide a way to deal with sets of files and directories as an entity,
+preserving coherent versions of the entire set.
+
+PRCS was designed primarily by Professor P. N. Hilfinger, with input
+and modifications by Luigi Semenzato and Joshua MacDonald.  PRCS is
+written and maintained by Joshua MacDonald.
+
+Its purpose is similar to that of SCCS, RCS, and CVS, but (according
+to its authors, at least), it is much simpler than any of those
+systems.
+
+To compile and install PRCS, read the instructions in the INSTALL
+file.  Once you have done this, you should at least read the first few
+sections of the documentation.  It is available in info format.  All
+documentation is located in the doc/ subdirectory.
+
+The current release, version 1.2.16, future releases of PRCS, HTML
+documentation and recent developments are available online at
+
+   http://prcs.xdelta.org
+
+PRCS is released under the GNU public license, see the file COPYING
+for details.
+
+A mailing list has been formed for announcements and discussion:
+
+   prcs-list@XCF.Berkeley.EDU,
+
+you can subscribe by sending an empty message to
+
+    prcs-list-subscribe@XCF.Berkeley.EDU
+
+and you can unsubscribe by sending an empty message to
+
+    prcs-list-unsubscribe@XCF.Berkeley.EDU
+
+Comments about PRCS can be addressed to the following addresses:
+
+   prcs@XCF.Berkeley.EDU
+
+Bug reports can be addressed to the following address:
+
+   prcs-bugs@XCF.Berkeley.EDU
+
+When sending bug reports, always include:
+-- a complete description of the problem encountered
+-- the output of `prcs config'
+-- the operating system and version
+-- the architecture.
+
+If possible, include:
+-- the file `/tmp/prcs_bug', if it exists
+-- the working project file, if one was in use
+-- the output of `ls -lR' in the current directory.
+
+Disk space permitting, retain the following:
+-- any relevant working project files
+-- a repository package created with `prcs package PROJECT'.
+
+Disk space not permitting, retain just:
+-- the repository file PRCS/PROJECT/PROJECT.prj,v
+-- the repository log PRCS/PROJECT/prcs_log
+-- the repository data file PRCS/PROJECT/prcs_data
+-- the output of `rlog' on each repository file under PRCS/PROJECT.
+
+These steps will help diagnose the problem.

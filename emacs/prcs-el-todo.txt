@@ -1,0 +1,316 @@
+-*- Outline -*-
+
+This file is associated with `prcs.el' and shares its copyright and
+disclaimers. Contact Jesse Glick <Jesse.Glick@netbeans.com> for
+information and to report bugs.
+
+$PrcsModeVersion: 1.60 on Sun, 07 Feb 1999 19:05:45 -0500 $
+
+
+* Inline Issues
+Problems in the middle of code are marked with `XXX', which may be grepped
+for.
+
+* General Outstanding Issues
+Very roughly in descending order of importance to implement/fix.
+
+** EDiff support for merges
+Similar to current support on diffs.
+
+** Asynch diffs
+At least have option for `prcs-diff' and `prcs-diff-with-prefix' to be
+asynchronous. (With EDiff, they already are.)
+
+** EDiff UI
+Should try to pop back to pbuffer after quitting session group. Output from
+command should not go to regular output buffer, but rather to a special
+invisible temp buffer, which upon setup of the session group is killed off and
+its content inserted into the end of the session group buffer, so it can be
+seen all at once--incl. file additions, deletions, p-file modifications, etc.
+
+** Double parse after escaping
+When an unmodified, writable pbuffer is visited which requires filename
+escaping, and the user accepts the prompt to save the buffer after the
+escaping, the save triggers a full parse (due to after-save hooks) whose
+result enters the cache; however, `prcs-parse-prj-file' then continues on the
+retry part of its parse and parses everything again gratuitously (since the
+code to check cache is outside this function entirely). Instead, it should
+check after the call to `prcs-escape-syntactic-nastiness' whether it still
+needs to run or not.
+
+** Output buffer UI
+Output buffer should ideally be more friendly. E.g., define prcs-output-mode,
+deriving from View Mode, which also sets: key `p' (?) to
+`prcs-jump-to-project-file'; font lock coloration (for separators; commands
+proper; prcs: informational prompts; diff *** bars; &c.); settings for e.g.
+Outline and para-movement stuff, based on separators; and so forth.
+
+** Better filename escaping
+More thorough patterns for `prcs-escape-syntactic-nastiness'. E.g., handle
+pound signs in filenames (though why anyone would have such beats me).
+
+** Nested projects
+What happens w/ nested projects? Presumably the subproject p-file usually acts
+as if it belonged to the subproject, though refreshes & the like may still
+work (modeline likely to become confused).
+
+** ChangeLog insertion problems
+ChangeLog message appearance leaves some things to be desired. E.g., after
+inserting a message with embedded double newlines, subsequent messages will be
+inserted in between paragraphs because add-log gets confused about where it
+should go. It may be necessary to either massage the message a fair bit before
+insertion, or provide time for the user to do this. [See discussion below.]
+
+** Configurable `ChangeLog' name
+Or, could look for a file in (Files) with :tag=changelog.
+
+** Automatic branch-and-merge on checkin
+Checkin should potentially see if it should merge against dest branch first
+(try `prcs checkin -r<...> -n' on pseudotty; exit 2 when merge is needed,
+among other conditions); if so, it should be able to check in onto scratch
+branch instead (suggested: `user-login-name' + "_tmp", may need `-f' to
+prevent merge prompt here), then run appropriate merge, then resume original
+checkin (unless things have changed again since then...).
+
+** XEmacs toolbar support
+Would be cute to add some toolbar hooks to XEmacs. E.g. a "PRCS" button added
+to the toolbar when in PRCS Controlled Mode at least.
+
+** `prcs-ask-about-save' <- `vc-suppress-confirm'
+But think about effect on refreshes, which should be controllable separately.
+
+** `exec-path' <-+ `vc-path'
+`vc-path' ought to be appended to `exec-path' whenever PRCS is being called.
+
+** Safer timeouts
+Asynch process killed by timeout should send SIGTERM & wait a moment before
+killing for real, to reduce chance of spurious locks being left around
+repository.
+
+** Disable asynch
+Possibly have a global var to turn off all asynch process runs (can just
+modify `prcs-command') in case local Emacs does not handle them well enough.
+Have had difficult-to-diagnose problems with asynch processes on occasion. [No
+serious problems since `prcs-command' implementation.]
+
+** Buffer-local cache vars
+A number of things could be stored as buffer-local variables that currently
+are not: project file path; project relative path; maybe others. These would
+not have serious consistency problems since you do not expect them to change
+within a buffer's lifetime.
+
+** More conservative modeline recalc
+Upon refreshing the project file (usually secondary to some other action),
+should maybe look for affected open buffers & recalc their modelines.
+
+** Refresh all after a `C-x v p'
+Maybe. Not necessarily modelines, but anything quick at least.
+
+** `defined-derived-mode'
+Use if possible.
+
+** Sort files list
+Option to sort files list? Not necessarily so good an idea, depending on how
+your comments and so on are set up.
+
+* Possible VC-Mode Pseudo-Compatibility Scheme
+
+** Redefines of VC keys
+
+*** C-x C-q
+default (read-only toggle) behavior
+*** C-x v =
+as currently in p-file, else single-file diff
+*** C-x v a
+see below
+*** C-x v c
+probably unimpl., or prompt for version deletion (p-file)
+*** C-x v d
+jump to p-file (currently C-x v p)
+*** C-x v g
+unimpl.
+*** C-x v h
+insert one of standard headers, or those mentioned in Project-Keywords (error
+from p-file), using completion; Format treated specially; just insert (no
+comment stuff) w/ Prefix
+*** C-x v i
+from p-file, create & populate new file; from other file, prompt to delete &
+depopulate
+*** C-x v l
+run info (see `prcs-info')
+*** C-x v r
+checkout (file or project)
+*** C-x v s
+checkin (file or project)
+*** C-x v u
+revert to repository version (file or project); warn if mod (ideally also
+display diffs: "Discard changes? ")
+*** C-x v v
+register (if called globally); else do a checkin
+*** C-x v ~
+as in VC-Mode (this file, or whole project if in p-file, by making scratch dir
+whose p-file is jumped to)
+
+** New keys in the same map
+
+*** C-x v k
+rekey (this file, or whole project)
+*** C-x v n
+rename (error if in p-file)
+*** C-x v m
+merge (just use interactive buffer, optionally with EMerge/EDiff hooks)
+*** C-x v x
+either release project/files (prompt if mod), or kill uncontrolled working
+files ("tidy", only from p-file), or both (acc. to prompt)
+*** C-x v f
+jump to file mentioned at point (only from p-file, else like C-x v d) (point
+must be on inclusive text area containing a Files entry s-exp)
+
+** Globally bound keys
+
+*** C-x v i
+if in file buffer, and potent. PRCS controlled but not, prompt to do that;
+else run standard VC action
+*** C-x v v
+as for C-x v i (unless already in `vc-mode')
+*** C-x v d
+like local binding (works in any buffers if potent. PRCS controlled)
+
+** Log entry buffer
+
+*** C-c C-c
+continue with check-in
+
+* Possible VC-Dired Pseudo-Compatibility Scheme
+(more difficult)
+
+** Startup
+While `C-x v d' on random controlled files still just jumps to the p-buffer,
+within the p-buffer it pops up a Dired-derived buffer listing all new or
+modified file entries (new ones are premarked with `+', and `!' for modified
+ones, rather than `*' since that is the default Dired mark; `prcs diff -- -q'
+is used to get the list quickly; project file is included). `C-u C-x v d' also
+displays unmodified files (with no mark); `C-u C-u C-x v d' displays all files
+in the controlled directory (and subdirectories), marking uncontrolled files
+with `~'. Most Dired stuff now works normally, e.g. `I' will pop up Info if
+you have Dired-X loaded; marks work normally; &c.
+
+** Mode line
+The project name and version are mentioned in the mode line, together with an
+indication of the mode (e.g. "Dired under PRCS").
+
+** VC-related keybindings
+Sundry `C-x v' prefix commands have their usual semantics, except that the
+"affected" list of files (or buffers) is taken from `dired-get-marked-files',
+with its usual capacity for overrides. `C-x C-q' is bound to do a checkin.
+
+** Refreshes & updates
+Ideally, the Dired listing (if there is one) is either fully refreshed or
+simply adjusted when needed in the following conditions: `g' is pressed (usual
+Dired refresh); `prcs-prompt-for-refreshes' is called;
+`prcs-check-if-file-modified' obtains a result (will only change marks which
+are already blank, '+', or '!' to the new value); a modified project buffer is
+saved; a file is registered with the project using `C-x v i' or `C-x v v'.
+
+** Marks
+There are special extensions to the `*' prefix (mark operations): `<' marks
+all files that have a prompted-for tag (`:symlink', `:tag=foo', &c.) in the
+project buffer; '>' adds or removes (acc. to prompt) a prompted-for tag in the
+project buffer to/from all marked files. The tag prompts have history.
+
+** Dangerous operations
+"Dangerous" operations in the Dired keymap are rebound to more appropriate
+versions. In particular, deletions (on controlled files) prompt carefully if
+the files are new or modified, and then run a regular delete (from disk,
+visited buffer, and Dired entry) as well as removing that entry from the
+project file. Similarly, renames (of controlled files) refuse to rename
+outside the top-level project directory, then run a regular rename (on disk,
+visited buffer, Dired entry) as well as renaming the entry in the project
+file. In principle symlink creation and new-directory creation could similarly
+make project-buffer entries but this seems a waste of time. (Note: renaming
+the project file is forbidden; deleting the project file (possibly along with
+other files) is permitted, but of course will not remove anything from the
+Files list because it is to be deleted anyway. Thus you can get the effect of
+a release operation by just marking all controlled files and deleting; you
+would be `yes-or-no-p' discouraged if any were modified.)
+
+** No specific "release" command
+`C-x v x' would be obsoleted by this scheme, as you can perform similar
+operations in the Dired buffer.
+
+** Generalized jump-to-file
+Could remove binding for `C-x v f'; then make `C-x v d' do as follows: from
+either p-buffer or Dired buffer, jump to the other (creating as needed),
+attempting to stay on the corresponding file line (in Dired, using the usual
+functions, and in p-buffer, looking for file-entry s-exp that point is
+contained in); can visit file as usual from Dired buffer with `f' or `o' or
+`F' &c.; from controlled file, jump to p-buffer at that line; from
+uncontrolled buffer, jump to nearest p-buffer, not moving point.
+
+* Possible ChangeLog Upgrade
+
+** Insertion
+Checkin inserts New-Version-Log into ChangeLog (if any) immediately after date
++ author + mail + filename + splat as is currently done, except:
+
+*** "Filename"
+The filename is changed to `PROJECT:VERSION' (or somesuch), rather than
+`PROJECT.prj'. Or, the version might be put in the "defun" slot.
+
+*** Unescapes
+\ and " are unescaped.
+
+*** Indent & fill
+The body is indented over by a TAB (except blank lines) and filled.
+
+*** Tricks
+Examine code for `vc-comment-to-change-log' for hints.
+
+*** Hidden logs
+The insertion is skipped completely if the New-Version-Log begins with a pound
+sign.
+
+*** Bulleting
+A new entry is always created (i.e. a new splat-header, not necessarily a new
+date + name + address header).
+
+** Alias buffer
+An alias (indirect) buffer is created upon aborted checkin or upon `C-x v a'
+(see later) which spans the New-Version-Log string (inside the quotes). Fill
+mode is maybe set.
+
+*** Escapes
+In the alias buffer, \ and " are bound to special commands which insert a
+previous backslash, but make that backslash invisible. (The invisibility
+should be a text property, not an overlay; disable it in the p-file with
+`buffer-invisibility-spec'.)
+
+*** Creation & destruction
+The alias buffer is created lazily, and destroyed upon reversion of the
+project file or checkin.
+
+*** Keybinding proxy
+Wherever possible, key commands from within the alias buffer work as they
+would if called from within the p-file.
+
+** Add log from current file
+`C-x v a' is bound to a command to add a partial log entry. It always jumps
+into the alias buffer to do its work (other-window display).
+
+*** From project file
+If called from p-file, it just goes to the top of the buffer: i.e. the message
+which will appear associated with the project:version itself.
+
+*** From controlled file
+If called from a controlled file, it jumps to (the beginning of) that file's
+entry, creating it as necessary, of the form of a new paragraph, splat,
+filename. There may be multiple filenames there already, which is fine. If
+called from within a defun, that is added in the usual place.
+
+** Aborted checkins
+Aborted checkin sets a callback in the alias buffer to continue same checkin
+upon `C-c C-c', to mimic VC-Mode behavior.
+
+** Branch restrictions
+Possibly option to only enter changelog entries for checkins made on a certain
+set of branches (e.g. numeric branches).

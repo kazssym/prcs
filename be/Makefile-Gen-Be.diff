@@ -1,0 +1,145 @@
+--- Makefile-Gen	Fri Oct  2 00:22:01 1998
++++ Makefile	Fri Oct  2 00:29:08 1998
+@@ -86,7 +86,7 @@
+ 
+ SUBDIRS = include
+ 
+-INCLUDES = -I$(srcdir)/include
++INCLUDES = -I- -I. -I.. -I$(srcdir)/include
+ 
+ EXTRA_DIST = README.GNU.SOURCES prcserror.tl dynarray.tl hash.tl \
+ 	     prcs-keys.c prcs-keys.gperf prj-names.h prj-names.gperf
+@@ -97,7 +97,7 @@
+ 
+ prcs_LDADD =  fnmatch.o 
+ 
+-prcs_DEPENDENCIES =  fnmatch.o
++prcs_DEPENDENCIES =  $(OBJ)/fnmatch.o
+ 
+ prcs_SOURCES = prcs.cc sexp.cc fileent.cc projdesc.cc checkin.cc \
+ 	checkout.cc repository.cc populate.cc syscmd.cc vc.cc diff.cc \
+@@ -114,10 +114,10 @@
+ PROGRAMS =  $(bin_PROGRAMS)
+ 
+ 
+-DEFS = -DHAVE_CONFIG_H -I. -I$(srcdir) -I..
++DEFS = -DHAVE_CONFIG_H -DMSIPL_DEF_TEMPARG -DUSG
+ CPPFLAGS = 
+-LDFLAGS = 
+-LIBS = 
++LDFLAGS =
++LIBS = -lmslcpp_2_2
+ prcs_OBJECTS =  prcs.o sexp.o fileent.o projdesc.o checkin.o checkout.o \
+ repository.o populate.o syscmd.o vc.o diff.o info.o misc.o package.o \
+ merge.o lock.o rebuild.o prcserror.o convert.o memseg.o prcsver.o \
+@@ -137,6 +137,7 @@
+ DIST_COMMON =  Makefile.am Makefile.in docs.cc.in fnmatch.c memcmp.c \
+ prjlex.c vclex.c ylwrap
+ 
++include ../be/Makefile-Be.inc
+ 
+ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST) \
+ 		$(INFOS) $(GUIDES) $(HTMLS) $(MANS)
+@@ -155,7 +156,7 @@
+ .deps/utils.P .deps/vc.P .deps/vclex.P
+ CXXMKDEP = $(CXX) -M $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CXXFLAGS)
+ SOURCES = $(prcs_SOURCES)
+-OBJECTS = $(prcs_OBJECTS)
++OBJECTS = $(addprefix $(OBJ)/, $(prcs_OBJECTS) $(prcs_LDADD))
+ 
+ default: all
+ 
+@@ -175,8 +176,10 @@
+ 
+ clean-binPROGRAMS:
+ 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
++	-test -z "$(bin_PROGRAMS).xSYM" || rm -f $(bin_PROGRAMS).xSYM
+ 
+ distclean-binPROGRAMS:
++	-test -d .deps || rm -r .deps
+ 
+ maintainer-clean-binPROGRAMS:
+ 
+@@ -204,21 +207,41 @@
+ 
+ mostlyclean-compile:
+ 	-rm -f *.o core *.core
++	-rm -rf $(OBJ)
+ 
+ clean-compile:
+ 
+ distclean-compile:
+ 	-rm -f *.tab.c
++	-rm -rf obj.ppc obj.x86 
+ 
+ maintainer-clean-compile:
+ 
+-prcs: $(prcs_OBJECTS) $(prcs_DEPENDENCIES)
++prcs: $(OBJ)/prcs
++ifeq ($(NATIVE), $(CPU))
+ 	@rm -f prcs
+-	$(CXXLINK) $(prcs_LDFLAGS) $(prcs_OBJECTS) $(prcs_LDADD) $(LIBS)
++	@cp $(OBJ)/prcs prcs
++else
++	@echo "This was a cross-compile; prcs was not copied."
++endif
++
++$(OBJ)/prcs: $(OBJ) $(OBJECTS) $(prcs_DEPENDENCIES)
++	@rm -f $(OBJ)/prcs
++	$(LINK) $(prcs_LDFLAGS) $(OBJECTS) $(LIBS)
++
+ .l.c:
+ 	$(SHELL) $(YLWRAP) "$(LEX)" $< $(LEX_OUTPUT_ROOT).c $@ -- $(LFLAGS)
+-.cc.o:
+-	$(CXXCOMPILE) -c $<
++
++$(OBJ) ::
++	@[ -d $(OBJ) ] || mkdir $(OBJ) > /dev/null 2>&1
++
++$(OBJ)/%.o : %.c
++	$(COMPILE) -c $< -o $@
++	$(COMPILE) -make -c $< > .deps/$(*F).P
++
++$(OBJ)/%.o : %.cc
++	$(CXXCOMPILE) -c $< -o $@
++	$(CXXCOMPILE) -make -c $< > .deps/$(*F).P
+ 
+ # This directory's subdirectories are mostly independent; you can cd
+ # into them and run `make' without going through this Makefile.
+@@ -324,27 +347,6 @@
+ maintainer-clean-depend:
+ 	-rm -rf .deps
+ 
+-%.o: %.c
+-	@echo '$(COMPILE) -c $<'; \
+-	$(COMPILE) -Wp,-MD,.deps/$(*F).P -c $<
+-
+-%.lo: %.c
+-	@echo '$(LTCOMPILE) -c $<'; \
+-	$(LTCOMPILE) -Wp,-MD,.deps/$(*F).p -c $<
+-	@-sed -e 's/^\([^:]*\)\.o:/\1.lo \1.o:/' \
+-	  < .deps/$(*F).p > .deps/$(*F).P
+-	@-rm -f .deps/$(*F).p
+-
+-%.o: %.cc
+-	@echo '$(CXXCOMPILE) -c $<'; \
+-	$(CXXCOMPILE) -Wp,-MD,.deps/$(*F).P -c $<
+-
+-%.lo: %.cc
+-	@echo '$(LTCXXCOMPILE) -c $<'; \
+-	$(LTCXXCOMPILE) -Wp,-MD,.deps/$(*F).p -c $<
+-	@-sed -e 's/^\([^:]*\)\.o:/\1.lo \1.o:/' \
+-	  < .deps/$(*F).p > .deps/$(*F).P
+-	@-rm -f .deps/$(*F).p
+ info: info-recursive
+ guide: guide-recursive
+ html: html-recursive
+@@ -385,7 +387,7 @@
+ 	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
+ 
+ distclean-generic:
+-	-rm -f Makefile $(DISTCLEANFILES)
++	-rm -f Makefile Makefile-Gen $(DISTCLEANFILES)
+ 	-rm -f config.cache config.log stamp-h stamp-h[0-9]*
+ 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
+ 

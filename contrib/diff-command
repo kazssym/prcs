@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# An example of how to treat the arguments to a PRCS_DIFF_COMMAND.
+
+echo Diff script called with args:
+echo "From label:  $1"
+echo "From file:   $2"
+echo "To label:    $3"
+echo "To file:     $4"
+
+exec diff "-L$1" "$2" "-L$3" "$4"

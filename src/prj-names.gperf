@@ -1,0 +1,16 @@
+struct PrjFields { const char *name; PrVoidError(ProjectDescriptor:: *func_ptr)(Sexp* list); PrVoidError(ProjectDescriptor:: *read_ptr)(); bool must_have; };
+%%
+Project-Description,     ProjectDescriptor::project_desc_prj_entry_func,     NULL,  true
+Created-By-Prcs-Version, ProjectDescriptor::created_by_prj_entry_func,       NULL,  true
+Project-Version,         ProjectDescriptor::project_ver_prj_entry_func,      NULL,  true
+Parent-Version,          ProjectDescriptor::parent_ver_prj_entry_func,       NULL,  true
+Version-Log,             ProjectDescriptor::version_log_prj_entry_func,      NULL,  true
+New-Version-Log,         ProjectDescriptor::new_version_log_prj_entry_func,  NULL,  true
+Checkin-Time,            ProjectDescriptor::checkin_time_prj_entry_func,     NULL,  true
+Checkin-Login,           ProjectDescriptor::checkin_login_prj_entry_func,    NULL,  true
+Descends-From,           ProjectDescriptor::descends_from_prj_entry_func,    NULL,  false
+Populate-Ignore,         ProjectDescriptor::populate_ignore_prj_entry_func,  NULL,  false
+Project-Keywords,        ProjectDescriptor::project_keywords_prj_entry_func, NULL,  false
+Merge-Parents,           NULL, ProjectDescriptor::merge_parents_prj_entry_read,     false
+New-Merge-Parents,       NULL, ProjectDescriptor::new_merge_parents_prj_entry_read, false
+Files,                   NULL, ProjectDescriptor::files_prj_entry_read,             true

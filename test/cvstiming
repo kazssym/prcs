@@ -1,0 +1,28 @@
+#!/bin/sh
+
+CVSROOT=/homel/jmacd/CVS
+RCS_PATH=/homel/jmacd/bin
+
+export CVSROOT
+
+CVS="cvs -b $RCS_PATH"
+
+DIR=$1
+PROJECT=test
+
+rm -rf $DIR $PROJECT CVS
+tar -xzf $DIR.tar.gz
+
+cd $DIR
+
+rm -rf $CVSROOT
+echo Running command "$CVS init"
+/usr/bin/time $CVS init
+echo Running command "$CVS import -m log $PROJECT vendor_$PROJECT release_$PROJECT"
+/usr/bin/time $CVS import -m log $PROJECT vendor_$PROJECT release_$PROJECT
+
+cd ..
+
+rm -rf $DIR
+
+/usr/bin/time $CVS co $PROJECT

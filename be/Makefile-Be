@@ -1,0 +1,469 @@
+# Generated automatically from Makefile.in by configure.
+# Makefile.in generated automatically by automake 1.2f from Makefile.am
+
+# Copyright (C) 1994, 1995, 1996, 1997, 1998 Free Software Foundation, Inc.
+# This Makefile.in is free software; the Free Software Foundation
+# gives unlimited permission to copy and/or distribute it,
+# with or without modifications, as long as this notice is preserved.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY, to the extent permitted by law; without
+# even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+# PARTICULAR PURPOSE.
+
+
+SHELL = /bin/sh
+
+srcdir = .
+top_srcdir = ..
+prefix = /boot/home/config/bin
+exec_prefix = ${prefix}
+
+bindir = ${exec_prefix}/bin
+sbindir = ${exec_prefix}/sbin
+libexecdir = ${exec_prefix}/libexec
+datadir = ${prefix}/share
+sysconfdir = ${prefix}/etc
+sharedstatedir = ${prefix}/com
+localstatedir = ${prefix}/var
+libdir = ${exec_prefix}/lib
+infodir = ${prefix}/info
+guidedir = ${prefix}/guide
+htmldir = ${prefix}/html
+dvidir = ${prefix}/dvi
+psdir = ${prefix}/ps
+mandir = ${prefix}/man
+includedir = ${prefix}/include
+oldincludedir = /usr/include
+
+pkgdatadir = $(datadir)/prcs
+pkglibdir = $(libdir)/prcs
+pkgincludedir = $(includedir)/prcs
+
+top_builddir = ..
+
+ACLOCAL = aclocal
+AUTOCONF = autoconf
+AUTOMAKE = automake
+AUTOHEADER = autoheader
+
+INSTALL = /bin/install -c
+INSTALL_PROGRAM = ${INSTALL}
+INSTALL_DATA = ${INSTALL} -m 644
+INSTALL_SCRIPT = ${INSTALL_PROGRAM}
+transform = s,x,x,
+
+NORMAL_INSTALL = :
+PRE_INSTALL = :
+POST_INSTALL = :
+NORMAL_UNINSTALL = :
+PRE_UNINSTALL = :
+POST_UNINSTALL = :
+host_alias = ppc-bemac-beos
+host_triplet = powerpc-bemac-beos
+CC = cc
+CXX = c++
+DEFAULT_ENV_ = @DEFAULT_ENV_@
+EMACS = no
+LEX = flex
+MAKEINFO = makeinfo
+PACKAGE = prcs
+PRCS_MAJOR_VERSION_NUMBER = 1
+PRCS_MICRO_VERSION_NUMBER = 9
+PRCS_MINOR_VERSION_NUMBER = 2
+RANLIB = ranlib
+SYS_CI_COMMAND_PATH = "/bin/ci"
+SYS_CO_COMMAND_PATH = "/bin/co"
+SYS_GDIFF3_COMMAND_PATH = "/bin/diff3"
+SYS_GDIFF_COMMAND_PATH = "/bin/diff"
+SYS_GZIP_COMMAND_PATH = "/bin/gzip"
+SYS_LS_COMMAND_PATH = "/bin/ls"
+SYS_RCS_COMMAND_PATH = "/bin/rcs"
+SYS_RLOG_COMMAND_PATH = "/bin/rlog"
+SYS_TAR_COMMAND_PATH = "/bin/tar"
+VERSION = 1.2.9
+lispdir = 
+
+SUBDIRS = include
+
+INCLUDES = -I- -I. -I.. -I$(srcdir)/include
+
+EXTRA_DIST = README.GNU.SOURCES prcserror.tl dynarray.tl hash.tl \
+	     prcs-keys.c prcs-keys.gperf prj-names.h prj-names.gperf
+
+bin_PROGRAMS = prcs
+
+BUILT_SOURCES = prcs-keys.c prj-names.h
+
+prcs_LDADD =  fnmatch.o 
+
+prcs_DEPENDENCIES =  $(OBJ)/fnmatch.o
+
+prcs_SOURCES = prcs.cc sexp.cc fileent.cc projdesc.cc checkin.cc \
+	checkout.cc repository.cc populate.cc syscmd.cc vc.cc diff.cc \
+	info.cc misc.cc package.cc merge.cc lock.cc rebuild.cc \
+	prcserror.cc convert.cc memseg.cc prcsver.cc setkeys.cc \
+	quick.cc rekey.cc dstring.cc dynarray.cc hash.cc execute.cc \
+	docs.cc attrs.cc utils.c getopt.c getopt1.c md5c.c maketime.c \
+	partime.c vclex.l prcs-keys.c prjlex.l regex.c
+
+JGPERF=jgperf
+mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
+CONFIG_HEADER = ../config.h
+CONFIG_CLEAN_FILES =  docs.cc
+PROGRAMS =  $(bin_PROGRAMS)
+
+
+DEFS = -DHAVE_CONFIG_H -DMSIPL_DEF_TEMPARG -DUSG
+CPPFLAGS = 
+LDFLAGS =
+LIBS = -lmslcpp_2_2
+prcs_OBJECTS =  prcs.o sexp.o fileent.o projdesc.o checkin.o checkout.o \
+repository.o populate.o syscmd.o vc.o diff.o info.o misc.o package.o \
+merge.o lock.o rebuild.o prcserror.o convert.o memseg.o prcsver.o \
+setkeys.o quick.o rekey.o dstring.o dynarray.o hash.o execute.o docs.o \
+attrs.o utils.o getopt.o getopt1.o md5c.o maketime.o partime.o vclex.o \
+prcs-keys.o prjlex.o regex.o
+prcs_LDFLAGS = 
+LEX_OUTPUT_ROOT = lex.yy
+LEXLIB = 
+YLWRAP = $(srcdir)/ylwrap
+CXXFLAGS = -g
+CXXCOMPILE = $(CXX) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CXXFLAGS)
+CXXLINK = $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@
+CFLAGS = -g
+COMPILE = $(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
+LINK = $(CC) $(CFLAGS) $(LDFLAGS) -o $@
+DIST_COMMON =  Makefile.am Makefile.in docs.cc.in fnmatch.c memcmp.c \
+prjlex.c vclex.c ylwrap
+
+include ../be/Makefile-Be.inc
+
+DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST) \
+		$(INFOS) $(GUIDES) $(HTMLS) $(MANS)
+TAR = tar
+GZIP = --best
+DEP_FILES =  .deps/attrs.P .deps/checkin.P .deps/checkout.P \
+.deps/convert.P .deps/diff.P .deps/docs.P .deps/dstring.P \
+.deps/dynarray.P .deps/execute.P .deps/fileent.P .deps/fnmatch.P \
+.deps/getopt.P .deps/getopt1.P .deps/hash.P .deps/info.P .deps/lock.P \
+.deps/maketime.P .deps/md5c.P .deps/memcmp.P .deps/memseg.P \
+.deps/merge.P .deps/misc.P .deps/package.P .deps/partime.P \
+.deps/populate.P .deps/prcs-keys .deps/prcs-keys.P .deps/prcs.P \
+.deps/prcserror.P .deps/prcsver.P .deps/prjlex.P .deps/projdesc.P \
+.deps/quick.P .deps/rebuild.P .deps/regex.P .deps/rekey.P \
+.deps/repository.P .deps/setkeys.P .deps/sexp.P .deps/syscmd.P \
+.deps/utils.P .deps/vc.P .deps/vclex.P
+CXXMKDEP = $(CXX) -M $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CXXFLAGS)
+SOURCES = $(prcs_SOURCES)
+OBJECTS = $(addprefix $(OBJ)/, $(prcs_OBJECTS) $(prcs_LDADD))
+
+default: all
+
+.SUFFIXES:
+.SUFFIXES: .S .c .cc .l .o .s
+$(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
+	cd $(top_srcdir) && $(AUTOMAKE) --gnu src/Makefile
+
+Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status $(BUILT_SOURCES)
+	cd $(top_builddir) \
+	  && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
+
+docs.cc: $(top_builddir)/config.status docs.cc.in
+	cd $(top_builddir) && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= ./config.status
+
+mostlyclean-binPROGRAMS:
+
+clean-binPROGRAMS:
+	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
+	-test -z "$(bin_PROGRAMS).xSYM" || rm -f $(bin_PROGRAMS).xSYM
+
+distclean-binPROGRAMS:
+	-test -d .deps || rm -r .deps
+
+maintainer-clean-binPROGRAMS:
+
+install-binPROGRAMS: $(bin_PROGRAMS)
+	@$(NORMAL_INSTALL)
+	$(mkinstalldirs) $(bindir)
+	@list='$(bin_PROGRAMS)'; for p in $$list; do \
+	  if test -f $$p; then \
+	    echo "  $(INSTALL_PROGRAM) $$p $(bindir)/`echo $$p|sed '$(transform)'`"; \
+	     $(INSTALL_PROGRAM) $$p $(bindir)/`echo $$p|sed '$(transform)'`; \
+	  else :; fi; \
+	done
+
+uninstall-binPROGRAMS:
+	@$(NORMAL_UNINSTALL)
+	list='$(bin_PROGRAMS)'; for p in $$list; do \
+	  rm -f $(bindir)/`echo $$p|sed '$(transform)'`; \
+	done
+
+.s.o:
+	$(COMPILE) -c $<
+
+.S.o:
+	$(COMPILE) -c $<
+
+mostlyclean-compile:
+	-rm -f *.o core *.core
+	-rm -rf $(OBJ)
+
+clean-compile:
+
+distclean-compile:
+	-rm -f *.tab.c
+	-rm -rf obj.ppc obj.x86 
+
+maintainer-clean-compile:
+
+prcs: $(OBJ)/prcs
+ifeq ($(NATIVE), $(CPU))
+	@rm -f prcs
+	@cp $(OBJ)/prcs prcs
+else
+	@echo "This was a cross-compile; prcs was not copied."
+endif
+
+$(OBJ)/prcs: $(OBJ) $(OBJECTS) $(prcs_DEPENDENCIES)
+	@rm -f $(OBJ)/prcs
+	$(LINK) $(prcs_LDFLAGS) $(OBJECTS) $(LIBS)
+
+.l.c:
+	$(SHELL) $(YLWRAP) "$(LEX)" $< $(LEX_OUTPUT_ROOT).c $@ -- $(LFLAGS)
+
+$(OBJ) ::
+	@[ -d $(OBJ) ] || mkdir $(OBJ) > /dev/null 2>&1
+
+$(OBJ)/%.o : %.c
+	$(COMPILE) -c $< -o $@
+	$(COMPILE) -make -c $< > .deps/$(*F).P
+
+$(OBJ)/%.o : %.cc
+	$(CXXCOMPILE) -c $< -o $@
+	$(CXXCOMPILE) -make -c $< > .deps/$(*F).P
+
+# This directory's subdirectories are mostly independent; you can cd
+# into them and run `make' without going through this Makefile.
+# To change the values of `make' variables: instead of editing Makefiles,
+# (1) if the variable is set in `config.status', edit `config.status'
+#     (which will cause the Makefiles to be regenerated when you run `make');
+# (2) otherwise, pass the desired values on the `make' command line.
+
+
+
+all-recursive install-data-recursive install-exec-recursive \
+installdirs-recursive install-recursive uninstall-recursive  \
+check-recursive installcheck-recursive info-recursive dvi-recursive \
+guide-recursive ps-recursive html-recursive:
+	@set fnord $(MAKEFLAGS); amf=$$2; \
+	list='$(SUBDIRS)'; for subdir in $$list; do \
+	  target=`echo $@ | sed s/-recursive//`; \
+	  echo "Making $$target in $$subdir"; \
+	  (cd $$subdir && $(MAKE) $$target) \
+	   || case "$$amf" in *=*) exit 1;; *k*) fail=yes;; *) exit 1;; esac; \
+	done && test -z "$$fail"
+
+mostlyclean-recursive clean-recursive distclean-recursive \
+maintainer-clean-recursive:
+	@set fnord $(MAKEFLAGS); amf=$$2; \
+	rev=''; list='$(SUBDIRS)'; for subdir in $$list; do \
+	  rev="$$subdir $$rev"; \
+	done; \
+	for subdir in $$rev; do \
+	  target=`echo $@ | sed s/-recursive//`; \
+	  echo "Making $$target in $$subdir"; \
+	  (cd $$subdir && $(MAKE) $$target) \
+	   || case "$$amf" in *=*) exit 1;; *k*) fail=yes;; *) exit 1;; esac; \
+	done && test -z "$$fail"
+tags-recursive:
+	list='$(SUBDIRS)'; for subdir in $$list; do \
+	  (cd $$subdir && $(MAKE) tags); \
+	done
+
+tags: TAGS
+
+ID: $(HEADERS) $(SOURCES) $(LISP)
+	here=`pwd` && cd $(srcdir) \
+	  && mkid -f$$here/ID $(SOURCES) $(HEADERS) $(LISP)
+
+TAGS: tags-recursive $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) $(LISP)
+	tags=; \
+	here=`pwd`; \
+	list='$(SUBDIRS)'; for subdir in $$list; do \
+	  test -f $$subdir/TAGS && tags="$$tags -i $$here/$$subdir/TAGS"; \
+	done; \
+	list='$(SOURCES) $(HEADERS)'; \
+	unique=`for i in $$list; do echo $$i; done | \
+	  awk '    { files[$$0] = 1; } \
+	       END { for (i in files) print i; }'`; \
+	test -z "$(ETAGS_ARGS)$$unique$(LISP)$$tags" \
+	  || (cd $(srcdir) && etags $(ETAGS_ARGS) $$tags  $$unique $(LISP) -o $$here/TAGS)
+
+mostlyclean-tags:
+
+clean-tags:
+
+distclean-tags:
+	-rm -f TAGS ID
+
+maintainer-clean-tags:
+
+distdir = $(top_builddir)/$(PACKAGE)-$(VERSION)/$(subdir)
+
+subdir = src
+
+distdir: $(DISTFILES)
+	here=`cd $(top_builddir) && pwd`; \
+	top_distdir=`cd $(top_distdir) && pwd`; \
+	distdir=`cd $(distdir) && pwd`; \
+	cd $(top_srcdir) \
+	  && $(AUTOMAKE) --include-deps --build-dir=$$here --srcdir-name=$(top_srcdir) --output-dir=$$top_distdir --gnu src/Makefile
+	@for file in $(DISTFILES); do \
+	  if test -f $$file; then d=.; else d=$(srcdir); fi; \
+	  test -f $(distdir)/$$file \
+	  || ln $$d/$$file $(distdir)/$$file 2> /dev/null \
+	  || cp -p $$d/$$file $(distdir)/$$file; \
+	done
+	for subdir in $(SUBDIRS); do \
+	  test -d $(distdir)/$$subdir \
+	  || mkdir $(distdir)/$$subdir \
+	  || exit 1; \
+	  chmod 777 $(distdir)/$$subdir; \
+	  (cd $$subdir && $(MAKE) top_distdir=../$(top_distdir) distdir=../$(distdir)/$$subdir distdir) \
+	    || exit 1; \
+	done
+
+DEPS_MAGIC := $(shell mkdir .deps > /dev/null 2>&1 || :)
+
+-include $(DEP_FILES)
+
+mostlyclean-depend:
+
+clean-depend:
+
+distclean-depend:
+
+maintainer-clean-depend:
+	-rm -rf .deps
+
+info: info-recursive
+guide: guide-recursive
+html: html-recursive
+ps: ps-recursive
+dvi: dvi-recursive
+check: all-am
+	$(MAKE) check-recursive
+installcheck: installcheck-recursive
+all-am: Makefile $(PROGRAMS)
+
+install-exec-am: install-binPROGRAMS
+
+uninstall-am: uninstall-binPROGRAMS
+
+install-exec: install-exec-recursive install-exec-am
+	@$(NORMAL_INSTALL)
+
+install-data: install-data-recursive
+	@$(NORMAL_INSTALL)
+
+install: install-recursive install-exec-am
+	@:
+
+uninstall: uninstall-recursive uninstall-am
+
+all: all-recursive all-am
+
+install-strip:
+	$(MAKE) INSTALL_PROGRAM='$(INSTALL_PROGRAM) -s' INSTALL_SCRIPT='$(INSTALL_PROGRAM)' install
+installdirs: installdirs-recursive
+	$(mkinstalldirs)  $(bindir)
+
+
+mostlyclean-generic:
+	-test -z "$(MOSTLYCLEANFILES)" || rm -f $(MOSTLYCLEANFILES)
+
+clean-generic:
+	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
+
+distclean-generic:
+	-rm -f Makefile Makefile-Gen $(DISTCLEANFILES)
+	-rm -f config.cache config.log stamp-h stamp-h[0-9]*
+	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
+
+maintainer-clean-generic:
+	-test -z "$(MAINTAINERCLEANFILES)" || rm -f $(MAINTAINERCLEANFILES)
+	-test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
+mostlyclean-am:  mostlyclean-binPROGRAMS mostlyclean-compile \
+		mostlyclean-tags mostlyclean-depend mostlyclean-generic
+
+clean-am:  clean-binPROGRAMS clean-compile clean-tags clean-depend \
+		clean-generic mostlyclean-am
+
+distclean-am:  distclean-binPROGRAMS distclean-compile distclean-tags \
+		distclean-depend distclean-generic clean-am
+
+maintainer-clean-am:  maintainer-clean-binPROGRAMS \
+		maintainer-clean-compile maintainer-clean-tags \
+		maintainer-clean-depend maintainer-clean-generic \
+		distclean-am
+
+mostlyclean:  mostlyclean-recursive mostlyclean-am
+
+clean:  clean-recursive clean-am
+
+distclean:  distclean-recursive distclean-am
+	-rm -f config.status
+
+maintainer-clean:  maintainer-clean-recursive maintainer-clean-am
+	@echo "This command is intended for maintainers to use;"
+	@echo "it deletes files that may require special tools to rebuild."
+
+.PHONY: default mostlyclean-binPROGRAMS distclean-binPROGRAMS \
+clean-binPROGRAMS maintainer-clean-binPROGRAMS uninstall-binPROGRAMS \
+install-binPROGRAMS mostlyclean-compile distclean-compile clean-compile \
+maintainer-clean-compile install-data-recursive \
+uninstall-data-recursive install-exec-recursive \
+uninstall-exec-recursive installdirs-recursive uninstalldirs-recursive \
+all-recursive check-recursive installcheck-recursive info-recursive \
+guide-recursive html-recursive ps-recursive dvi-recursive \
+mostlyclean-recursive distclean-recursive clean-recursive \
+maintainer-clean-recursive tags tags-recursive mostlyclean-tags \
+distclean-tags clean-tags maintainer-clean-tags distdir \
+mostlyclean-depend distclean-depend clean-depend \
+maintainer-clean-depend info guide html ps dvi installcheck all-am \
+install-exec-am uninstall-am install-exec install-data install \
+uninstall all installdirs mostlyclean-generic distclean-generic \
+clean-generic maintainer-clean-generic clean mostlyclean distclean \
+maintainer-clean
+
+
+include/docs.h docs.cc.in: ../doc/prcs.texi ../doc/make-docs.el
+	$(EMACS) --batch -l $(srcdir)/../doc/make-docs.el -f make-docs-noargs
+
+misc.cc prcs.cc: include/docs.h
+projdesc.cc: prj-names.h
+
+prj-names.h: prj-names.gperf
+	$(JGPERF) -A -G -C -a -t -T -p \
+		-N ProjectDescriptor::prj_lookup_func \
+		-H ProjectDescriptor::prj_lookup_hash \
+		-W ProjectDescriptor::_pftable \
+		< $< > $@
+
+prcs-keys.c: prcs-keys.gperf
+	$(JGPERF) -A -C -a -r -k1,9 \
+		-N is_builtin_keyword \
+		-H is_builtin_keyword_hash \
+		< $< > $@
+
+# gperf sucks way too much for me to fix this
+#attrs.cc: attrs.gperf
+#	$(JGPERF) -A -G -C -a -t -T -p \
+#		-N is_file_attribute \
+#		-H is_file_attribute_hash \
+#		< $< > $@
+
+# Tell versions [3.59,3.63) of GNU make to not export all variables.
+# Otherwise a system limit (for SysV at least) may be exceeded.
+.NOEXPORT:

@@ -1,0 +1,5 @@
+-*- Text -*-
+
+It would be nice to have checkin verify the correct execution of RCS
+checkin.  Errors are known to arise when using PRCS over NFS, so this
+could prevent repository corruption.

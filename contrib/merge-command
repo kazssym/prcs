@@ -1,0 +1,14 @@
+#!/bin/sh
+
+# An example of how to treat the arguments to a PRCS_MERGE_COMMAND.
+
+echo Merge script called with args:
+echo "Working label:  $1"
+echo "Working file:   $2"
+echo "Common label:   $3"
+echo "Commonfile:     $4"
+echo "Selected label: $5"
+echo "Selected file:  $6"
+echo "Output file:    $7"
+
+exec diff3 -maE "-L$1" "$2" "-L$3" "$4" "-L$5" "$6" > "$7"

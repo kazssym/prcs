@@ -1,0 +1,59 @@
+#!/bin/sh
+
+PRCS_REPOSITORY=/homel/jmacd/PRCS
+PRCS_JOB_NUMBER=1
+RCS_PATH=/homel/jmacd/bin
+
+export PRCS_REPOSITORY
+export PRCS_JOB_NUMBER
+export RCS_PATH
+
+DIR=$1
+DIR2=$2
+PROJECT=test
+
+rm -rf $DIR
+tar -xzf $DIR.tar.gz
+
+cd $DIR
+
+echo Running command "prcs config"
+/usr/bin/time prcs config
+echo Running command "prcs admin pdelete -f $PROJECT"
+/usr/bin/time prcs admin pdelete -f $PROJECT
+/usr/bin/time prcs admin pdelete -f $PROJECT
+echo Running command "prcs admin init -f $PROJECT"
+/usr/bin/time prcs admin init -f $PROJECT
+echo Running command "prcs checkout -f $PROJECT"
+/usr/bin/time prcs checkout -f $PROJECT
+echo Running command "prcs populate -f $PROJECT"
+/usr/bin/time prcs populate -f $PROJECT
+
+# import
+
+echo Running command "prcs checkin -f $PROJECT"
+/usr/bin/time prcs checkin -f $PROJECT
+
+cd ..
+rm -rf $DIR
+mkdir $DIR
+cd $DIR
+
+# fresh checkout
+
+echo Running command "prcs checkout -f $PROJECT"
+/usr/bin/time prcs checkout -f $PROJECT
+
+# overwrite checkout
+
+../scramble `find . -type f -print`
+
+echo Running command "prcs checkout -f $PROJECT"
+/usr/bin/time prcs checkout -f $PROJECT
+
+# partial overwrite
+
+../scramble f*
+
+echo Running command "prcs checkout -f $PROJECT"
+/usr/bin/time prcs checkout -f $PROJECT

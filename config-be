@@ -1,0 +1,109 @@
+#!/bin/sh
+# This shell script is part of PRCS.
+# Copyright (C) 1998 Lars Duening
+#
+# This file is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published
+# by the Free Software Foundation; either version 2, or (at your option)
+# any later version.
+#
+# This file is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this library; see the file COPYING.  If not, write to
+# the Free Software Foundation, 59 Temple Place - Suite 330, Boston,
+# MA  02111-1307, USA.
+
+bespecific=0
+copyfiles=0
+fullconf=0
+
+# Parse commandline arguments
+for arg; do
+  case $arg in
+    -f | --full) fullconf=1 ;;
+    -c | --copy) copyfiles=1 ;;
+    -b | --be)   bespecific=1 ;;
+    -n | --nocache) [ -f config.cache ] && rm config.cache ;;
+    *)
+      cat << __USAGE__
+Usage: config-be [-c|--copy] [-b|--be] [-n|--nocache] [-f|--full]
+
+config-be runs the normal configure script, creates the Makefiles
+and then replaces a few of the created files with its own version.
+The latter is necessary since the current edition of the autoconf suite
+does not generate fully functional Makefiles.
+
+The following options are available:
+
+  --copy:    the files which need to be modified after the configure run
+             are copied verbatim from be/ instead of patching the files
+             created by configure.
+          
+  --be:      the src/Makefile is able to cross-compile prcs.
+
+  --nocache: Remove config.cache if existing.
+
+  --full:    Run autoconf first to recreate the configure script.
+             You need the full auto* suite for this.
+__USAGE__
+       exit 0 ;;
+  esac
+done
+
+if [ $fullconf -ne 0 ]; then
+  # touch aclocal.m4 # we can't recreate this
+  [ -f config.cache ] && rm config.cache
+  echo "Running autoconf."
+  autoconf
+  # Manually create these Makefile.in, the automatic rules
+  # leave out some important stuff (like the dependencies).
+  echo "Updating doc/Makefile.in and src/Makefile.am"
+  automake doc/Makefile
+  automake src/Makefile
+fi
+
+if test "`uname -m`" = "BePC" ; then
+  CC=cc CXX=c++ configure --host=ppc-bepc-beos --prefix=$HOME/config/bin
+else
+  CC=cc CXX=c++ configure --host=ppc-bemac-beos --prefix=$HOME/config/bin
+fi
+
+echo 
+
+cp src/Makefile src/Makefile-Gen
+
+if [ $bespecific -ne 0 ]; then
+  if [ $copyfiles -ne 0 ]; then
+    echo "Copying be/Makefile-Be to src/Makefile"
+    cp be/Makefile-Be src/Makefile
+  else
+    echo "Patching src/Makefile..."
+    echo
+    (cd src; patch < ../be/Makefile-Gen-Be.diff; cd ..)
+    rm src/Makefile.orig
+  fi
+else
+  if [ $copyfiles -ne 0 ]; then
+    echo "Copying be/Makefile-Std to src/Makefile"
+    cp be/Makefile-Std src/Makefile
+  else
+    echo "Patching src/Makefile..."
+    echo
+    (cd src; patch < ../be/Makefile-Gen-Std.diff; cd ..)
+    rm src/Makefile.orig
+  fi
+fi
+
+echo
+
+if [ -f src/Makefile.rej ]; then
+  echo "Configuration was not entirely successful."
+else
+  echo "PRCS is ready to be made."
+fi
+
+exit 0

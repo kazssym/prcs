@@ -1,0 +1,29 @@
+14 cases:
+
+wsc ws wc sc num def		tests required
+
+1-way
+
+100 x  x  x  13  x		none
+001 x  x  x  12  x		none
+
+010 x  x  x  14  add		none
+
+2-way
+
+110 s  x  x  8   x		ws
+
+110 d  x  x  11  merge
+011 x  x  d  9   nothing
+011 x  x  s  6   nothing
+101 x  d  x  10  delete
+101 x  s  x  7   delete
+
+3-way
+
+111 s  s  s  1   x		ws
+111 s  d  d  5   x		ws
+111 d  d  s  4   x		sc
+
+111 d  d  d  2   merge
+111 d  s  d  3   replace

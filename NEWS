@@ -1,0 +1,1165 @@
+PRCS NEWS -- history of user-visible changes. -*- Text -*-
+$Date$
+$ReleaseVersion: 1.2.16 $
+
+Please send bug reports to prcs-bugs@XCF.Berkeley.EDU.  See the file
+`README' for a description of how to report bugs.
+
+
+** Changes since version 1.2.15
+
+* Incorporate new contrib submissions.  See the contrib subdirectory
+  for more information.  Now included are:
+
+   - rprcs: This script allows PRCS to operate on a remote
+            repository using rsync and ssh.  Thanks to Hugo Cornelis
+            and Kaz Sasayama.
+
+   - prcs-synch: This script synchronizes two remote repositories
+            provided they have not altered the same branches,
+            supporting disconnected use.  Thanks to Jesse Glick.
+
+   - visualtree: This set of scripts generates a graph to visualize a
+            PRCS project using the xvcg graphing tool.  Thanks to
+            Keith Owens.
+
+   - pfe: This tool generates a graph of PRCS versions using Tcl.
+            Thanks to John Stump.
+
+   - prcsutils: Tools for listing PRCS branches, checking the
+            Populate-Ignore directive, getting entries from the
+            project file, running grep over a project, guessing
+            the name of the current project, generating patches, and
+            giving a 'cvs status' style output from PRCS.  Thanks to
+            Hugo Cornelis and Austin Donnelly.
+
+* Previously, 'prcs config' would perform a sanity check on the
+  configured RCS and diff commands to see that are indeed the GNU
+  versions of those commands.  Now, the diff3 command is also checked,
+  and these checks are performed prior to every command.  The Solaris
+  /bin/diff3 doesn't accept the GNU flags passed by PRCS, reports
+  usage information, and exits by returning 1.  Since GNU diff3
+  returns 1 to indicate success-with-conflicts, PRCS did not catch
+  this error and instead reads zero bytes from the standard output.
+
+* If merge fails after having copied files to an `obsolete'
+  subdirectory, remind the user of that fact.  After a successful
+  merge, list all files which have merge conflicts.  Merge "No Prompt"
+  actions are now silent unless -L is specified, and "Do Nothing"
+  actions are silent when -f is specified and unless -L is specified.
+
+* Improve error reporting.  In particular, PRCS now clearly reports
+  when a checked-out version is shorter than the expected length.  The
+  old error message was: "prcs: Read failed from RCS co pipe:
+  Success", and now (e.g.,) it reads: "prcs: File `PRCS/P/F,v:1.7'
+  too short: expected 24480; recieved 24474".  If you observe this
+  error message, try running "prcs admin rebuild" to re-establish
+  repository consistency.  Similar errors are now reported elsewhere
+  in the code.
+
+* The documentation stated that `:' was a valid character for major
+  version names, although the program has never accepted this
+  character.
+
+
+** Changes since version 1.2.14
+
+* Correct two bugs in the execute command pointed out by Keith Owens.
+
+  - The -P argument was previously ignored.  The behavior is now
+    similar to the diff command: if no file names are supplied on the
+    command line then the project file is included, otherwise it is
+    excluded unless explicitely named.
+  - The implicit subdirectories that are normally listed by execute
+    were not being pruned according to the files listed on the command
+    line.
+
+* Fix compilation using gcc-2.95, and fix compilation problems on
+  IRIX 6.  Thanks to Albert Chin-A-Young for testing the build on
+  a number of platforms, including: IRIX 6.2, 6.5; HP-UX 10.20, 11.0;
+  Digital UNIX 4.0D; Solaris 2.5.1, 2.6, 2.7.
+
+* Work around a glibc "feature" where fprintf would lose 4K chunks of
+  output when a signal was received.  Submitted by Keith Owens.
+
+* The -N flag now generates a diff to reflect file deletions.
+  Previously it only generated a diff on file additions.  Submitted by
+  Keith Owens.
+
+* Fix a bug in the Err_write function that made it possible for PRCS
+  to create corrupted package files.  Submitted by Mark Richters.
+
+* Fix a bug that caused the 'merge -n' command, which is supposed to
+  take no action, to actually perform file renaming.  Pointed out by
+  Stephan Wefing.
+
+* Include the 'prcs-javadoc' script, submitted by Rafael Kitover.  It
+  invokes JavaDoc on a list of projects.  I have not tested this.  He
+  has also written a new PRCS tutorial, see:
+
+    http://www.paymentgateway.com/~rkitover/
+
+* Include the 'rprcs' script, submitted by Hugo Cornelis.  This
+  performs remote prcs synchronization similar to the 'prcs-synch'
+  script by Jesse Glick.  I have not tested this.
+
+* Fix a /bin/sh compatibility issue in the 'prcs-callback' script.
+  Submitted by Martin Giese.
+
+
+** Changes since version 1.2.13
+
+* The 1.2.13 distribution was missing the 3 elisp source files.
+
+
+** Changes since version 1.2.12
+
+* Add new tokens to be processed in execute patterns:
+
+  - {base} returns the basename of the file, and
+  - {dir} returns the dirname of the file
+
+  If {dir} is empty, it uses ".".  I did this because I wanted to
+  write:
+
+    prcs execute --pre -- sh -c "cd {dir} && cvs add -ko {base}"
+
+  to easily add prcs-controlled working files to a CVS repository.
+
+* Add new file Y2K to address Y2K issues.
+
+* Improved installation instructions detailing how to override the
+  SYS_XXX_COMMAND_PATH variables.
+
+* Fix compilation of the elisp source files.
+
+* Apply various patches to configure, removing "if ! condition"
+  tests since some systems suck a lot.
+
+* Update new versions of prcs-synch and elisp code from Jesse Glick.
+  Prcs-synch receives only bug-fixes.  His changes to prcs.el and
+  related files are:
+
+  * Diff command can now run EDiff!  It requires a new script
+  installed in {prefix}/bin/prcs-callback.  By default, you are
+  prompted on each diff whether to use EDiff, or plain output. If you
+  choose EDiff, you will be presented with an EDiff directory-diff
+  session group mirroring the directory structure of the project
+  versions, but only changed files are included. Quit the session
+  group when you are done to clean up temp storage on disk (I was
+  unable to figure out how to get EDiff to do a directory diff just
+  from buffers--maybe later).  Josh--note that setting
+  PRCS_DIFF_COMMAND does not affect project file diffs in 1.2.11, so
+  these still get sent to the plain output.  (Josh says: "noted")
+
+  Note that using the callback script permits us to get away with not
+  having GNUDoIt installed. I am planning to replace the current
+  EDiff/emerge-on-merge support with something like the new diff
+  support--much of the support code is already there, the main problem
+  is handling user interaction with the merge invocation.
+
+  * Added command to run `prcs info' with some options. From project
+  buffer, run "C-c C-i" or "C-u C-c C-i" to invoke.
+
+  * Better handling of exceptional cases when checking whether a newly
+  visited file/project is PRCS-controlled and active. Asks the user
+  what to do if necessary, and better handles inactive projects &c.
+
+  * Split off ToDo list into separate file to avoid clutter in main
+  .el file.
+
+  * Documentation strings consistently use first line for summary, as
+  expected by e.g. M-x apropos.
+
+
+** Changes since version 1.2.11
+
+* Attempt to repair a bug in which an interupted read syscall within
+  flex code causes PRCS to fail.
+
+* Include version 1.54 of prcs.el and the new prcs-hooks.el from Jesse
+  Glick.  This replaces 1.31, and I don't have a complete set of
+  changes, but here are the recent ones I dug up:
+
+  New in 1.44
+
+  * Rearranged some constant definitions & the like so that
+  byte-compilation & loading of byte-compiled code should work now; this
+  was broken before & produced some compiler warnings it shouldn't have.
+  Still some compiler warnings but they should be safe to
+  ignore. Affected code was mostly the use of e.g. prcs-Files variable
+  to denote the Files symbol in prcs-obarray.
+
+  * Have been trying it out on XEmacs 20.4. Fixed timer usage on XEmacs
+  (itimer did not seem to work, using add-timeout). Still broken for me:
+  toolbar hooks & font-lock support in PRCS major mode.
+
+  * Prompts for PRCS version numbers (or branches) now have tab
+  completion. Could use a little polishing but seems usable. See also
+  prcs-sloppy-version-prompts if necessary. Feedback is welcome on
+  whether this feature seems to be too slow; I haven't tried it on an
+  especially large project yet.
+
+  New in 1.50 from 1.44:
+
+  * Comments from Vincent & Rafael have been considered and are either
+  implemented or listed in the ToDo section.
+
+  * User-visible features are listed in mode documentation, which should
+  be clearer now.
+
+  * Minor changes to output display code to make it more reliable (known
+  problem remaining: invocation of e.g. diff from full-frame project
+  buffer causes frame to be split, but both windows display PRCS output).
+
+  * Now have separate file prcs-hooks.el (small, only 6K) which can be
+  loaded from a .emacs by (require 'prcs-hooks); main prcs.el only loaded
+  when PRCS-controlled files are actually visited. Similar in concept to
+  vc-hooks.
+
+  * More sophisticated (arguably more garish) font-lock support in PRCS
+  project buffers. Makes it easier to recognize files, symlinks, etc. Also
+  simplified code to load font-lock data.
+
+  New in 1.54 from 1.50:
+
+  * Previously mentioned output-display buglet fixed (with one window in
+  frame); generally better interaction with `pop-up-windows'.
+
+  * `normal-mode' now keeps PRCS Ctld. Mode on.
+
+  * If PRCS command is not found in exec path, or if a particular project
+  is not found in the repository, etc., PRCS Ctld. Mode will be turned off
+  and project-buffer commands will be disabled. This permits you to browse
+  someone else's files with a project file checked out, after an initial
+  warning, without further hassle.
+
+  * Shouldn't be finding Emacs p-file autosaves and such nastiness.
+
+  * Using Customize facility for user-settable options. (Under
+  "Programming" / "Tools".)
+
+  * Safer symlink handling, modelled around VC and using
+  `vc-follow-symlinks'.
+
+  * Sane filename escaping behavior when p-file is read-only.
+
+  * `prcs-inhibit-backups' removed in favour of more standard
+  `vc-make-backup-files'.
+
+  * XEmacs menubar is finally correctly placed only in p-file buffers (FSF
+  behavior was correct already). At such time as controlled files get
+  their own commands, there can be menu items for them as well, probably
+  near the current VC menu.
+
+  * Notes for possible future extension analogous to Dired-under-VC Mode.
+
+
+** Changes since version 1.2.10
+
+* ALERT! The MD5 code was not setting it's UINT4 type properly on
+  64-bit systems, causing strange behavior.  If you are using a 64-bit
+  OS, please upgrade.
+
+* Trouble was corrected in the waitpid()/select() loop in
+  syscmd.cc, the code that organizes the multiple outstanding child
+  processes.  There was a loop that was busy-waiting on a few certain
+  operating systems, starving the children and degrading performance.
+
+* Fixes to configure.in for proper CFLAGS and CXXFLAGS variable
+  handling, thanks to Mark Jefferys.
+
+* Several patches to prcs.el have been submitted for Xemacs and Emacs
+  20 incompatibilities, as well as multiple repository support.  These
+  have not yet been integrated because I don't have time and Jesse
+  Glick has been busy.
+
+
+** Changes since version 1.2.9
+
+* See http://www.doitnow.com/~iliad/Tcl/PFE/ for a tool that displays
+  PRCS version trees in a friendly manner.
+
+* Rename a #define that breaks PRCS in glibc 2.1-current so as to
+  avoid trouble when glibc 2.1 is released.
+
+* Correct a bug in prcs admin pdelete (fs_nuke_file), thanks to Mark
+  Jefferys.
+
+* Merge a set of patches Lars Duening so that PRCS works on
+  BeOS. (Neat!)
+
+* Includes version 1.31 of prcs.el from Jesse Glick.
+
+* Correct a permission problem in the repository causing multi-user
+  collaboration difficulties.  As noted by Daniel Villeneuve, it is
+  still possible to get a repository into a situation where the owner
+  cannot revoke privileges due to subdirectories being created by
+  other users.  The only solution is a recursive directory copy, which
+  for one reason or another, I do not feel compelled to implement.
+  For now, the only way to retract priviledges in this situation is to
+  package and unpackage.  However, now subdirectories are created with
+  appropriate permissions, insuring that a repository with its
+  permissions set properly at initialization will remain correct.
+
+* Correct the documented behaviour of --disable-environment, it was
+  backwards.
+
+
+** Changes since version 1.2.8
+
+* Update for C++ changes in egcs-1.1.  Thanks to Andrew Stitcher.
+
+* Update a greatly improved prcs.el from Jesse Glick.  See the new
+  documentation at the top of prcs.el.
+
+* Fixed a few documentation typos.  Thanks to François Pinard and
+  Daniel Villeneuve.
+
+* Change the output of the "Index: " line in diff output so that the
+  Index line matches the from name in the context diff header.  This
+  seemed to cause problems for some versions of patch.
+
+* prcs info -l now outputs Project-Keywords.
+
+* The configure option --disable-environment allows you to build
+  a binary free of any default environment variable settings.  This
+  is intended for package maintainers.
+
+
+** Changes since version 1.2.7
+
+* RCS was replacing keywords in the working copy of the project
+  file.  Correct this.
+
+* Bug fix in execute: file extensions were incorrect when the last
+  `.' occured in a directory prefix.
+
+* More renaming in regex code to prevent errors on Digital UNIX--this
+  is lame.  I can't build on the Digital UNIX box I have access to
+  because the gcc fix-included headers (sys/types.h) are broken.  Come
+  to think of it, I have this problem (fix-includes breakage) on
+  certain versions of AIX and HP-UX too... YMMV.
+
+* New option -P (--exclude-project-file) causes diff to not output
+  differences between project files and checkout to not create the
+  project project file.
+
+* `prcs diff --' now unsets any diff options, including those set in
+  the environment.
+
+* Fix bug in `prcs admin pdelete' causing it to fail on some projects.
+  Pdelete now issues a warning when a project does not exist.
+
+* Document recursive keywords and -P.
+
+
+** Changes since version 1.2.6
+
+* Correct the ``valid username'' test to allow leading numerals.
+
+* Improved error message for permission denied on certain repository
+  files.
+
+* Hopefully solve IRIX 64-bit ino_t template problem.
+
+* Obtain updates and fixes to prcs.el from Jesse Glick.
+
+* Change names produced by prcs diff: instead of
+
+    some/path/to/file.orig
+    some/path/to/file
+
+  it produces:
+
+    oldversion/some/path/to/file
+    newversion/some/path/to/file
+
+  This is to agree with the naming convention suggested by patch
+  2.5.3.
+
+* Keyword replacement is now recursive.
+
+   (TodaysDate "Today's date is: $\Date$")
+
+  produces: $TodaysDate: Today's date is: Sun, 24 Jun 2001 22:51:30 -0700 $
+
+   (ThisWontCrash "This is bad: $\ThisWontCrash$")
+
+  produces: $ThisWontCrash: This is bad: |ThisWontCrash| $, while a
+  format leaves the `$' characters:
+
+   $Format: "   $ThisWontCrash$"$
+   This is bad: $ThisWontCrash$
+
+  It is neccesary to prevent `$' characters from being replaced in
+  a non-formatted keyword or else text ends up being inserted into
+  the document outside of the keyword (everything after the first
+  `$').
+
+  Replacment of a keywords takes place on a string which is either
+  quoted contents of a $Format$ keyword or the defined value of an
+  outer-most regular keyword.  When this string contains an instance
+  of keyword which is not currently being replaced, it recursively
+  outputs the value of that keyword.  Processed text is not
+  reexamined.  When spurious `$' characters are found inside a
+  regular keyword (not $Format$), they are replaced with the `|'
+  character.
+
+  All of this suggests more and more general macro replacement
+  facilities, but I haven't come up with any real uses for them.  I
+  did this because I wanted to be able to write:
+
+   (ReleaseVersion "$\ReleaseMajorVersion$.$\ReleaseMinorVersion$.$\ReleaseMicroVersion$"))
+
+  So, if people are using this and can think of improvements or
+  future direction in the keyword department, I think its very
+  cool stuff...  send feedback.
+
+
+** Changes since version 1.2.6-vforktest
+
+* The merge query now treats `!' for each rule, so you may take the
+  default for some rules and not other.
+
+* Populate-Ignore and Project-Keywords entries are now merged during
+  `prcs merge'.  Procedure:
+
+  - After all files have been merged, populate ignore strings and
+    project keyword pairs are merged.
+  - Progress during these stages is not recorded, as it is for files.
+    This means that quitting in the middle of this stage will result
+    in starting the populate ignore and project keywords merge over
+    again.  Since a merge not supporting 3-way reconciliation is
+    idempotent (mostly), this is not a big issue.
+  - The help strings will be a little confusing during these stages,
+    I may fix this.
+
+
+** Changes since version 1.2.5
+
+* Replace most fork calls with vfork calls in an attempt to port PRCS
+  to Amiga.  Add configure tests for fork and vfork.
+
+
+** Changes since version 1.2.4+egcs
+
+* Remove __GNU_LIBRARY__ logic from getopt source files.  PRCS uses
+  a modified getopt_long routine, so this code needs to be compiled
+  whether glibc is available or not.
+
+* Rename functions in regex.{c,h} with a global replacement of "re_"
+  to "re2_".  This is to prevent the following problem:
+
+  PRCS links with g++
+  g++ supplies -lg++ to the link line
+  libg++ contains static initializer code for regex code in libg++
+  The static initializers resolve to regex code in PRCS
+  Regex code in PRCS is different enough to cause bad things to happen
+    when these static initializers run, PRCS would core dump before
+    reaching main.
+
+
+** Changes since version 1.2.4
+
+* PRCS now compiles with egcs-1.0.2.  I have only tested this release
+  on the following compiler/platform combinations, and would
+  appreciate hearing from users with other versions of g++:
+
+  Linux 2.0.33		gcc version egcs-2.90.27 980315 (egcs-1.0.2 release)
+  SunOS 5.5.1		gcc version 2.7.2.2
+
+* Minor bug-fix to prcs.el.
+
+
+** Changes since version 1.2.3
+
+* Fix a bug in handling of irregular filenames (spaces, etc).
+
+* Checkin now prompts 'abort' for checkin conflicts, while force
+  continues the checkin.  This is the only prompt in PRCS where
+  the force behavior is different from the default behavior.
+
+* Merge now prompts 'yes' for rename.
+
+* Merge now creates subdirs before renaming a file into the subdir.
+  This was causing merge to abort.
+
+* An environment variable set to empty is treated the same as an
+  unset variable, allowing users to unset a variable with compile-time
+  default.
+
+* Fix a bug causing diff to fail on unset symlinks in the working version.
+
+* Add the recently introduced prcs.el (including a PRCS major mode) to
+  the distribution.
+
+  * Automatically fills in the ChangeLog with the contents of i
+    New-Version-Log.
+  * Commands for checkin, diff.
+
+* Incorporate Jesse Glick's modifications to prcs.el, prcs-ediff.el, and
+  prcs-ediff:
+
+  * add a new, simple parse function for parsing without position
+    information.
+  * cache project file parsing
+  * add a variable prcs::is-prcs-controlled to indicate that a file
+    is under prcs's control.
+
+	;;; Avoid gratuitous backups. Example of use.
+	(setq backup-enable-predicate (lambda (name)
+                                (let ((fname (file-name-nondirectory name)))
+                                  (and (not (string-match "MAIL" fname))
+                                       (not (prcs::is-prcs-controlled name))
+                                       (not (string-equal "." (substring fname \
+0 1)))
+                                       (not (string-equal "ChangeLog" fname))
+                                       (or (< (length name) 5)
+                                           (not (string-equal
+                                                 "/tmp/"
+                                                 (substring name 0 5))))))))
+
+	(autoload 'prcs-mode "prcs" "PRCS project-file mode." t)
+	(autoload 'prcs::is-prcs-controlled "prcs" nil t)
+	(push '("\\.prj\\'" . prcs-mode) auto-mode-alist)
+
+  * enhance the emerge interface, see the script scripts/prcs-ediff in
+    the distribution.  you need perl 5 and gnudoit.
+  * display prcs modification status in the modeline.
+
+
+** Changes since version 1.2.2
+
+* Fix a bug causing a crash during merge of two symlinks.
+
+* Fix a (supposed) bug causing a crash when password lookup
+  fails to return an entry.
+
+* When subdirectory creation must create a directory by replacing
+  a non-directory, PRCS now asks the user whether to delete the
+  file.  With --force, PRCS automatically removes the file.
+
+* Fix a bug in execute --pipe on repository project versions,
+  it no longer reports an error for the project file.
+
+* Populate now adds a bit more information to the comment it
+  inserts above it's modifications.
+
+
+** Changes since version 1.2.1
+
+* Fixed two bugs in merge, related to files with no-keywords set.
+  Caused no-keyworded files to be replaced by other files in the
+  project during merge.
+
+* 'prcs execute --all' had an assertion failure when no files matched
+  the --match criteria.
+
+
+** Changes since version 1.2.0
+
+* Correct a problem with the code that finds the common version
+  between two project versions.  This caused several problems
+  ranging from exponential time to compute the common version after
+  several merges, to checkin incorrectly reporting an ambiguous
+  common version.
+
+* Correct a bug which caused PRCS to report a project unmodified
+  at checkin after certain merge operations.
+
+* Correct a bug in the code that invokes the PRCS_CONFLICT_EDITOR
+  during merge.
+
+* Correct a bug in merge causing merge of symbolic links to fail
+  during 'add'.
+
+* Correct a bug causing file-list attributes such as
+
+  (Files :tag=something
+    (file1 (...))
+    (file2 (...))
+    )
+
+  to be written out as
+
+  (Files :tag=something
+    (file1 (...) :tag=something)
+    (file2 (...) :tag=something)
+    )
+
+* Added new command 'prcs admin pinfo' for listing all projects in
+  the repository.
+
+
+** Changes since version 1.2.0b8
+
+* Documentation updated through version 1.2.0.
+
+* Loosen test for correct versions of diff and rcs (so that it will
+  work with future versions).
+
+* More corrections to the time-zone problem by Paul Eggert, and
+  upgrade time functions extracted from GNU patch 2.4 (maketime.c,
+  maketime.h, partime.c, partime.h).
+
+* Correction to "make_obsolete" call pointed out by Ulrich Pfeifer
+  when using PRCS_MERGE_COMMAND.
+
+* Comments are no longer retained inside file entries.  Formerly,
+  comments such as
+    (foo ;; THIS
+     (...) ;; AND THIS
+     :symlink ;; AND THIS TOO
+     )
+  were retained.  Now, they are removed and the entire entry will
+  be printed out as (foo (...) :symlink).  Unfortunatly, this affects
+  past project files as well.  All other comments (except those inside
+  Merge-Parents and New-Merge-Parents) are retained.
+
+* Merging with different file types, symlinks, etc. works now, it
+  core dumped in 1.2.0b8.
+
+* Fixes to execute pointed out by Jesse Glick.
+
+
+** Changes since version 1.2.0b7
+
+* New option --plain-format turns off any special formatting of
+  the output.  Also affected by environment variable
+  PRCS_PLAIN_FORMAT.
+
+* New option --sort=TYPE affects the order in which info outputs
+  version history.  It currently accepts two arguments, "version"
+  and "date".  Sorting by version is the old, default behaviour which
+  sorts versions by their version number, starting with the major
+  versions ordered by date.  Sorting by date is a new behaviour, and
+  sorts all versions by date, regardless of their major version.
+
+* Documentation updated for all the changes that have occured since
+  version 1.1.1 (Sort of. It's close, at least.).
+
+* Apply TSUKADA Satoru's patch to hopefully fix the timezone problem
+  noted in the TODO file.
+
+* The project file syntax is extended.  You may now have more than
+  one (Files ...) statement, the result being as if you appended the
+  contents of each.  The Files statement may now contain file
+  attributes that apply to all files in the list.  These attributes
+  must precede all files in the list, for example:
+
+(Files
+  :no-keywords
+  (filea ())
+  (fileb ())
+(Files
+  :symlink
+  (linka ())
+  (linkb ())
+  )
+
+  Keywords except the ':tag=TAG' keyword may not be repeated.
+
+* Merge code completely rewritten.  It's more robust, handles
+  all file types, generalized for arbitrary default actions, and
+  delays checking out files until absolutely neccesary (so it's a lot
+  faster).  Merge now logs all modifications to the file PROJECT.log.
+  With -l, merge logs all actions (including those which result in
+  "no prompt" or "nothing").  I'm not sure I like the new output
+  formatting, please complain if you don't.
+
+* Merge now uses several file attributes to set various parameters.
+  Each rule may have a new action associated with it.  Each attribute,
+  `:mergerule1', `:mergerule2', ... `:mergerule14', may have a default
+  action set to one of the five characters 'a', 'd', 'm', 'n', or 'r'.
+  These correspond to the five actions normally presented by merge.
+  Certain restrictions apply.  You may only set the default to add for
+  rules with a missing working file and non-missing selected file.  You
+  may only set the default to merge or replace for rules with at least
+  the working and selected files present.  You may only set the default
+  to delete for rules with the working file absent.  For information on
+  each rule and the numbers, see the documentation or the merge tutorial
+  at http://www.xcf.berkeley.edu/~jmacd/merge.html.  When the 'm' action
+  is taken merge uses the `:mergetool' attribute, if set, to find a
+  command capable of merging the files.  The value of this attribute is
+  interpreted the same as the PRCS_MERGE_COMMAND environment variable,
+  which is used as the value of `:mergetool' in the default group,
+  unless mergetool is already defined there.  All attributes are taken
+  from the first file which is not absent among the working file, the
+  selected file, and the common file, in that order.
+
+* Diff now uses the `:difftool' attribute, if present to determine a
+  diff tool to use.  This defaults to the value of the environment
+  variable PRCS_DIFF_COMMAND.  Diff uses the to file's attribute, if
+  present, then the from file's attribute.  There are some problems
+  here to sort out, because the project file, for example, has no way
+  of setting it's difftool.
+
+* Read operations on compressed repositories were leaving uncompressed
+  temporary files in TMPDIR for the duration of the command, now it
+  removes files when they are no longer needed.
+
+* As a seperate part of merge, merge now detects renaming between the
+  common version and selected version and offers to let you rename the
+  file.  The name of a file and the merging of it's contents are
+  completely seperate operations, one occuring before the other.
+
+* The -F flag was removed.  The new behaviour is to match files either
+  by file-family (as with the -F flag) or by name (as without) and
+  resolve ambiguity only when it arises by asking the user what to do.
+  With -f present, the match by file-family is chosen.
+
+
+** Changes since version 1.2.0b6
+
+* Compile-time defaults for the 8 documented environment variables
+  used by PRCS are taken and used as the default when a user runs
+  PRCS without the environment variable set.  The autoconf stubs
+  for this are auto-generated as part of the build process.  So,
+  PRCS checks first the users's environment, then the builder's
+  environment, and finally uses the documented default.
+
+
+** Changes since version 1.2.0b5
+
+* Remove bogus use of undefined MAX macro in vc.cc, fixing compilation
+  troubles on several systems.
+
+* Slight changes to output of checkin -l.  It no longer reports a file
+  has been modified or has a new mode after declaring that the file
+  was added.
+
+* Elaborate on the "chmod failed at new repository entry creation"
+  error so as not to make users think an error occured in checkin.
+
+* Apply Ulrich Pfeifer's (modified) patch to use an external merge
+  editor.  See documentation for the PRCS_MERGE_COMMAND env var.
+
+* The script 'prcs-emerge' is included in the distribution but not
+  installed.  It is one possible external merge editor.  It uses a
+  lisp function defined in prcs.el, which is now installed.  Uses
+  gnudoit, so you need to have that working.  Once you have gnudoit
+  working, run prcs merge with the PRCS_MERGE_COMMAND environment
+  variable set to 'prcs-emerge' and with 'prcs-emerge' in your path.
+  I wouldn't do this until you're comfortable with how emerge works.
+
+* Fix infinite loop in merge code.  Only present in version 1.2.0b5.
+
+* Absolute path no longer requred for PRCS_CONFLICT_EDITOR, nor for
+  PRCS_MERGE_COMMAND.
+
+
+** Changes since version 1.2.0b4
+
+* 'prcs execute' now includes the project file in the list of files
+  with the special tag :project-file.  Update your uses of this
+  command to use --not=:project-file if this will affect your usage.
+  Directories not explicitely named with :directory are now included
+  with :implicit-directory.
+
+* Fix behaviour of symlink-following related code.  It caused
+  checkout over a regular file by following symlinks to fail.
+
+* Remove rx-1.5, replace with GNU regex package.  It seems to be
+  64-bit clean, so the Alpha users can be happy.  This makes populate
+  and execute once again capable of regular expression matching.
+  For those of you who think, "but my libc has POSIX regex stuff",
+  well, this one seems to be a challenging configure test so I'm
+  going to stick with it the way I have it now.
+
+* Fix repository-lock permission problem, causing stale lock problems.
+
+* Once again change the suffix used to name obsolete files during
+  merges.  It was suggested that using the emacs suffix "~N~" was
+  a bad idea because people might tend to delete those files more
+  readily than they would their obsolete PRCS-controlled files.  The
+  new suffix is ".vN".  (And may I once again recommend checking in
+  before merging).
+
+* Correct the -n switch for "prcs admin rebuild".
+
+* Add to the mmap configure test a few suggestions made by Paul
+  Eggert.  This turns off mmap for Solaris 5.4, HP-UX 9.x
+  and HP-UX 10.x.  Users are free to set HAVE_MMAP if they disagree.
+
+* File permissions on repository files were not being set correctly
+  at initial checkin.  Fixed.
+
+* General improvements to the repository permissions stuff, lock
+  permissions, etc.  All locks are now given mode 0666.
+
+* The old Descends-From attribute is now used as a parent.  However,
+  it will NOT appear in these old project files.  (This is one of
+  this history-changing modifications).  It will appear in the output
+  of prcs info -l as another merge parent and be used for all other
+  common-parent related calculations.
+
+
+** Changes since version 1.2.0b3
+
+* Rekey and merge were using the umask for rewriting files,
+  causing them to change the file mode on occasion.  A few other
+  file-mode related tweaks.
+
+
+** Changes since version 1.2.0b2
+
+* More autoconf/automake tweaks.  No source modifications.
+
+
+** Changes since version 1.2.0b1
+
+* Upgrade to automake-1.1n, fixing problem with missing configure
+  file in the distribution.  Use a workaround to include the man
+  page as well.  No source modifications.
+
+
+** Changes since version 1.1.1
+
+* Output diff labels with correct version numbers, they were reversed.
+  Discovered by Klaus Weide.
+
+* Make the configure script a little more user friendly.  It will
+  detect the wrong versions of RCS and DIFF, and will report if
+  'prcs config' fails after a build.
+
+* configure now accepts --disable-mmap, I tried reproducing a bug
+  I'd seen on HP-UX running across NFS, but I can't reproduce it,
+  so people who are concerned with using mmap can disable it.
+
+* When merge moves a file into the "obsolete" subdirectory, it first
+  finds a unique name by appending ".~N~" until it finds a suitable
+  name, much like emacs with numbered backups turned on.
+
+* The -j option wasn't partitioning jobs equally amongst its children
+  at certain stages of checkin, fixed.
+
+* Very long comments in project files caused flex to abort stating
+  that it couldn't expand because of REJECT, except that it doesn't
+  use reject.  Removing yylineno (and computing it myself) fixed
+  the problem.
+
+* Implement the new command 'prcs depopulate'.  This simple command
+  removes the file entries for each names file-or-dir, which as usual
+  defaults to all files (it queries you first, in this case).
+
+* Implement the new command 'prcs admin pdelete' which deletes
+  a repository entry.
+
+* Implement the new command 'prcs admin prename' which renames
+  a repository entry.
+
+* New environment variable, PRCS_DIFF_OPTIONS, is a whitespace-
+  separated list of options to pass to diff during 'prcs diff'
+  and 'prcs merge'.  If you need something with whitespace, you'll
+  have to pass it on the command line.  Command line options override
+  PRCS_DIFF_OPTIONS.
+
+* Fix bug causing initial checkin of the Nth file to fail if it has a
+  ",v" extension and N%52==0.  Discovered by Jesse Glick.
+
+* Fix bug causing 'prcs populate -d' to delete more files than it
+  should.  It now only prompts to delete files which were named on
+  the command line.
+
+* Fix bug in behavior of merge case #8 (see the tutorial
+  http://www.xcf.berkeley.edu/~jmacd/merge.html), discovered
+  by Klaus Weide.
+
+* Fix bug in recording of partial merges discovered out by Klaus
+  Weide.  It was rotating the list of filenames in Merge-Parents
+  and New-Merge-Parents after each partial merge.
+
+* Fix bug in presentation of query for case #8, it would be queried
+  twice and do nothing the first time.  Only affects --skilled-merge.
+  Again, discovered by Klaus Weide.
+
+* Fix the 'prcs admin access' command to work when run as root.  It
+  will let you set users as well as groups when run as root.
+
+* Implement new merge algorithm, described in the tutorial at
+  http://www.xcf.berkeley.edu/~jmacd/merge.html.  This is not
+  yet documented in the texinfo documentation, nor is the texinfo
+  documentation updated for this version.
+
+* Document the use of the TMPDIR environment variable.
+
+
+** Changes since version 1.1.0
+
+* Correct bug introduced in 1.1.0 causing project creation to fail
+  at initial checkin.  How lame is that?
+
+
+** Changes since version 1.1.0b5
+
+* Checkin now reports adds and deletes properly.  Behavior of '-l' at
+  checkin changed to only report modified, added, or deleted files.
+  '-L' gives old behavior.  Changes reported are relative to the real
+  working version before checkin.
+
+* configure now accepts --enable-debug to turn on compilation with
+  debugging symbols.
+
+
+** Changes since version 1.1.0b4
+
+* Update documentation to current sources.
+
+* Add PRCS_JOB_NUMBER environment variable to set a default for the
+  -j option.
+
+* Correct merge action when merging files with empty file descriptors.
+
+* Correct selection of new version when checkin crosses major version
+  names.  Not sure when this was broken.
+
+
+** Changes since version 1.1.0b3
+
+* Fix minor compilation trouble introduced in 1.1.0b, <sys/time.h>
+  is required to use setitimer().
+
+* Fixed major bogon in the upgrade-repository code introduced in version
+  1.1.0b3.  This only affects people attempting to upgrade a repository
+  older than version 1.1.0.  This is not a dangerous problem, PRCS simply
+  core dumps without upgrading the repository.
+
+
+** Changes since version 1.1.0b2
+
+* Added a repository log which logs the details of the checkin,
+  rebuild, and delete commands.  This is mostly here for the convenience
+  of trying to reconstruct the problem, should one occur.
+
+
+** Changes since version 1.1.0b
+
+* Checkin with partial merge asks whether to use the merge parent or
+  working version as the effective working version for checkin.
+  Checkin with --skilled-merge asks in either case.
+
+* Fixed a bug in how partial merges work.
+
+* Setup an alarm mechanism for refreshing locks during long
+  operations.  Add SIGTSTP handler to warn user against suspending
+  PRCS for too long.
+
+* Removed the optional USE_FCNTL_LOCKS locking code, I don't want
+  to maintain it.
+
+
+** Changes since version 1.0.9
+
+* Merge common-version algorithm changed to solve a problem pointed out
+  by Marco Antionotti.
+
+  When merging a set of working files against a selected version,
+  the common version must be computed.  In previous versions of PRCS,
+  this was handled differently:
+
+  0.13.x and previous versions: the most recent merged-against version
+  was used or the working version if none exist.
+  1.0.0 through 1.0.9: the working version was used.
+
+  In each of these cases, differences arise only after one merge has
+  been completed and no checkin has been done.  The algorithm used in
+  1.0.x failed to handle a very common case well, thus the new algorithm.
+
+  The very common case is this:  version 0.1 is created, user A modifies
+  and checks in version 0.2.  User B has 0.1 and merges against 0.2.
+  User A checks in 0.3.  User B merges against 0.3.  The common version
+  computed by 1.0.x is 0.1, which causes many conflicts caused by
+  re-merging in changes which have already been merged.
+
+  The new algorithm makes use of an "effective working version", which
+  is computed before the common version is computed.  The effective working
+  version is used to compute the common version.  If unique, the effective
+  working version is the version picked from the set of previous merge parents
+  and the working version which is closest to the calculated common version.
+  If not unique or the new option -s (--skilled-merge) is supplied, the user
+  is asked to pick a version manually.  It is difficult to come up with a
+  situation requiring this intervention.
+
+  Normally PRCS prevents the same file from being merged twice, so that
+  merges can be interupted or aborted and later resumed.  This can cause
+  difficulties for people who really know what they are doing and want
+  to force a merge to occur.  The -s option also allows users to remerge
+  files.
+
+* Arguments passed to diff3 changed: arguments were "-ma", and have
+  been changed to "-maE".  The result is that only overlapping conflicts
+  are shown, not identical conflicts (where the file in both the selected
+  and working versions contain the same changes).
+
+* New project-file entry Project-Keywords introduced.  This allows the
+  definition of arbitrary keywords.  These keywords are treated just
+  like the 13 builtin keywords and may be included in the special
+  $Format$ keyword directive.  As an example, you can see these being
+  used to label release version numbers on the 3rd line of this file.
+
+* Complete rewrite of the project-file reading and editing code and the
+  auxiliary data file code (.PROJECT.prcs_aux), it now uses much less
+  memory for large projects.
+
+* Project renaming implemented.  You may now renaming a project while
+  unpackaging.  'prcs unpackage' accepts an optional argument which
+  is used as the new project name.  For example:
+
+    prcs unpackage P.pkg Q
+
+  unpackages the project contained in P.pkg (presumably named P) and
+  names it Q.  The change affects the history of the project file
+  (it has been called Stalinesque) so that project files from old versions
+  checked out of Q will read as if their name were always Q.  A comment
+  is inserted into the project files of old versions to remind the user
+  of the original name of the project when each particular version was
+  checked in.  Renaming may only be performed on packages created by
+  prcs-1.1.0 and later, though prcs-1.1.0 and later will recognize the
+  old package format.  Old versions of PRCS will not recognize new
+  packages.
+
+* Another repository data format change was made, all projects will have
+  to be rebuilt with the 'prcs admin rebuild' command.
+
+* Memory leak in flex buffer management found.
+
+* texinfo3.7.patch no longer distributed, texinfo-3.9 fixes the problem.
+
+* Return of the Digital UNIX binary (there was a bug in configure.in that
+  only was excited on machines at Berkeley mounting /usr/sww which was
+  making it difficult for me to build binaries).
+
+  NOTE: It appears that GNU rx-1.5 is not 64-bit clean, so until this
+  gets fixed the use of any regular expression functionality in PRCS
+  is likely to be broken.  These include 'prcs populate' with a non-empty
+  Populate-Ignore attribute and 'prcs execute' with the --match or --not
+  options.
+
+* Still no progress on HP-UX 10, looks to me as if gcc's fixincludes
+  is breaking stuff, cause the header files are seriously tweaked.
+
+* Upgrade to autoconf-2.12, automake-1.1l, rx-1.5.
+
+* GNU Copyright notices inserted in source files.
+
+
+** Changes since version 1.0.0
+
+* Repository directory layout changed to improve performance of large
+  projects.  Formerly all files were kept in a flat directory structure,
+  now they are stored in a tree of subdirectories.
+
+* -jN (--jobs=N) flag implemented to allow multiple processes during
+  checkin.  Performance was evaluated for checkout and other commands
+  and not found to be worthwhile.  Future vesions may include rewrites
+  to improve concurrency in other commands.
+
+* The PRCS_CONFLICT_EDITOR environment variable was added as a _temporary_
+  means of allowing a user to edit a file immediately after conflicts
+  are created, during the merge.  This will be more generalized in the
+  next major release of PRCS.
+
+
+** Changes since version 1.0.8
+
+* INSTALL modified, libg++-2.7.2 seems to be required for SGI IRIX
+  platforms.
+
+* Repository compression was not affecting subdirectories in the repository,
+  this has been fixed.
+
+
+** Changes since version 1.0.7
+
+* Generation of unique filenames in the repository was broken.
+  This causes checkin to abort in certain cases with an message
+  stating that you've found a bug.  You need not upgrade unless
+  you're experiencing this problem.
+
+
+** Changes since version 1.0.6
+
+* 'prcs rebuild' was broken since 1.0.4, this has been corrected.
+  Rebuild would fail on repositories which have had more than 50
+  files added with a PRCS version between 1.0.4 and 1.0.6.
+
+
+** Changes since version 1.0.5b
+
+* 'prcs rekey' was not preserving file modes, corrected.
+
+* Forced checkin with no modified files was failing in new multi-job
+  checkin code.
+
+
+** Changes since version 1.0.5a
+
+* Compiles under HP-UX and AIX (problem caused their abnormally
+  screwed up select()).
+
+
+** Changes since version 1.0.5
+
+* Compiles under Solaris and IRIX. (problem caused by differently sized
+  pid_t and int types).
+
+
+** Changes since version 1.0.4
+
+* Fixed a bug in 'prcs info -L', reported by Gene Kan.
+
+* Fixed a bug the MD5 checksum code causing certain digests to
+  be less than 128 bits (and thus differ from the output of another
+  md5 checksum generator).  The unkeyed MD5 checksum of a file
+  is available with 'prcs info -L'.
+
+* Added preliminary support for the -jN (--jobs=N) flag, which allows
+  PRCS to use up to N child processes.  Currently -j is only implemented
+  for checkin.
+
+
+** Changes since version 1.0.3
+
+* Fixed a bug exposed by Linux libc 5.4.x, a bogus fclose() was being
+  called.
+
+* Changed the repository directory structure to better handle
+  extremeley large projects.
+
+
+** Changes since version 1.0.2
+
+* 'prcs checkout -r.' was ignoring the working project file and
+  creating an empty project file.
+
+* Add a PRCS_CONFLICT_EDITOR environment variable as a _temporary_
+  means of allowing a user to edit a file immediately after conflicts
+  are created, during the merge.  Requested by Peter Mattis.
+
+
+** Changes since version 1.0.1
+
+* INSTALL modified, libg++-2.7.2 required for Digital UNIX platforms.
+
+* Populate-Ignore was not working, corrected.
+
+* Certain operations requiring creation of directory trees was failing
+  because PRCS was requiring all directories to be writable and
+  executable.  This restriction was bogus, and has been relaxed, letting
+  those conditions in which a writable directory is required be caught.
+
+
+** Changes since version 1.0.
+
+* Change arguments passed to tar during unpackage to satisfy Sun's tar.
+
+* Correct mkdir() call with trailing slash, which fails on old versions
+  of Linux.
+
+* Replace <sys/fcntl.h> bogon in lock.h with <fcntl.h>.
+
+* Correct behaviour of 'unpackage' on packagefiles not in CWD.
+
+* Fix 2 bugs causing merged project files to become invalid either
+  at checkin or immediately after a merge.

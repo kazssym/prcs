@@ -1,0 +1,3569 @@
+\input texinfo   @c -*-texinfo-*-
+@c Copyright (C) 1994, 1996, 1997 by Paul N. Hilfinger.  All rights reserved.
+@c
+@c %**start of header
+@setfilename prcs.info
+@settitle The Project Revision Control System
+@setchapternewpage on
+@c %**end of header
+
+@ifinfo
+This file describes @sc{prcs}, the Project Revision Control
+System.
+
+Copyright (C) 1994, 1996, 1997 by Paul N. Hilfinger.  All rights reserved.
+
+We distribute @sc{prcs} under the terms of the GNU General Public
+License, Version 2, which we have included with this release
+in the file named @file{COPYING}, and in the ``Copying'' section of
+this manual.
+As indicated in the License,
+we provide the program
+``as is'' without warranty
+of any kind, either expressed or implied, without even the implied
+warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+@end ifinfo
+
+@iftex
+@hyphenation{Project-Header Project-Author Project-Date Project-Version}
+@end iftex
+
+@titlepage
+@center @titlefont{PRCS: The Project Revision Control System}
+@sp 2
+@center Paul N. Hilfinger
+
+@center Department of Electrical Engineering and Computer Sciences
+@center The University of California at Berkeley
+@page
+@vskip 0pt plus 1filll
+Copyright @copyright{} 1994, 1996, 1997 Paul N. Hilfinger.  All rights reserved.
+
+We distribute @sc{prcs} under the terms of the GNU General Public
+License, Version 2, which we have included with this release
+in the file named @file{COPYING}, and in the appendix to this manual.  As indicated in the License,
+we provide the program
+``as is'' without warranty
+of any kind, either expressed or implied, without even the implied
+warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+@end titlepage
+
+@dircategory Version Control
+@direntry
+* PRCS: (prcs).           The Project Revision Control System.
+@end direntry
+
+@node    Top, , (dir), (dir)
+@c 0
+@comment node-name, next,          previous, up
+
+@ifinfo
+This document describes @sc{prcs}, the Project Revision Control
+System.
+@sc{Prcs} is intended to provide source-code control for
+coherent sets of files, such as entire directory subtrees, as opposed to
+individual files.  Its purpose is similar to that of SCCS, RCS, and CVS,
+but (according to its author, at least), it is much simpler than any of
+those systems.
+The Introduction and Basic Use sections should allow most users to make
+productive use of the system.
+@end ifinfo
+
+@menu
+* Introduction::     An overview of @sc{prcs}'s functionality
+* Definitions::      Basic concepts and definitions of terms
+* Basic Use::        Examples of simple use of @sc{prcs}, sufficient
+                        for many users
+* Running PRCS::     Format of the @sc{prcs} command
+* Version Names and Specifiers::
+                     How versions are labeled and specified in
+                        subcommands.
+* Subcommands::      Detailed descriptions of the individual subcommands
+* Repository::       About the Projects Repository, which contains all
+                        the checked-in source files.
+* Descriptors::      project-version descriptor (@file{.prj}) files
+* Keywords::         Automatic keyword substitution for placing version
+                        and date stamps or other identification in files
+* Subprojects::      How to manage hierarchical structures of projects
+* Importing Project Versions::
+                     How to use @sc{prcs} to maintain releases of
+                        source directories from outside, possibly with
+                        local modifications
+* Environment Variables::
+                     Specifying configuration parameters used by @sc{prcs}.
+* Copying::          The GNU Public License gives you permission to
+                        redistribute @sc{prcs} on certain terms; it also
+                        explains that there is no warranty.
+@end menu
+
+@node    Introduction, Definitions, Top, Top
+@c 1
+@chapter Introduction
+
+The Project Revision Control System, @sc{prcs}, is the front end to a
+set of tools that (like CVS) provide a way to deal with sets of files
+and directories as an entity, preserving coherent versions of the entire
+set.
+
+Abstractly, @sc{prcs} presents you (``the user'') with the abstraction
+of named @dfn{projects} that have multiple @dfn{(project) versions},
+each of which is a set of files, arranged into a directory subtree.  A
+project is the collection of all project versions of that project.  Each
+project version contains one distinguished file, called the
+@dfn{(project) version descriptor}, in the top directory of the subtree,
+which contains a description of the files included in that particular
+version.  For a project named @file{P}, this file has the name
+@file{P.prj} (and so is also called a ``@file{.prj} file'').  The
+operations provided allow you to perform the following actions:
+
+@itemize @bullet
+@item
+Create a copy of the directory tree (or a part of it) for a given
+project version.  The files in such a copy are called @dfn{working
+files} and the root directory for these working files is called a
+@dfn{working directory}.  This process is called @dfn{checking-out} the
+version (or the working files).  You may select a project version to
+check out by its version number. Modifying the working files has no
+effect on the project version they came from.
+@xref{checkout}.
+
+@item
+Create a new project version (and a new project, for the first version)
+from working files, or from some mix of working files and the files in a
+another project version.  This is called @dfn{checking-in} the version
+(or the working files).  Before any check-in, @sc{prcs} checks to see if
+there have been other modifications to files in this project and warns
+you of conflicts and discrepancies.  @xref{checkin}.
+
+@item
+Search for differences between a project version and working files or
+between the files in two versions of a project.  @xref{diff}.
+
+@item
+Insert changes that occurred between two project versions into working
+files.
+This process is called @dfn{merging} because its purpose is to combine
+changes you have made to a set of working files with changes that others
+have made in the meantime.
+It changes only the working files, because in general they will need
+editing to reconcile places where the two sets of changes conflict.
+The resulting merged files are marked with distinctive lines
+indicating places where the two sets of changes that are being combined
+differ from each other.
+One typically edits the merged files
+to reconcile the differences, and then checks in a new version.
+@xref{merge}.
+
+@item
+Print out information about the versions of a project contained in the
+repository (@pxref{info}).
+@end itemize
+
+In addition, you may add and subtract the files contained in a new
+project version, or move files from one subdirectory to another by
+editing the working copy of the @file{.prj} file before checking in the
+new version.  @xref{Descriptors,,Project-Version Descriptors}.
+
+@sc{prcs} keeps all checked-in project versions in a @dfn{projects
+repository}.  @xref{Repository,,Projects Repository}.  At any given
+time, you fix a prevailing repository by setting the environment
+variable @code{PRCS_REPOSITORY} (which defaults to @file{$HOME/PRCS}),
+and do not explicitly mention it in any
+commands.  In general, you should modify the projects repository only with
+the @sc{prcs} command or other designated utilities, or the results
+will be unpredictable.
+
+@sc{prcs} uses the approach found in CVS (Concurrent Version System):
+unlike version control systems such as RCS and SCCS, @sc{prcs} locks projects
+in the
+repository only while it is actually running
+(in order to make operations on projects
+atomic).  One simply checks in new versions as desired; the system will
+warn you if others have made parallel changes to the major version of
+the project you are working on that may have to be merged with changes
+you have made.
+
+Where @sc{prcs} differs from CVS (and, indeed, other source-code control
+systems of the author's acquaintance) is in its attempt to provide a
+particularly simple model to the user.  A project is a collection of
+files, period.  Although the current implementation of @sc{prcs}
+actually uses RCS in its implementations, none of the details of RCS are
+of any consequence to the user.
+
+@subheading Acknowledgements
+@sc{Prcs} is somewhat unusual in that I wrote the bulk of this
+reference manual before implementation started.  I am
+greatly indebted to Josh MacDonald for condensing it from vaporware into
+real software, and to the Berkeley PATH project and its sponsors for
+initially paying his way.
+
+@node Definitions, Basic Use, Introduction, Top
+@c 1
+@chapter Definitions
+@emph{Emphasized terms} within a definition are defined later in this section.
+
+@table @asis
+@item Label
+A sequence of characters used as a @emph{project} name or a @emph{major
+version name}.  It may consist of any sequence of alphanumeric
+characters, and characters from
+@example
+    # % ^ - _ + = , .
+@end example
+that does not begin with a hyphen, equal-sign, or period.
+
+@item String constant
+A string (sequence) of 0 or more characters enclosed in quotation marks
+(@samp{"}).  The sequence may contain any characters, including format
+effectors like tabs and newline, as long as any quotation marks and
+backslashes (@samp{\}) in it are stropped with a backslash.  For
+example,
+
+@example
+"In DOS, you write this \"C:\\BIN\\FOO\""
+@end example
+
+@item Project
+A named collection of @emph{project versions}.  The name may be any
+label.
+
+@item Project version
+(Or @dfn{version} where there is no ambiguity).  A directory tree of files.
+The topmost directory contains a file called the @emph{project-version
+descriptor}.  Every project version has a @emph{version name}.
+
+@item Project repository (or `repository')
+A directory containing a collection of project versions each with a
+unique @emph{version name}, and possibly some additional administrative
+information.
+
+@item Major version name
+Part of a @emph{version name}. @xref{Version Names and Specifiers}.
+
+@item Minor version name
+Part of a @emph{version name}. @xref{Version Names and Specifiers}.
+
+@item Version name
+A denotation for version within a project.  It consists of a major
+version name and a minor version name, separated by a period.
+@xref{Version Names and Specifiers}.
+
+@item Version specifier
+A denotation used in the -r argument to various @sc{prcs} subcommands to
+indicate one or more versions of a given project.  @xref{Version Names
+and Specifiers}.
+
+@item Project-version descriptor
+A file containing information about project version.  It always has the
+base name @file{@var{P}.prj}, where @var{P} is the project name.  These
+files may also be called ``descriptors'' or ``@file{.prj} files.''
+@xref{Descriptors}.
+
+@item Working (sub)directory
+@itemx Working version
+@itemx Working files
+The term ``working version'' refers to a copy of a project version or to
+a directory tree of files that are intended to become a project version.
+The individual files are called working files.  The root of a working
+version's directory structure is called a working directory; it and
+directories under it are called ``working subdirectories.''  The project
+version descriptor goes in the working directory.
+
+@item Ancestor version
+Each time a working version of a project is checked in, @code{prcs
+checkin} records a list of project versions from which it was derived
+(in the Parent-Version and Merge-Parents attributes of the descriptor).
+This establishes a graph of project versions, each being derived from
+its parents.  A project version @var{P0} is an ancestor of version
+@var{P1}, if one can reach @var{P0} from @var{P1} by zero or more steps
+along this directed, acyclic ancestry graph (thus, @var{P1} is an
+ancestor of itself).  See @ref{Parent-Version attribute}, @ref{Merge-Parents
+attribute}, and @ref{merge}.
+
+@item Keyword
+A project version's files may contain instances of @sc{prcs} keywords,
+which @code{prcs checkin} replaces with appropriate text depending on
+the keyword (such as the time and date of checkin, the login of the
+account that checks in a version of a file, the name of the file, or the
+name of the project). @xref{Keywords}.
+
+@item Internal File Identifier (or File Identifier)
+A parenthesized string that serves as a unique identifier for a version
+of a file in the repository.  Internal file identifiers are used in the
+lists of files that appear in project-version descriptors.  @xref{Files
+attribute}.
+@end table
+
+@node Basic Use, Running PRCS, Definitions, Top
+@c 1
+@chapter Basic Use
+For an overview of the entire process of project source-code maintenance
+with @sc{prcs}, read the sections below in order.  It uses a continuing
+example of a project called P1.
+
+@menu
+* Creating a repository::
+* Starting a new project::
+* Adding files to a project::
+* Adding version commentary::
+* Checking in a version::
+* Checking out a version::
+* Comparing versions::
+* Merging into working files::
+* Creating a new major version::
+* Summary of really basic use::
+@end menu
+
+@node Creating a repository, Starting a new project, Basic Use, Basic Use
+@c 2
+@unnumberedsec Creating a repository
+
+Before you can use @sc{prcs} at all, you must establish a @sc{prcs}
+repository (a directory).
+@sc{prcs} will create and initialize the repository if it
+does not exist the first time you attempt to use it.  @sc{prcs} takes
+the name of the repository from the environment variable
+@code{PRCS_REPOSITORY}, which must be defined before running @sc{prcs} (if
+undefined, it defaults to @file{$HOME/PRCS}).
+
+For example,
+to have a repository named @file{PRCS_FILES} in your home
+directory,
+execute
+
+@example
+% setenv PRCS_REPOSITORY ~/PRCS_FILES
+@end example
+
+@noindent
+in the C-shell or
+
+@example
+$ export PRCS_REPOSITORY
+$ PRCS_REPOSITORY=$@{HOME@}/PRCS_FILES
+@end example
+
+@noindent
+in the Bourne shell.  You may want to put this command into your .cshrc
+or .profile initialization file.  In the rest of this document, we will
+assume that @code{PRCS_REPOSITORY} is properly defined.
+
+When you first run @sc{prcs} after
+having set this environment variable, it will create directory
+@file{PRCS_FILES} in
+your home directory, assuming it does not already exist.
+If you attempt to run @sc{prcs} with
+@code{PRCS_REPOSITORY} set to a directory not in the right format, it will report an
+error.
+
+Once your repository is established, you should generally be careful not
+to modify it except through @sc{prcs}, except that changing the group,
+protections, or name of the repository is harmless.
+
+@node Starting a new project, Adding files to a project, Creating a repository, Basic Use
+@c 2
+@unnumberedsec Starting a new project
+
+To create the first version of a completely new project named P1, go to
+the desired working directory and use the following command:
+
+@example
+% prcs checkout P1
+@end example
+
+@noindent
+Assuming there is no prior project P1, the only result of this command
+is to create a working file @file{P1.prj} in the current directory; the
+projects directory and its contents are not modified.  In @file{P1.prj},
+you will initially find the following lines:
+
+@example
+;; -*- Lisp -*-
+(Created-By-Prcs-Version 1 1 0)
+(Project-Description "")
+(Project-Version P1 0 0)
+(Parent-Version -*- -*- -*-)
+(Version-Log "Empty project.")
+(New-Version-Log "")
+(Checkin-Time "Sun, 31 Dec 1995 01:54:11 -0700")
+(Checkin-Login jmacd)
+(Populate-Ignore ())
+(Project-Keywords)
+(Files
+; This is a comment.  Fill in files here.
+; For example:  (prcs/checkout.cc ())
+)
+(Merge-Parents)
+(New-Merge-Parents)
+@end example
+
+@noindent
+The second line identifies the project version from which these files
+came: in this case from a version 0.0 of the project named P1.  Minor
+version 0 exists implicitly for every major version of a project; it
+is empty, containing no files and a standard project descriptor, as
+shown above.
+The
+third line indicates the (in this case, nonexistent)
+version from which version 0.0 was derived.
+
+
+@node Adding files to a project, Adding version commentary, Starting a new project, Basic Use
+@c 2
+@unnumberedsec Adding files to a project
+
+When you create working files, say main.c and doc/foobar.1, you can add
+them to the version of P1 you are creating by editing the Files entry of
+@file{P1.prj} to look like this:
+
+@example
+(Files
+  (main.c ())
+  (doc/foobar.1 ())
+)
+@end example
+
+The Files list identifies the names of the files as they appear relative
+to the working directory in which you start.  The empty lists after each
+name contain information indicating where these files came from in the
+repository; since these are new files, the lists are empty to indicate
+that your files did not come from the repository, but are new.  The
+information in these lists has a format internal to @sc{prcs}, and you
+need not worry about it.
+Even though the project descriptor @file{P1.prj} itself is not
+explicitly listed in the Files list, it is implicitly considered one of
+the files in the project.
+
+When you have many files to add to the Files list---as for example when
+you have an
+existing directory structure full of files that you wish to bring under
+version control---it is inconvenient to do so by hand.
+@sc{Prcs} can add them for you automatically with the command
+
+@example
+% prcs populate P1
+@end example
+
+@noindent
+which finds all files in the current directory and its subdirectories
+and adds them to the Files list in @file{P1.prj}.
+At this point, you can edit @file{P1.prj} to remove files that you don't
+want to save (e.g., compiled object files or backup files).
+
+@node Adding version commentary, Checking in a version, Adding files to a project, Basic Use
+@c 2
+@unnumberedsec Adding version commentary
+
+It is a good idea at this point to add some commentary to the
+@file{.prj} file before check-in:
+
+@example
+(Project-Description "Sample PRCS Project")
+(New-Version-Log "checkin main.c and doc/foobar.1")
+@end example
+
+The Project-Description information, by default, is carried over from
+version to version of a project (so that you usually won't change it
+after the first version).  The New-Version-Log becomes the Version-Log
+upon check-in and any old version log from a prior version is deleted.
+Thus, you may use the Version-Log entries of the checked-in versions for
+any notes about the reasons for the new version or its contents.  You
+can use newlines in the string constants used to hold the
+commentary, and make them arbitrarily long.  @xref{Definitions,String
+Constants}.
+
+@node Checking in a version, Checking out a version, Adding version commentary, Basic Use
+@c 2
+@unnumberedsec Checking in a version
+
+To check in a new project version of project P1, use the command
+
+@example
+% prcs checkin P1
+@end example
+
+@noindent
+If there is only one @file{.prj} file in the current directory, you may
+even leave off the @code{P1} argument.  This command looks at the file
+@file{P1.prj} to find out the major version of P1 from which the current
+working files were copied and adds a new minor version to it.  In this
+case, since @file{P1.prj} records no major version name, @sc{prcs} uses
+the default major version name, `0'. Thus, this check-in will create
+version 0.1 (minor version 1 of major version 0) of P1.  The command
+@code{prcs checkin} modifies @file{P1.prj}, before checking it in, to
+look something like this:
+
+@example
+;; -*- Lisp -*-
+(Created-By-Prcs-Version 0 13 8)
+(Project-Description "Sample PRCS Project")
+(Project-Version P1 0 1)
+(Parent-Version P1 0 0)
+(Version-Log "checkin main.c and doc/foobar.1")
+(New-Version-Log "")
+(Checkin-Time "Sun, 31 Dec 1995 02:10:24 -0700")
+(Checkin-Login jmacd)
+(Populate-Ignore ())
+(Files
+  (main.c (P1/0_main.c 1.1 644))
+  (doc/foobar.1 (P1/0_foobar.1 1.1 644))
+)
+(Merge-Parents)
+(New-Merge-Parents)
+@end example
+
+As you can see, @sc{prcs} has added the version identification, a
+timestamp, a record of the account performing the checkin, and some
+internal identification information about the two files now in the
+project.  It has also changed the New-Version-Log declaration to the
+Version-Log (which is removed when you modify this version and check-in
+a new one).
+
+Your working directory now contains copies of the files in version 0.1
+of P1.  You might now add a new working file, say @file{header.h}, and
+modify @file{main.c}.  You add the line
+
+@example
+  (header.h ())
+@end example
+
+@noindent
+to the Files list.  You will also want to create a New-Version-Log entry
+and perform another checkin.
+The new
+version (0.2) of @file{P1.prj} might now contain
+
+@example
+;; -*- Lisp -*-
+(Created-By-Prcs-Version 0 13 8)
+(Project-Description "Sample PRCS Project")
+(Project-Version P1 0 2)
+(Parent-Version P1 0 1)
+(Version-Log "")
+(New-Version-Log "")
+(Checkin-Time "Sun, 31 Dec 1995 02:13:00 -0700")
+(Checkin-Login jmacd)
+(Populate-Ignore ())
+(Files
+  (main.c (P1/0_main.c 1.2 644))
+  (doc/foobar.1 (P1/0_foobar.1 1.1 644))
+  (header.h (P1/0_header.h 1.1 644))
+)
+(Merge-Parents)
+(New-Merge-Parents)
+@end example
+
+@noindent
+The files of version 0.2 of P1 have now been saved; you may destroy
+the working directory and later restore it with @code{prcs checkout}.
+
+It is not necessary to check in all your working files.  By providing a
+list of files and directories after the project specifier, you can limit
+the working files considered to those listed:
+
+@example
+% prcs checkin P1 doc
+@end example
+
+@noindent
+copies only the working files in doc into the new version of P1; for
+other files listed in @file{P1.prj}, @sc{prcs} uses the versions
+identified by the internal file identifiers in the Files list of
+@file{P1.prj}.  Thus, if these identifiers are unchanged in your working
+@file{P1.prj} file since it was checked out, the same files versions
+that they identify will be used in the new version of P1 (the working
+versions, however, may differ in the values of certain keywords. @xref{Keywords}.)
+
+@node Checking out a version, Comparing versions, Checking in a version, Basic Use
+@c 2
+@unnumberedsec Checking out a version
+
+The command @code{prcs checkout} creates working copies of the files
+(and directories) in a project version, usually rooted in the current working
+directory.  For example,
+
+@example
+% prcs checkout -r0.1 P1
+@end example
+
+@noindent
+checks out version 0.1 (minor version 1 of major version 0) of project
+P1, creating the subdirectory doc, if needed.  If you didn't specify a
+major version name when you created the project it defaulted to '0' and
+this is the initial version with no files.  You needn't be quite so
+specific in specifying the version:
+
+@example
+% prcs checkout -r1 P1
+@end example
+@noindent
+or
+@example
+% prcs checkout -r1.@@ P1
+@end example
+
+@noindent
+checks out the latest minor version of major version 1 of P1.  If you
+use only numerals for your major versions, you may
+even leave off the -r altogether to get the latest version checked into
+the repository.
+
+It is not necessary to check out an entire version at once; you may
+specify selected directories or files instead.  For example
+
+@example
+% prcs checkout -r0.2 P1 main.c header.h
+@end example
+
+@noindent
+checks out just the file main.c from version 0.2 of P1, and
+
+@example
+% prcs checkout -r0.1 P1 doc
+@end example
+
+@noindent
+checks out the doc directory (and all files contained in and below it)
+from version 0.1 of P1.
+
+@node Comparing versions, Merging into working files, Checking out a version, Basic Use
+@c 2
+@unnumberedsec Comparing versions
+If you have modified a working file, say main.c, and want to see how it
+differs from the file from which it was checked out, use
+
+@example
+% prcs diff P1 main.c
+@end example
+
+@noindent
+By specifying versions, you can perform other comparisons.
+To compare the working version of main.c with that in version 0.1:
+
+@example
+% prcs diff -r0.1 P1 main.c
+@end example
+
+@noindent
+To compare main.c in versions 0.1 and 0.3:
+
+@example
+% prcs diff -r0.1 -r0.3 P1 main.c
+@end example
+
+@noindent
+To compare the working version of main.c with the latest in version 0:
+
+@example
+% prcs diff -r0.@@ P1 main.c
+@end example
+
+@noindent
+In place of `main.c', you may use any list of files and directories;
+each will be compared with files from the indicated versions.
+Mentioning a directory causes comparison of all files under that
+directory.  Leaving off the file name list (e.g.,
+
+@example
+% prcs diff P1
+% prcs diff -r0.1 P1
+% prcs diff -r0.@@ P1
+@end example
+
+@noindent
+) performs the comparison for all files in the project versions.
+
+The output of @code{prcs diff} indicates differences between files,
+and also cases where a file is present in one version (or working
+version) but not another.
+
+If you have a working version that you have been modifying, you may have
+added files to it that are not yet reflected in the project descriptor
+(@file{.prj} file).  Normally, @code{prcs diff} will ignore these
+files.  To get a full comparison, you must first add these additional
+file names to the working
+project descriptor (@pxref{Adding files to a project}).   If you don't really intend to add
+these files immediately, you can save and restore the original working project
+descriptor:
+
+@example
+% cp P.prj tmp-P.prj
+% prcs populate P
+% prcs diff
+ ... output from diff
+% mv tmp-P.prj P.prj
+@end example
+
+@noindent
+or (if you haven't touched the project descriptor since checking it
+out), you can simply restore the project descriptor:
+
+@example
+% prcs populate P
+% prcs diff
+ ... output from diff
+% prcs checkout P P.prj
+@end example
+
+
+@node Merging into working files, Creating a new major version, Comparing versions, Basic Use
+@c 2
+@unnumberedsec Merging into working files
+
+After modifying the working files created by checking out the
+then-latest version of P1 (1.15, let us say), you may try to check them
+back
+in and discover that other minor versions of P1 version 1 have been
+added since 1.15 (@code{prcs checkin} will tell you this, and @code{prcs
+diff} or @code{prcs merge -n} will give details).
+
+One way to deal with these differences is to merge the contents of your
+working files with the new version in the repository:
+
+@example
+% prcs merge P1
+@end example
+
+@noindent
+By default, the checked-in version used by this command is the latest
+minor revision of the major revision of P1 indicated in your working
+@file{.prj} file (for this example, let's say version 1.17).  The
+command @code{prcs merge} will prompt you for what action you want to
+take in cases where there are changes between the latest version and the
+version from which you checked out the working files.
+
+The merge does not create and check in a new version; it merely updates
+your working files.  It will also update your @file{P1.prj} file to
+indicate that it came from the version specified---implicitly or
+explicitly---by the @code{merge} subcommand, and you may perform a
+check-in as a new version.
+
+@node Creating a new major version, Summary of really basic use, Merging into working files, Basic Use
+@c 2
+@unnumberedsec Creating a new major version
+
+Successive checkins will produce a sequence of minor versions of the
+same major version of a project.  The major version name is useful for
+indicating such things as releases of a piece of software or
+``branches'' of a project on which development will proceed
+independently.  To create a new major version, specify it during
+check-in with the -r option.  For example, to convert your working files
+into
+the first minor version of a new branch of project P1 called `MyBranch',
+use the command
+
+@example
+% prcs checkin -rMyBranch P1
+@end example
+
+@noindent
+Modify at will; your modifications will be part of major version
+`MyBranch', and will be invisible to others using the repository unless
+they specifically ask for that major version.  To merge back into the
+main branch (or any other), just use `prcs diff' and `prcs merge', as
+above:
+
+@example
+% prcs merge -r0.@@ P1
+@end example
+
+To copy an entire checked-in version into a new major version, use a
+sequence of commands like the following.
+
+@example
+% prcs checkout -r0.@@ P1 P1.prj
+% prcs checkin -r1 P1 P1.prj
+@end example
+
+Only the project-version descriptor actually gets checked out and in.
+Because the file list for @file{P1.prj} remains unchanged, the two
+versions share all the same files (except for those files that contain
+certain keywords. @xref{Keywords}.)
+
+@node Summary of really basic use, , Creating a new major version, Basic Use
+@c 2
+@unnumberedsec Summary of really basic use
+
+The simplest possible use of @sc{prcs} is just to use it to keep a
+single thread of project versions, thus allowing you to ``roll back'' at
+any time, and allowing multiple people to do maintenance on a single
+system simultaneously.
+
+To start things off with a new project, P1, type
+
+@example
+% prcs checkout P1
+@end example
+
+@noindent
+in the working directory where you are developing your project.  (If you
+haven't yet established a repository, @sc{prcs} will create one.)  If
+the project was already underway before you created a @sc{prcs} project
+for it, you will probably want to start off by bringing your existing
+files under version control.  To do so, type
+
+@example
+% prcs populate P1
+@end example
+
+@noindent
+Edit the file @file{P1.prj} to remove any files you don't want to
+control (like @file{.o} files, back-up files, and executables).  You can
+also specify the list of files ``in the population'' on the command
+line.  The files in any directories in this list will be included
+recursively. In effect, specifying no files is equivalent to specifying
+``.'' (the current directory).
+
+@example
+% prcs populate P1 file1 file2
+@end example
+
+Whenever you want to checkpoint your project, type
+
+@example
+% prcs checkin
+@end example
+
+@noindent
+from the root working directory (the one with @file{P1.prj} in it).  If
+someone else has checked in files in the meantime, you will be notified
+of discrepancies, which you can handle by typing
+
+@example
+% prcs merge
+@end example
+
+@noindent
+from the root working directory and (after it's done), editing the
+files.
+
+Whenever it comes time to begin working on a deposited version of the project,
+you can go to a clean directory and check
+out the latest version with
+
+@example
+% prcs checkout P1
+@end example
+
+@noindent
+Make your modifications and check back in as before.
+
+@node Running PRCS, Version Names and Specifiers, Basic Use, Top
+@c 1
+@chapter Running PRCS
+
+@deffn Command prcs subcommand [option @dots{}] operands
+
+First checks for the existence of a @sc{prcs} repository, and prompts
+you to create one if there is none present.  If the environment variable
+@code{PRCS_REPOSITORY} is set, it is taken as the name of the
+repository.  Otherwise, @sc{prcs} looks for a directory called
+@file{PRCS} in your home directory.  For descriptions of the possible
+subcommands, see @ref{Subcommands}.
+@end deffn
+
+@node Version Names and Specifiers, Subcommands, Running PRCS, Top
+@c 1
+@chapter Version Names and Specifiers
+
+Every version in a repository has a version name, which is unique within
+that version's project.  A version name consists of a major version name
+and a minor version name, separated by a period.  The major version name
+may be any valid label. The minor version name is always a positive
+integer numeral, without leading 0's.  The -r option specifies versions
+within a project by a version specifier.
+
+A version specifier has a form similar to that of a version name:
+@var{M.N}, where @var{M} is a major version name and @var{N} is a minor
+version name.  Certain values for @var{M} and @var{N} have special
+meanings:
+
+@itemize @bullet
+@item A null major version name means
+``as given in the working project-version descriptor for the
+specified project''
+
+@item If a null major version name is supplied, a null minor version
+name also means ``as given in the working project-version
+descriptor for the
+specified project.'' Otherwise, a null minor version name (as in
+``Foo.'') is illegal.
+
+@item @code{@@} means ``the latest in the repository (or 0 if none).''
+When @code{@@} is used for
+the major version, it indicates the numerically largest major version
+name (of the given project) among all those major version names that are
+non-negative integers with no leading zeroes.
+
+@item The minor version component of a version specifier (and its leading
+period) may be omitted unless the major version component contains a
+period.  If omitted, the default value depends on the subcommand.
+@end itemize
+
+@node Subcommands, Repository, Version Names and Specifiers, Top
+@c 1
+@chapter Subcommands
+
+In subcommand descriptions, arguments appearing in square brackets ([])
+are optional.  An argument followed by `@dots{}' indicates ``one or more''.
+
+Options have both a short form (hyphen followed by one letter) and a
+long form (introduced by two hyphens).
+Certain options, defined in the first subsection below, are standard:
+valid on all commands. Other options are listed with the individual
+subcommands to which they apply, with their long forms in parentheses.
+
+
+@menu
+* Specifying Projects::    How to indicate what project a subcommand
+                               is to operate on
+* Specifying Files and Directories::
+                           How to restrict a subcommand to particular
+                               files or directories within a version
+* Options::                A compendium of options used by the subcommands
+
+Major Commands
+
+* checkout::       Creating a working copy of a project version
+                            from the repository
+* populate::       Using the files in a working directory to compose
+                            a Files list in a @file{.prj} file
+* depopulate::     Removing elements from the Files list in a @file{.prj}
+                            file
+* checkin::        Depositing a new project version in the repository
+* diff::           Finding differences between a checked-in project
+                            version and working files
+* merge::          Merging a checked-in project version into
+                            working files
+* rekey::          Replacing keywords in working files
+* info::           Printing information about a project's versions
+                            and their files
+
+Less-common Commands
+
+* admin::          Various administrative functions that have no
+                            abstract effect on projects
+* config::         Printing information about built-in or environmental
+                            parameters of @sc{prcs}
+* package and unpackage::
+                        Moving and copying entire projects between
+                            repositories
+* execute::        General-purpose command for performing an arbitrary
+                            action on all files in a project version
+* delete::         Removing all trace of a project version from a
+                            repository
+@end menu
+
+@node Specifying Projects, Specifying Files and Directories, Subcommands, Subcommands
+@c 2
+@section Specifying Projects
+
+A @var{project} operand identifies the name of the project to be
+acted on (a simple label, denoted @var{P} below),
+the name of the project-version descriptor file (@file{@var{P}.prj}),
+and a root working directory (denoted @var{D} below).
+In the usual case, @var{project} is just the name of a project (a
+simple label), in which case @var{P} is @var{project} and @var{D} is
+the current directory (@file{.}).
+The full story is as follows:
+
+@itemize @bullet
+@item
+@var{project} denotes a directory.  In this case
+root working directory, @var{D}, is @var{project}.
+@var{D} must contain a single project descriptor,
+@file{@var{P}.prj}.
+
+@item
+Otherwise, if @var{project} has the form @file{@var{D}/@var{P}.prj}
+(or @file{@var{P}.prj}), then @var{P} is the project name and @var{D}
+(or @file{.}) is the root working directory.
+
+@item
+Otherwise, @var{project} has the form @file{@var{D}/@var{P}} (or
+@var{P}), in which case @var{P} is the project name and @var{D} (or
+@file{.}) is the root working directory.
+@end itemize
+
+Some
+subcommands allow you to omit the @var{project} operand.  In those
+cases, it defaults to the current directory (@file{.}), so that by
+the preceding rules,
+there must be a single @file{.prj} file in the current directory,
+which then implicitly supplies the project name.
+
+When the directory @var{D} determined by these rules is not the
+current working directory @file{.},
+the effect is as follows:
+
+@itemize @bullet
+@item
+Each of the file and directory operands (@pxref{Specifying Files
+and Directories}) must begin with @file{@var{D}/}.
+
+@item
+The effect of the command is the same as if the prefix @file{@var{D}/} had
+been removed from all the file and directory options
+and the project
+operand, replacing any occurrences of @var{D} itself with @file{.},
+and the resulting command then executed in directory
+@var{D}.
+@end itemize
+
+@node Specifying Files and Directories, Options, Specifying Projects, Subcommands
+@c 2
+@section Specifying Files and Directories
+
+The @var{file-or-dir} operands restrict a subcommand to
+operate only on specific files within a project version.  Each must be
+the name of a file or directory in the relevant project version.  A
+directory operand stands for all files under that directory (i.e., in it
+or, recursively, under its subdirectories).  The default @var{file-or-dir}
+operand is the working directory specified by the @var{project}
+operand (@pxref{Specifying Projects}).  Usually, this is simply
+the current directory (@file{.}), specifying everything under the
+project directory.
+
+
+@node Options, checkout, Specifying Files and Directories, Subcommands
+@c 2
+@section Options
+
+This section collects definitions of options used in
+@sc{prcs} subcommands.  Many options have both a short form (e.g., @code{-f})
+and a GNU-format long form (e.g., @code{--force}); in these cases, the
+long form is listed immediately below the short form.  In the
+descriptions below, a @dfn{Standard option} is one that is legal on all
+subcommands, and an @dfn{Option} is valid on one or more subcommands.
+
+@c BEGIN DOCSTRING options_summary
+@deffn {Option} {-@b{-}all}
+Used in @code{prcs execute} to indicate that the specified command is to
+be executed just once, with all files as arguments.
+@end deffn
+
+@deffn {Option} -d
+@deffnx {Long Form} {-@b{-}delete}
+Tells @sc{prcs} to perform some optional deletion action.
+Used by @code{prcs populate} to indicate that files that are not present
+in a working directory are to be removed from the Files list.
+@end deffn
+
+@deffn {Standard Option} -f
+@deffnx {Long Form} {-@b{-}force}
+Force: resolve what would normally be interactive queries in some fixed
+way, depending on the subcommand, assuring that @sc{prcs} will never use
+the standard input.
+@end deffn
+
+@deffn {Standard Option} -h
+@deffnx {Standard Option} -H
+@deffnx {Long Form} {-@b{-}help}
+Prints out help very similar to the contents of this section.
+@end deffn
+
+@deffn {Option} -i
+@deffnx {Long Form} {-@b{-}immediate}
+Causes certain actions to occur immediately during execution of a command.
+For @code{prcs uncompress}, causes the files in a project to be
+uncompressed on the spot, rather than incrementally as they are needed.
+@end deffn
+
+@deffn {Standard Option} -j number
+@deffnx {Long Form} {-@b{-}jobs=@var{number}}
+Allows @sc{prcs} to spawn up to @var{number} child processes at once.
+Almost always, 2 or 3 will result in faster operations and higher
+machine load.  Experimentation will yield the best results.
+@end deffn
+
+@deffn {Option} -k
+@deffnx {Long Form} {-@b{-}keywords}
+Causes @code{prcs diff} to compare keywords, instead of stripping them
+before comparison.
+@end deffn
+
+@deffn {Standard Option} -l
+@deffnx {Long Form} {-@b{-}long-format}
+@deffnx {Standard Option} -L
+@deffnx {Long Form}  {-@b{-}long-long-format}
+Various long formats, depending on the subcommand.
+@end deffn
+
+@deffn {Option} {-@b{-}match} pattern
+Used in @code{prcs execute} to indicate that the names of the files to be
+processed, or the options attached to them, must match @var{pattern}.
+@end deffn
+
+@deffn {Standard Option} -n
+@deffnx {Long Form} {-@b{-}no-action}
+Indicates that the command is to report what would happen
+in the absence of @samp{-n}, without changing working files or the
+repository.
+@end deffn
+
+@deffn {Option} -N
+@deffnx {Long Form} {-@b{-}new}
+In @code{prcs diff}, produces comparisons against empty (``new'') files
+where a file is missing in one of the versions being compared.  If you
+intend to use the -N option and later apply the diffs you should make
+sure to always use one of the context diff formats.  See the
+PRCS_DIFF_OPTIONS environment variable @xref{Environment Variables}.
+@end deffn
+
+@deffn {Option} {-@b{-}not} pattern
+Used in @code{prcs execute} to indicate that the names of files to be
+processed, or the options attached to them, must not match @var{pattern}.
+@end deffn
+
+@deffn {Standard Option} -q
+@deffnx {Long Form} {-@b{-}quiet}
+Suppress normal informational messages.
+@end deffn
+
+@deffn {Option} -p
+@deffnx {Long Form} {-@b{-}preserve}
+Preserve permissions on files that are checked out, ignoring any
+standard protections the user may have set for newly-created files (as
+by the file mode creation mask in UNIX).
+@end deffn
+
+@deffn {Option} -P
+@deffnx {Long Form} {-@b{-}exclude-project-file}
+Prevent situations where the project file may be treated as an ordinary
+file.  For example, this causes @code{prcs diff} not to output changes
+in the project files of each version.
+@end deffn
+
+@deffn {Standard Option} {-@b{-}plain-format}
+Turns off @sc{prcs}'s default formatting of its output, which is to
+break lines at the screen width and surround filenames with single
+quotes.  Setting the
+PRCS_PLAIN_FORMAT environment variable has the same effect (@pxref{Environment Variables}).
+@end deffn
+
+@deffn {Option} {-@b{-}pre}
+Used in @code{prcs execute} to indicate that directories are to be
+listed in pre-order: directory names first, then their non-directory
+contents, then subdirectories.
+@end deffn
+
+@deffn Option -r version
+@deffnx {Long Form} {-@b{-}revision=@var{version}}
+Identifies a version of a project.  The @var{version} is a version
+specifier. @xref{Version Names and Specifiers}.  The space between
+@samp{-r} and @var{version} is optional.
+@end deffn
+
+@deffn {Standard Option} -R directory
+@deffnx {Long Form} {-@b{-}repository=@var{directory}}
+Use @var{directory} as the repository, ignoring the value of the
+@code{PRCS_REPOSITORY} environment variable.
+@end deffn
+
+@deffn {Standard Option} -s
+@deffnx {Long Form} {-@b{-}skilled-merge}
+Turn off most of the safety features of @code{prcs merge}, allowing a
+skilled user finer control over the process.  @xref{merge}.
+@end deffn
+
+@deffn {Option} {-@b{-}sort=@var{type}}
+Set the type of sorting for the info command to perform on its output.  The two
+valid values for @var{type} are @samp{version} and @samp{date}.  The default is
+@var{version}.
+@end deffn
+
+@deffn Option -u
+@deffnx {Long Form} {-@b{-}unlink}
+When @sc{prcs} writes a working file, it generally does so by
+@c overwriting
+replacing any
+existing file of that name.  With this option, however, if the file to
+be written is a symbolic link, that link is removed and a new file is
+created.  Thus, the file that was originally linked to is unchanged.
+@end deffn
+
+@deffn {Standard Option} -v
+@deffnx {Long Form} {-@b{-}version}
+Prints the version of PRCS and exits.
+@end deffn
+
+@deffn {Option} -z
+@deffnx {Long Form} {-@b{-}compress}
+Indicates that a command should perform (de)compression.
+@end deffn
+@c END DOCSTRING
+
+@node checkout, populate, Options, Subcommands
+@c 2
+@section Prcs checkout
+
+@c BEGIN DOCSTRING checkout_help_string
+@deffn Command {prcs checkout} [option @dots{}] [project [file-or-dir @dots{}]]
+
+@noindent
+ADDITIONAL OPTIONS: @samp{-r}, @samp{-p}, @samp{-u}, @samp{-P}
+
+Create a working copy of a version of the specified files and
+directories in @var{project} rooted in the current directory (creating
+any subdirectories that don't exist).  You may use the option @samp{-r}
+to select a version.  The default major and minor version specifiers are
+both @code{@@}.
+
+You will be warned when a check-out would change the contents of
+an existing working
+file, and
+interactively given the choice of replacing the file with the version
+being checked out, or leaving the existing file alone.  Existing working
+files that do not differ from corresponding project files are not
+modified (their changed and modified dates do not change).
+The @samp{-f} option will cause checkout to overwrite all files that
+differ without asking.
+
+When @sc{prcs} overwrites a working file that is a
+symbolic link, then (unless the @code{:symlink} option is specified for
+that file), it will overwrite the file that the link references, without
+changing the link itself.
+With the @samp{-u} option, @sc{prcs} will instead remove the link
+and create a new file.
+
+If a working project-version descriptor for @var{project} exists,
+then the project-version descriptor is treated as an ordinary file
+for purposes of
+check-out.  A check-out with a non-defaulted @var{file-or-dir} list that
+does not contain the descriptor
+therefore leaves the descriptor unchanged.  Further, if the
+@samp{-P} option is supplied, the project descriptor will not be created
+at all.
+
+Files that are checked out are restored to the protections recorded for
+them at check-in time, usually modified (on UNIX systems) by the user's file
+mode creation mask (see the UNIX manual entry for umask(1)).  With the
+@samp{-p} option, this mask is ignored, and the command
+restores the files' protections
+to exactly their state at check-in.
+
+Returns a status code of 0 if all goes well, and non-zero if there are errors.
+@end deffn
+@c END DOCSTRING
+
+@node populate, depopulate, checkout, Subcommands
+@c 2
+@section Prcs populate
+@c BEGIN DOCSTRING populate_help_string
+@deffn Command {prcs populate} [option @dots{}] [project [file-or-dir @dots{}]]
+
+@noindent
+ADDITIONAL OPTIONS: @samp{-d}
+
+Add each file in the  @var{file-or-dir} list to the Files list of
+the @file{.prj} file identified by @var{project}, without modifying the
+repository.  For each directory in @var{file-or-dir}, recursively adds
+all files in that  directory structure (or the directory itself, if it
+is empty).
+The @var{file-or-dir} operand list defaults to the current directory.
+
+Without the @samp{-d} option,
+any files already in the Files list remain there unchanged.  With
+@samp{-d}, populate will prompt you about removing files from the Files
+list that are listed there as appearing under one of the directories
+given in the @var{file-or-dir} list, but are not found in
+the working directory.  With @samp{-d} and @samp{-f}, it will remove
+them silently.
+
+For example, suppose the file @file{P.prj} lists files @file{C},
+@file{D1/A}, @file{D1/B}, @file{D2/A}, @file{D2/B}. Suppose a working
+directory contains files @file{A},
+@file{D1/B}, and @file{D2/B}.  Then the command
+
+@example
+prcs populate -d P
+@end example
+
+@noindent
+would remove files @file{C}, @file{D1/A}, and @file{D2/A} from the Files
+list of @file{P.prj}, and add file @file{A}.  For the same initial
+@file{P.prj} file, the command
+
+@example
+prcs populate -d P D1
+@end example
+
+@noindent
+would remove @file{D1/A} from @file{P.prj}, and would add nothing.
+
+New files are added with null internal file identifiers.
+Populate attempts to fill in the @code{:symlink} and
+@code{:directory} options.
+It also applies a heuristic test to each file
+added to guess whether it is a non-text file; for each file it judges to be a
+non-text file, it includes the @code{:no-keywords} option for that file
+(@pxref{Files attribute}).
+
+@end deffn
+@c END DOCSTRING
+
+@node depopulate, checkin, populate, Subcommands
+@c 2
+@section Prcs depopulate
+@c BEGIN DOCSTRING depopulate_help_string
+@deffn Command {prcs depopulate} [option @dots{}] [project [file-or-dir @dots{}]]
+
+@noindent
+ADDITIONAL OPTIONS:
+
+Remove each file in the  @var{file-or-dir} list from the Files list of
+the @file{.prj} file identified by @var{project}, without modifying the
+repository.  For each directory in @var{file-or-dir}, recursively removes
+all files in that  directory structure (or the directory itself, if it
+is empty).
+The @var{file-or-dir} operand list defaults to the current directory,
+but since removing all files is probably not something the user wants to
+do, it queries first if no @var{file-or-dir} is supplied.
+
+@end deffn
+@c END DOCSTRING
+
+@node checkin, diff, depopulate, Subcommands
+@c 2
+@section Prcs checkin
+@c BEGIN DOCSTRING checkin_help_string
+@deffn Command {prcs checkin} [option @dots{}] [project [file-or-dir @dots{}]]
+
+@noindent
+ADDITIONAL OPTIONS: @samp{-r}, @samp{-s}
+
+Create a new version of the specified project in the repository.  Copy
+all files listed in the Files attribute of the descriptor
+(@file{@var{project}.prj}), taking those specified in @var{file-or-dir}
+operands and the descriptor itself from the working files.  Also,
+modify the descriptor to reflect the contents of the new version.
+@xref{Descriptors}.
+
+If @var{file-or-dir} arguments are provided, they must name files and
+directories listed in the Files attribute.  Only those working files are
+checked in; other files listed in the project descriptor are carried
+over from the file versions listed for them in the Files attribute.
+It is an error for these other files to have null
+internal file identifiers in the @file{.prj} file.
+
+A check-in records the access protection on each file (reading it from
+the working file).
+It records symbolic links with
+the @code{:symlink} option and  empty directories with a
+@code{:directory} option.  You could have, for example, a Files
+attribute as follows:
+
+@example
+(Files
+  (empty () :directory)        ; an empty directory
+  (pointer () :symlink)        ; a symbolic link
+  (realfile () :no-keywords)   ; the only real file in the list
+)
+@end example
+
+@sc{Prcs} reads
+the contents of a symbolic link from the link at check-in time.
+It is thus wise to use relative pathnames inside the project.
+@c @sc{prcs}
+@c issues a warning whenever a
+@c symbolic link points to a file not contained in the project.
+Directories with a @code{:directory} option
+need not be actually empty, but this ensures their creation at checkout.
+It is an error to have a @code{:no-keywords} option in the same file
+as a @code{:symlink}, or @code{:directory}
+option.
+
+The new version will have the latest minor version number for the
+specified major version.  The @samp{-r} option may specify a major
+version; any minor version specified is ignored.  The @samp{-r} option
+defaults to @samp{-r.@@}, thus taking the major version from the
+@file{.prj} file.
+
+Let @var{LV} denote the last minor version on the branch being checked into.
+A checkin is considered @dfn{safe} if the nearest common
+ancestor of @var{LV} and the working version is @var{LV}
+(@pxref{Parent-Version attribute}).  This is to insure that the version
+being checked in is a descendant of the version at the head of the
+branch before checkin.  Otherwise, changes at the head of the branch are
+clobbered.  Unless the @samp{-f} option is present, @sc{prcs} will warn
+you if a checkin is not safe and allow you to abort.
+
+With @samp{-l} present, @sc{prcs} will list which files are modified,
+inserted, deleted, or renamed, relative to the real working version prior to
+checkin.  With @samp{-L},
+@sc{prcs} will list all these changes in addition to listing which files
+are unmodified.
+
+Returns a status code of 0 if all goes well, and non-zero if there are errors.
+@end deffn
+@c END DOCSTRING
+
+@node diff, merge, checkin, Subcommands
+@c 2
+@section Prcs diff
+@c BEGIN DOCSTRING diff_help_string
+@deffn Command {prcs diff} [option @dots{}] [project [file-or-dir @dots{}]] [@t{-}@t{-} [diff-option @dots{}]]
+
+@noindent
+ADDITIONAL OPTIONS: @samp{-r} (once or twice),
+@samp{-k}, @samp{-N}, @samp{-P}
+
+Compare the (partial) contents of two repository versions of a project
+or of a repository version and a working version.  When
+@var{file-or-dir} arguments are present, they restrict comparison to the
+specified
+files or subdirectory trees.  The @var{project} argument may be
+defaulted if there is a single file with extension @file{.prj} in the
+current working directory, in which case @sc{prcs} takes its name
+(without @file{.prj}) as the project name.
+
+The @var{option}s may specify zero, one, or two versions (using
+@samp{-r} options).  Specifying no @samp{-r} options is equivalent to supplying
+the single option @samp{-r.}, the version from which the current working
+directory was checked out.  A @samp{-r} option that specifies only a major
+version (leaving off the minor version and its preceding period)
+implicitly has a minor version of @code{@@}.
+When one version specifier is given, the
+files in the indicated version are compared to the working files.  The
+command's output notes any discrepancies in the contents of
+identically-named files, or in files present in one version but not the
+other.  Two
+version specifiers cause the same comparison, but between two checked-in
+versions of the project.
+
+Normally, @code{diff} canonicalizes keyword instances in the files it
+compares, removing the keyword values and leaving just the keyword
+name.  As a result, two different versions of a file that differ only
+in their keyword values will compare as equal.  The @samp{-k} option
+causes @code{diff} to compare keyword values as well.
+
+If a file is present only in one of the project versions being compared,
+@code{diff} will normally just announce that such a file occurs only
+in one of the versions.  With the @samp{-N} option, it will produce the
+same output it would if it instead treated the non-existent version as
+an empty file.   This is useful when producing patch files that include
+new files as well as changed ones.  Its effect is essentially the same
+as that of the same option in GNU @code{diff} when it compares directories.
+
+Files in the two versions being compared are paired by their
+names and their internal-file families (see @ref{Files attribute}, for a
+description of internal-file families).  That is, @sc{prcs} will assume
+that two files in the different
+versions correspond if they have the same name or the same internal-file
+family.  This makes it possible to have conflicts (for example, when
+one switches the names of two files in a project descriptor); in those cases
+@sc{prcs} will ask the user to resolve the conflict.
+
+The @var{diff-options}, if provided, are any options acceptable to
+GNU @code{diff}. @xref{(diff)Top}.  The environment variable
+@code{PRCS_DIFF_OPTIONS}, if set, supplies a default set of whitespace
+separated @var{diff-options}.
+
+If the @var{file-or-dir} is defaulted and @samp{-P} is not supplied, or
+if @var{file-or-dir} contains the project descriptor, @sc{prcs}
+outputs differences between project descriptors.
+
+Returns a status code of 0 if there were no differences, 1 if there were
+differences, and 2 if there were problems.
+@end deffn
+@c END DOCSTRING
+
+@node merge, rekey, diff, Subcommands
+@c 2
+@section Prcs merge
+@c BEGIN DOCSTRING merge_help_string
+@deffn Command {prcs merge} [option @dots{}] [project [file-or-dir @dots{}]]
+
+@noindent
+ADDITIONAL OPTIONS: @samp{-r}, @samp{-u}, @samp{-s}
+
+Find differences between working files and those of the selected
+version of @var{project}, and (unless @samp{-n} is specified) try to
+modify the working files to reconcile them.  The default major and minor
+versions are @samp{-r.@@}.
+
+More precisely, the comparison takes place between three versions of
+@var{project}: the working version (called @var{PW} in what
+follows), the @dfn{common version} (@var{PC}) and the @dfn{selected
+version} (@var{PS}).
+
+@var{PW} is the working version specified in the checked-out descriptor and consists of all
+files listed therein.  @var{PS} is the version against which @sc{prcs}
+will reconcile changes, identified by the (possibly defaulted) @samp{-r}
+option.  A common version is chosen according to the following
+algorithm:
+
+Each version, including the working version, has a list of parent
+versions.  The parent versions establish an ancestry graph that is
+directed and contains no cycles.  A version is an ancestor of another if
+it can be reached by following zero or more parents
+(see @ref{Parent-Version attribute} and @ref{Merge-Parents attribute}).
+@var{PC} is chosen from the set of all versions
+that are ancestors of @var{PW} and @var{PS}.  If amongst this intersection,
+there exists a unique nearest common ancestor,
+then it is @var{PC}.  If there
+is no such version, @sc{prcs} will complain and ask the user for help.
+
+Files in the three versions are matched up both by name and by internal-file
+family (@pxref{Files attribute}).  That is, @sc{prcs} will assume that two
+files in different
+versions correspond if they have the same name or the same internal-file
+family.  This makes it possible to have conflicts (for example, when
+one switches the names of two files in a project descriptor); in those cases
+@sc{prcs} will ask the user to resolve the conflict.
+
+A @code{prcs merge} will report discrepancies and (unless @samp{-n} is
+specified) take actions as directed.  The possible actions are as
+follows.
+
+@table @kbd
+@item n
+Do nothing.
+
+@item a
+Add the file from @var{PS} to @var{PW}.
+
+@item r
+Replace the working file with the file from @var{PS}.
+
+@item d
+Delete the file from @var{PW}.
+
+@item m
+Merge the file from @var{PS} with that from @var{PW}, inserting markers
+into the merged working file to show where the changes in @var{PW}
+(relative to @var{PC}) and those
+in the version from @var{PS} overlap.  If the file from @var{PC} is
+missing, then an empty file is used for its contents.
+In general, you will have to edit the
+working file to resolve the discrepancies.  If the versions in @var{PS}
+and @var{PW} are identical aside from keyword values, merging has no effect.
+
+@item ?
+Print summary of options.
+
+@item h
+Print explanatory help message.
+
+@item v
+View differences between @var{PS}, @var{PC}, and @var{PW} (there is
+further prompting for which you want compared).
+@end table
+
+@noindent
+The @samp{-f} option causes default actions to each discrepancy (see
+below).  Otherwise, @sc{prcs} will ask the user to specify one of the
+possible actions.  All of the actions except @kbd{n} modify the
+descriptor, either to remove the file from the Files list, or to modify
+its internal file identifier to the one from @var{PS}.
+
+Like @code{prcs diff}, @code{prcs merge} canonicalizes files to strip
+keyword values before comparing them for discrepancies (@pxref{diff}).
+In the descriptions that follow, saying that files are  ``equivalent'' means
+that they are identical when canonicalized.
+
+@sc{Prcs} detects the following discrepancies:
+
+@itemize @bullet
+@item
+Files present in @var{PC} and absent in @var{PW}.
+The default action is @kbd{n}.  That is, the files are assumed to be
+obsolete, regardless of their status in @var{PS}.
+
+@item
+Files present in @var{PC} and @var{PW}, and absent in @var{PS}.
+The default action is @kbd{d}.  That is, the files are assumed to be obsolete.
+
+@item
+Files present in @var{PC}, @var{PS}, and @var{PW}, equivalent in
+@var{PC} and @var{PW}, and different in @var{PS}.  The default action is
+@kbd{r}.  That is, the version in @var{PS} is assumed to be most up-to-date.
+
+@item
+Files present in @var{PC}, @var{PS}, and @var{PW}, and different in all three.
+The default action is @kbd{m}.  There have been independent changes in
+both @var{PW} and @var{PS}.
+
+@item
+Files absent in @var{PC}, and different in @var{PW} and @var{PS}.
+The default action is @kbd{m}.
+
+@item
+Files absent in @var{PC} and @var{PW}, and present in @var{PS}. The default
+action is @kbd{a}.
+
+@item
+@sc{Prcs} takes no action in other cases, and does not prompt the user.
+@end itemize
+
+When @sc{prcs} overwrites a working file that is a
+symbolic link, then (unless the @code{:symlink} option is specified for
+that file), it will overwrite the file that the link references, without
+changing the link itself.
+With the @samp{-u} option, @sc{prcs} will instead remove the link
+and create a new file.
+
+Whenever @sc{prcs} is going to replace a working file as a result of one
+of the actions above, it first moves the original file into the
+@samp{obsolete} directory and gives it a unique name.
+
+A partial merge takes place when not all files in the three versions are
+considered for merging.  This can happen if a merge is aborted or the
+@var{file-or-dir} option limits the files under consideration.  When
+this happens, @sc{prcs} records which files have been merged and their
+names in the working project's New-Merge-Parents attribute
+(@pxref{Merge-Parents attribute}).
+
+A merge is considered @emph{complete} when each file in each version has
+been considered once.  A complete merge may be achieved by several
+partial merges.  To prevent reconsidering the same file more then once,
+@sc{prcs} will not consider any set of files containing a file that was
+already considered in a previous merge against the same selected version
+unless the @samp{-s} option is specified.
+
+In general, the @samp{-s} option allows the user to turn off all the
+safety features built into @code{prcs merge}.  It will allow a user to
+merge files more than once, override the choice of an effective working
+version, restart a complete merge, and start a new merge without
+completing a previous merge.
+
+By default, @sc{prcs} uses the GNU diff3 command to perform 2- or 3-way
+file merges when you choose the @kbd{m} action (@pxref{(diff)top}).  It
+is possible, however, to supply your own merge command.  By setting the
+@code{PRCS_MERGE_COMMAND} environment variable to a program name, @sc{prcs} will call the
+named command instead of diff3 (@pxref{Environment Variables}).
+
+@end deffn
+@c END DOCSTRING
+
+@node rekey, info, merge, Subcommands
+@c 2
+@section Prcs Rekey
+@c BEGIN DOCSTRING rekey_help_string
+@deffn Command {prcs rekey} [option @dots{}] [project [file-or-dir @dots{}]]
+
+@noindent
+ADDITIONAL OPTIONS: @samp{-u}
+
+Replace keywords in the selected files, according to the version named
+in the project file.  Files whose contents would not change under
+keyword substitution are not modified.
+With the @samp{-n} option, simply reports files
+that will change as a result of keyword replacement. @xref{Keywords}.
+
+When @sc{prcs} overwrites a working file that is a
+symbolic link, then (unless the @code{:symlink} option is specified for
+that file), it will overwrite the file that the link references, without
+changing the link itself.
+With the @samp{-u} option, @sc{prcs} will instead remove the link
+and create a new file.
+
+You can use this command to update keywords in working files after
+performing a @code{prcs checkin}, which does not modify keyword values.
+@end deffn
+@c END DOCSTRING
+
+
+@node info, admin, rekey, Subcommands
+@c 2
+@section Prcs info
+@c BEGIN DOCSTRING info_help_string
+@deffn Command {prcs info} [option @dots{}] [project [file-or-dir @dots{}]]
+
+ADDITIONAL OPTIONS: @samp{-r}, @samp{--sort}
+
+Print information about versions of the named project.  For each
+version listed, prints the project name, major and minor version
+identifiers, date and time checked in, and the user who checked in the
+version.  With the @samp{-l} option, also prints out the version logs
+and each  project description.  With @samp{-L}, also prints out
+the files constituting the version, their attributes, and their unkeyed
+MD5 checksum;  the @var{file-or-dir} options in this
+case restrict the files or directories that are listed.
+
+The @samp{-r} option is special in this command in that it may contain
+any of the shell filename-generation pattern characters defined for the
+Bourne shell,
+@code{sh}: @code{*}, which matches any string of 0
+or more characters; @code{?}, which matches any single character;
+@code{[...]}, which matches any of the enclosed characters; and
+@code{[!...]}, which matches any character except one of the enclosed
+characters.  These special pattern characters must be escaped to get
+them past the shell.  The default for
+both the major and minor versions is
+@code{*}.   The @samp{-r} option is still interpreted as a separate
+major and minor version; that is, @samp{-rFoo.*} matches @file{Foo.1}, but
+not @file{Foo.Bar.1}.
+
+The @samp{--sort=TYPE} option sets the type of sorting that the info
+command should
+use. If @var{TYPE} is @samp{date}, versions are sorted by individual
+version date, otherwise the default, @samp{version}, is to sort by major
+version creation date.
+@end deffn
+@c END DOCSTRING
+
+
+@node admin, config, info, Subcommands
+@c 2
+@section Prcs admin
+
+@deffn Command {prcs admin} subfunction [option @dots{}] [operand @dots{}]
+
+Perform various administrative subfunctions that generally have no
+effect on the abstract state of the repository.  The available functions
+are as follows.
+@end deffn
+@c BEGIN DOCSTRING admin_compress_help_string
+@deffn Subfunction compress [project]
+
+Encourages @sc{prcs} to save space in storing the data for
+@var{project}, even at the expense of slower processing.  This command
+may take some time to execute.  Interrupting it in the middle is safe,
+although it may lead to somewhat erratic space-saving behavior.
+@end deffn
+@c END DOCSTRING
+
+@c BEGIN DOCSTRING admin_uncompress_help_string
+@deffn Subfunction uncompress [option] [project]
+
+@noindent
+ADDITIONAL OPTIONS: @samp{-i}
+
+Encourages @sc{prcs} to save time in processing commands against
+@var{project}, even at the expense of using more space---perhaps
+considerably more.  With the @samp{-i} option, @sc{prcs} will
+immediately expand the entire representation of @var{project}.  Without
+the @samp{-i} option, @sc{prcs} will increase its use of space only as
+needed.  If disk space should run out, @sc{prcs} will leave the
+repository in a correct state.
+@end deffn
+@c END DOCSTRING
+
+@c BEGIN DOCSTRING admin_access_help_string
+@deffn Subfunction access [project]
+
+With the optional operand,
+interactively sets read and write permissions to all versions of
+@var{project},  in the repository, and (on systems that provide it)
+sets the group to which the files belong.  This command allows the owner
+of a project in a repository to restrict the access that others have to its
+contents.  One can specify that these files may only be read or may not be
+accessed at all.
+
+Without a @var{project} operand,
+interactively sets read and write permissions to the repository itself, both
+for members of the repository directory's group, and for all other users.
+One must have at least read access to the repository to look at or check
+out any project (in addition to having appropriate access to the project
+itself). You must have write access to the repository to create new
+projects in it.
+@end deffn
+@c END DOCSTRING
+
+@c BEGIN DOCSTRING admin_rebuild_help_string
+@deffn Subfunction rebuild [option @dots{}] [project]
+
+Rebuilds internal repository data on @var{project}, possibly removing
+file storage for deleted project versions and verifying the integrity of all
+project versions.  With the @samp{-l} option, reports
+deletions.  Unless there has been damage to the repository, this command
+generally has no visible effect on the notional contents of the repository.
+@end deffn
+@c END DOCSTRING
+
+@c BEGIN DOCSTRING admin_init_help_string
+@deffn Subfunction init project
+
+Create a new project in the repository containing no (non-empty) versions.
+Performing a @code{prcs checkout} on a non-existent project creates a
+blank working project descriptor without modifying the repository.  The
+first @code{prcs checkin} for that project then creates a new entry in
+the repository. Normally, no other explicit initialization for the
+project's entry in the repository is
+necessary.  However, with this method it is impossible to perform a
+@code{prcs access} before the first check-in, because there is no record
+of the new project
+in the repository.  With @code{prcs init}, you can create a repository
+entry (containing no versions) that you can modify with @code{prcs
+access}.
+@end deffn
+@c END DOCSTRING
+
+@c BEGIN DOCSTRING admin_pdelete_help_string
+@deffn Subfunction pdelete project
+
+Deletes a repository entry, permanently removing all versions and data
+from the repository.
+
+@end deffn
+@c END DOCSTRING
+
+@c BEGIN DOCSTRING admin_pinfo_help_string
+@deffn Subfunction pinfo
+
+Lists all projects in the repository.
+
+@end deffn
+@c END DOCSTRING
+
+@c BEGIN DOCSTRING admin_prename_help_string
+@deffn Subfunction prename project
+
+Renames a repository entry, similar to renaming during @code{prcs
+unpackage}.
+
+@end deffn
+@c END DOCSTRING
+
+@node config, package and unpackage, admin, Subcommands
+@c 2
+@section Printing and Checking the Configuration
+
+@c BEGIN DOCSTRING config_help_string
+@deffn Command {prcs@ config}
+
+Print out all compiled-in values and their values, possibly altered by
+environment variables or command-line arguments.
+Also verifies that the executables named by @code{$RCS_PATH}, or its
+compiled-in default, are valid and checks their version numbers to see
+that they are not outdated.
+@end deffn
+@c END DOCSTRING
+
+@node package and unpackage, execute, config, Subcommands
+@c 2
+@section Moving and Copying Projects
+
+Sometimes, it is desirable to package up and move or copy an entire
+@sc{prcs} project, rather than a single version of a project (discussed
+elsewhere in @ref{Importing Project Versions}.)  One can move an entire
+repository using the usual UNIX tools for copying, moving, distributing,
+and packaging directories.  For individual projects, it is preferable to
+use the @code{package} and @code{unpackage} subcommands in order to
+insure that all of @sc{prcs}'s internal structure is maintained.
+
+@c BEGIN DOCSTRING package_help_string
+@deffn Command {prcs package} project packagedfile
+
+@noindent
+ADDITIONAL OPTIONS: @samp{-r}, @samp{-z}
+
+Creates a plain file named @var{packagedfile}, containing all the data
+in @var{project}.   A value of @samp{-} for @var{packagedfile} denotes
+the standard output.  With @samp{-z}, the output file is compressed
+(in gzip format).
+@end deffn
+@c END DOCSTRING
+
+@c BEGIN DOCSTRING unpackage_help_string
+@deffn Command {prcs unpackage} packagedfile [project]
+
+Creates @var{project} in the repository to be a copy of the project from
+which @var{packagedfile} was created.
+The file @var{packagedfile} must have been created by @code{prcs
+package} (with or without the @samp{-z} option).  If @var{project} is
+omitted, it defaults to the name of the project from which
+@var{packagedfile} was created. If
+@var{project} exists in the repository, the user is prompted to delete
+the old copy from the repository.
+A value of @samp{-} for @var{packagedfile} denotes
+the standard input.
+With @samp{-n}, it merely reports the name of
+the project that would be added.
+
+If @var{project} differs from the original name as stored in
+@var{packagedfile},
+the project is renamed.  Renaming a project revises the history of the
+project; the result is as if the project had always been named
+@var{project}, with one exception:
+When checked out, project descriptor will have a comment inserted making
+note of the original project name.
+@end deffn
+@c END DOCSTRING
+
+
+@node execute, delete, package and unpackage, Subcommands
+@c 2
+@section Prcs execute
+
+@c BEGIN DOCSTRING execute_help_string
+@deffn Command {prcs execute} [option @dots{}] [project [file-or-dir @dots{}]] [@t{-}@t{-} command [arg @dots{}]]
+
+@noindent
+ADDITIONAL OPTIONS: @samp{-r}, @samp{--pre}, @samp{--all}, @samp{--pipe}
+`@t{-@t{-}match} @var{pattern}', `@t{-@t{-}not} @var{pattern}'
+
+Execute `@var{command} @var{arg} @dots{},' suitably modified as
+described below, for the name of each file and directory in
+@var{file-or-dir} in the specified version, filtered by any
+@samp{--match} and @samp{--not} operators as described below.
+This elaborate command is intended to facilitate efficient, open-ended
+extension of the functions of @sc{prcs}.  Each directory, whether or not
+explicitly named in the project, is included once, either in pre- or
+post-order.
+
+With the @samp{--all}
+option, @var{command} is executed once.
+Otherwise, it is executed once per file name.
+
+The @var{pattern} options filter the selected files.  To be selected,
+the entry in the
+Files attribute for a given file must satisfy the @samp{--match}
+pattern (if any) and not satisfy  the @samp{--not} pattern, if any.  Each
+pattern is a regular expression; an entry satisfies the pattern if
+either the name or any of the `:' options matches the pattern.
+
+For each execution of @var{command}, @sc{prcs} first replaces
+the following strings wherever they appear in @var{command} and in each
+@var{arg}:
+
+@table @code
+@item @{@}
+Replaced by the name of the file.  With the @samp{--all} option,
+replaced by the sequence of all selected file names, separated by
+``unquoted blanks'' (that is, blanks that divide the replacement string into
+separate arguments).
+
+@item @{options@}
+Replaced by a string consisting of all
+colon-options applicable to the file (@pxref{Files attribute}),
+separated
+by ``quoted blanks'' (that is, blanks that do not divide the replacement
+string into separate arguments).
+If a directory is not explicitly named in the project file, it is listed
+with a @code{:implicit-directory} option, whether or not it appears separately in
+the Files attribute.  These directories appear whether or not the files
+containing them were on the command line (otherwise, it would be
+impossible to get just the directories).
+The project file is included with the @code{:project-file} attribute.
+With the @samp{--all} option, all of these colon-option strings are
+concatenated together, with the strings for different files separated by
+unquoted blanks.
+
+@item @{file@}
+The name of a file containing the contents of the appropriate version of
+the file.
+Unless the internal file identifier is null (which can only happen when
+there is no @samp{-r} option, so that the working version is specified),
+this is the name of a temporary file containing a checked-out copy of
+the appropriate version, which is deleted after @var{command} completes.
+With a null internal file identifier, @code{@{file@}} is the same as
+@code{@{@}}.
+It is the empty string
+for a directory or a file carrying the @code{:symlink} option.
+With the @samp{--all} option, all of these file names are
+concatenated together, separated by unquoted blanks.
+@end table
+
+@noindent
+(In contexts where curly braces are special to your shell, you will have to escape them.)
+After these substitutions, @sc{prcs} invokes
+@var{command}, which must be an executable file.  It looks for @var{command}
+in the same directories as the shell (using the PATH environment
+variable).
+When @samp{--} and what follows are omitted, they default to
+
+@example
+-- /bin/echo @{@}
+@end example
+
+@noindent
+which simply echoes the names of all files and directories in the
+selected version, one per line.
+
+@c ITS NOT A GLITCH!!!  It's correct!  -josh
+
+One small glitch: @code{prcs execute} uses the current directory in
+effect when it is invoked as the current directory seen by
+@var{command}.  This is true, even when the @var{project} operand
+specifies a subdirectory.  For example,
+
+@example
+% cd /usr/users/foo
+% prcs execute D/P -- pwd
+@end example
+
+@noindent
+will print @file{/usr/users/foo} once for each file listed in
+@file{/usr/users/foo/D/P.prj}, and not @file{/usr/users/foo/D}, as the
+general description of the @var{project} operand might otherwise suggest
+(@pxref{Specifying Projects}).  This allows you to do something like the
+following:
+
+@example
+% ln -s . P-1.0
+% tar -cvf P-1.0.tar `prcs execute --not :.*directory P-1.0`
+@end example
+
+for making tarfiles containing all files in a project in an
+appropriately named subdirectory for distribution.
+
+If the @samp{--pipe} option is present, then the contents
+of the file (as would be contained in the
+file named by @samp{@{file@}}) is supplied as the standard
+input.  The @samp{--pipe} and @samp{--all} options are incompatible.
+Any @var{arg} whose replacement contains unquoted blanks (introduced by
+the @samp{--all} option) is divided at those blanks into separate
+arguments (even in the case where substitution results in a null string,
+that null string will be broken out as a separate argument).
+Each of the resulting arguments, is passed directly to the
+program specified by @var{command} as a single string, with no further
+processing by any shell.
+
+With the @samp{--all} option,  @sc{prcs} will invoke
+@var{command} only once.  The order of the lists of arguments replacing
+each pattern in @var{command} is consistent, so that, for example, the
+options for the first file name in the replacement for @samp{@{@}} is
+the first string in the replacement for @samp{@{options@}}.
+For example, if a project contains the
+files @file{A}, @file{B/Q}, and @file{B/R}, then
+
+@example
+prcs execute --all . -- foo -a@{@}-b "@{options@}"
+@end example
+
+@noindent
+will execute (in effect) the single command
+
+@example
+foo -aA B/Q B/R B-b "" "" "" ":directory"
+@end example
+
+With the @samp{--pre} (for pre-order) option the directory name is listed first,
+then the non-directory
+file names within that directory, then the subdirectories and their contents.
+Otherwise, subdirectories and their contents are
+listed first, then the names of its
+non-directory files, then the name of the directory itself.
+
+With @samp{-n}, the command prints the commands that will be executed
+without actually executing them.
+@end deffn
+@c END DOCSTRING
+
+
+@node delete, , execute, Subcommands
+@c 2
+@section Deleting Project Versions
+
+@c BEGIN DOCSTRING delete_help_string
+@deffn Command {prcs delete} @samp{-r} version project
+
+Delete the indicated version of @var{project}.  It will no longer be
+possible to retrieve the given version.  Therefore, this is a command
+that you should use very sparingly, if at all.
+
+Deleting a version does not necessarily release the space used by the
+files it contains, since these may be mentioned in other versions.  At
+various times, @sc{prcs} will note what space can actually be released
+and do so.
+
+Minor version numbers increase monotonically, regardless of deletions,
+and are never re-used.
+@end deffn
+@c END DOCSTRING
+
+@node Repository, Descriptors, Subcommands, Top
+@c 1
+@chapter Repository
+
+The projects repository is a directory that stores the checked-in copies
+of some set of projects.  You usually specify it to @sc{prcs} by
+setting the @code{PRCS_REPOSITORY} environment variable, or by using the
+@samp{-R} (@samp{--repository}) option.  It defaults to @file{$HOME/PRCS}.
+
+The precise contents of the repository---the relationship between the
+files that appear there and the abstract set of version contents
+presented by @sc{prcs}---is deliberately left undefined.  You should not
+count on it being stable from release to release.
+
+@subheading Auxiliary Data
+To increase the speed of @code{checkin} and other subcommands, @sc{prcs}
+maintains redundant information, both in the repository and in working
+directories.  Specifically, you may find files with names such as
+@file{.P.prcs_aux} in your working directory, which contain information
+that allow @sc{prcs} to make a quick, heuristic determination of which
+files you have modified from their repository versions.  It is safe to
+remove (but not to modify) these auxiliary files.
+
+@node Descriptors, Keywords, Repository, Top
+@c 1
+@chapter Descriptors
+
+A project-version descriptor is a file that defines the contents of the
+project.  For project with name @var{P}, the project-version descriptor
+(or just `descriptor') is called @file{@var{P}.prj} and is kept at the
+root of the project directory tree.  When you check in a project, the
+project descriptor indicates what files need to be included, which have
+keywords that need to be expanded, and from which previous versions of
+the those files (if any) the working files were derived.  A @code{prcs
+checkin} then creates and checks in an updated descriptor file.
+
+The sections below detail the syntax of the project descriptor file and
+the standard attribute entries that may appear in it.
+
+@menu
+* Descriptor entry syntax::
+* Project-Version attribute::
+* Project-Description attribute::
+* Version-Log and New-Version-Log attributes::
+* Checkin-Time and Checkin-Login attributes::
+* Files attribute::
+* Populate-Ignore attribute::
+* Merge-Parents attribute::
+* Parent-Version attribute::
+* Project-Keywords attribute::
+@end menu
+@node Descriptor entry syntax, Project-Version attribute, Descriptors, Descriptors
+@c 2
+@unnumberedsubsec Descriptor entry syntax
+
+The syntax of the project descriptor file is a slight variant on Lisp.  It
+consists of `S-expressions' (this is the terminology established by
+Lisp, so we'll use it here). In general, an S-expression has one of the
+following forms
+
+@example
+@var{label}
+@var{string constant}
+(@var{s-exprs})
+@end example
+
+@noindent
+Where `@var{s-exprs}' is (recursively) a sequence of 0 or more
+s-expressions, separated from each other by whitespace and optionally
+separated from the surrounding parentheses by whitespace (`whitespace'
+is any non-empty sequence of blanks, tabs, form feeds, and newlines).
+We've described the syntax of labels and string constants elsewhere
+(@pxref{Definitions}).
+
+You may include comments in the descriptor; these consist of a semicolon
+(outside of a string) followed by all characters up to and not including
+the next newline or the end of the file.  Comments have no effect on the
+behavior of @sc{prcs} and are copied from one version of a project
+descriptor to the next.
+
+The non-nested S-expressions that appear in a descriptor (those that
+aren't part of some larger expression) each start with an attribute name
+(a label).  The valid attribute names are described in the following
+sections.
+
+@node Project-Version attribute, Project-Description attribute, Descriptor entry syntax, Descriptors
+@c 2
+@unnumberedsubsec Project-Version attribute
+
+@deffn Attribute Project-Version @var{P} @var{M} @var{N}
+
+This indicates that the descriptor is (or is modified from) the
+descriptor for version @var{M.N} of project @var{P}.
+@var{M} must be a valid
+major version name and @var{N} must be a valid minor version name
+(@pxref{Version Names and Specifiers}).
+The @code{prcs checkin} command sets the Project-Version of the
+checked-in descriptor.  @xref{Version Names and Specifiers}.
+@end deffn
+
+
+@node Project-Description attribute, Version-Log and New-Version-Log attributes, Project-Version attribute, Descriptors
+@c 2
+@unnumberedsubsec Project-Description attribute
+
+@deffn Attribute Project-Description @var{string-constant}
+
+This attribute is intended to provide a title or short description of
+the project.  By default, @code{prcs checkin} leaves it undisturbed.
+@end deffn
+
+@noindent
+For example,
+
+@example
+(Project-Description "Sample PRCS Project")
+@end example
+
+@node Version-Log and New-Version-Log attributes, Checkin-Time and Checkin-Login attributes, Project-Description attribute, Descriptors
+@c 2
+@unnumberedsubsec Version-Log and New-Version-Log attributes
+
+@deffn Attribute Version-Log @var{string-constant}
+@deffnx Attribute New-Version-Log @var{string-constant}
+
+The version log is stored with the descriptor of each version of a
+project.  A @code{prcs checkin} initializes it from the New-Version-Log
+attribute, removing any existing Version-Log attribute, and setting the
+New-Version-Log to the empty string.  The version log is intended to
+describe the changes made in this version from its predecessor, or to
+contain other comments about it.
+@end deffn
+
+@noindent
+For example,
+
+@example
+(Version-Log "Added header.h")
+(New-Version-Log "Modified main.c")
+@end example
+
+@node Checkin-Time and Checkin-Login attributes, Files attribute, Version-Log and New-Version-Log attributes, Descriptors
+@c 2
+@unnumberedsubsec Checkin-Time and Checkin-Login attributes
+
+@deffn Attribute Checkin-Time @var{time-specifier}
+@deffnx Attribute Checkin-Login @var{label}
+
+These attributes record the login of the user performing the @sc{prcs}
+check-in that created this version and the time at which it was
+performed.  They are set by @code{prcs checkin}.
+@end deffn
+
+@noindent
+For example,
+
+@example
+(Checkin-Time "Sun, 12 Jun 1994 20:00:00 -0700")
+(Checkin-Login hilfingr)
+@end example
+
+@node Files attribute, Populate-Ignore attribute, Checkin-Time and Checkin-Login attributes, Descriptors
+@c 2
+@unnumberedsubsec Files attribute
+
+@deffn Attribute Files (@var{file1} (@var{internal-file-id1}) @var{options1}) @dots{}
+
+Each of the 0 or more arguments of the Files attribute denotes one of
+the constituents of a version.  The @var{file} arguments give the
+pathnames of files relative to some root directory.  The
+@var{internal-file-id} arguments contain information used by
+@sc{prcs} to identify versions of individual files.
+
+If @var{F} is one of the @var{file} arguments, then
+no component of @var{F} may be `.' or `..'.   Unless one of the options
+listed for @var{F} is @code{:directory} (see below), no other @var{file}
+argument in the Files attribute may begin with `@var{F}/'.
+
+The precise format of an internal file identifier is not defined, and is
+subject
+to change whenever @sc{prcs} is revised.  Two properties, however, are
+guaranteed:
+
+@itemize @bullet
+@item
+If a particular internal file identifier describes a file
+in one project-version descriptor, it can be copied
+verbatim as the internal file identifier for a file (possibly with a
+different name)
+in another project-version descriptor for the same project in
+the same repository.
+It will denote a file with the same contents, aside possibly from the
+values of certain keywords (@pxref{Keywords}).  As a result, it is
+possible to copy an entire project version to another (with another
+version number) without checking out the files, simply by copying the
+Files attribute of the project-version descriptor.
+Likewise, if you wish to change the name of a file from one version to
+another, you should reflect the change in the working version of the
+project descriptor, keeping its internal file identifier unchanged.
+
+@item
+Each non-null internal file identifier belongs to an @dfn{internal-file
+family}.  If a working file has a non-null internal file identifier,
+then a @code{prcs checkin} will assign it an internal file identifier
+(possibly unchanged from that of the working version) in the same
+internal-file family.  If a working file has a null internal file
+identifier (`()'), @code{prcs checkin} will put it in a new
+internal-file family, otherwise unpopulated.  Internal-file families are
+useful
+for certain kinds of version comparisons and merges.
+@end itemize
+
+The @var{options} arguments denote 0 or more labels indicating special
+properties of the file.  At the moment, four are defined.
+
+@table @code
+@item :no-keywords
+indicates that keywords in the file are
+not to be expanded.
+
+@item :symlink
+indicates the file is a
+symbolic link, which will be recorded at checkin
+and reproduced at checkout.
+
+@item :directory
+indicates that the file is a directory, which
+will be created, if necessary, at checkout.  This is useful for having empty
+directories in your project.
+
+@item :tag=@var{label}
+records @var{label} as a piece of user-defined information about the
+file.  @sc{Prcs} does not
+interpret @var{label}; its main use is for filtering in the @code{prcs execute}
+subcommand (@pxref{execute}).  There may be any number of
+@code{:tag} options attached to a file.
+@end table
+
+The project descriptor (@file{.prj} file) is not explicitly included in
+the Files attribute.  Nevertheless, it is implicitly one of the files in
+each project version.
+
+@noindent
+For example,
+
+@example
+(Files
+  (empty () :directory)        ; an empty directory
+  (pointer () :symlink)        ; a symbolic link
+  (realfile () :no-keywords)   ; the only real file in the list
+)
+@end example
+@end deffn
+
+@node Populate-Ignore attribute, Merge-Parents attribute, Files attribute, Descriptors
+@c 2
+@unnumberedsubsec Populate-Ignore attribute
+
+@deffn Attribute Populate-Ignore (@var{pattern1} @dots{})
+
+This attribute is used to inform @code{prcs populate} of files that it
+should not add to the Files list of the project descriptor.  It is
+included as a convenience; you
+can accomplish the same effect by editing the Files list after running
+populate.
+
+Each of the @var{pattern} arguments is a regular expression (as
+used by @code{grep}).  Any path name that @code{prcs populate} finds
+that matches one or more @var{pattern} arguments is not added to the Files
+list (existing names on the list are not affected).
+@end deffn
+
+For example, the following filters out object (@file{.o}) files, library
+archive (@file{.a}) files, core
+files, files generated by @TeX{}, Postscript (@file{.ps}) files that occur
+in subdirectory @file{doc}, Emacs backup files, and the executable file @file{a.out}:
+
+@example
+(Populate-Ignore ("\\.o$" "\\.a$" "~$" "^a.out$" "^core$"
+                  "\\.dvi$" "\\.aux$" "\\.log"
+                  "^doc/.*\\.ps"))
+@end example
+
+
+@node Merge-Parents attribute, Parent-Version attribute, Populate-Ignore attribute, Descriptors
+@c 2
+@unnumberedsubsec Merge-Parents attribute
+
+@deffn Attribute Merge-Parents (@var{merged-against-version}
+@var{effective-working-version} @var{complete} (@var{file-action}) @dots{}) @dots{}
+@deffnx Attribute New-Merge-Parents (@var{merged-against-version}
+@var{effective-working-version} @var{complete} (@var{file-action}) @dots{}) @dots{}
+
+The @code{prcs merge} command uses the New-Merge-Parents attribute to
+record the history of updates to each file.
+Each @var{merged-against-version} indicates a selected version that was
+merged into the
+working files, each @var{effective-working-version} indicates the
+effective working version used to select the common version,
+@var{complete} indicates whether the merge against
+@var{merged-against-version} was completed,
+and each @var{file-action} records what action
+(delete, add, replace, merge, no action) @code{merge} took for each file.
+This
+information is useful in preventing confusion when the user interrupts a
+merge operation and
+then re-executes the merge.
+
+The @var{file-actions} entries contain data recording each merge action
+that takes place.  Since the filenames in each merge action need not be
+the same (@pxref{Files attribute}), @sc{prcs} records each of up to
+three filenames for each merge action or an empty list (`()') where a
+file was not present.  In addition, @sc{prcs} records which action was
+taken on each set of files.
+
+The @code{prcs checkin} command copies any New-Merge-Parents attribute in the working project
+descriptor into a Merge-Parents attribute in the new (checked-in)
+project descriptor.  It discards any existing Merge-Parents attribute in
+the working file.
+
+Each merge-parent in a checked-in version is considered as a parent
+version.  Similarly, each new-merge-parent in a working version is
+considered as a parent version (@pxref{Parent-Version attribute}).
+@end deffn
+
+@node Parent-Version attribute, Project-Keywords attribute, Merge-Parents attribute, Descriptors
+@c 2
+@unnumberedsubsec Parent-Version attribute
+
+This attribute, along with the Merge-Parents attribute described above,
+tracks the history of a project version: Parent-Version records the version from
+which a project version originally descended, and Merge-Parents
+records versions against which it was merged.
+
+@deffn Attribute Parent-Version @var{P} @var{M} @var{N}
+
+This has the same form as the Project-Version attribute
+(@pxref{Project-Version attribute}), except that for an initial version
+(unrelated to any prior version),
+each of @var{P}, @var{M}, and @var{N} is @code{-*-}.
+The Parent-Version defines the @dfn{ancestors} of
+a version in the repository as follows:
+
+@itemize @bullet
+@item
+A version is an ancestor of itself.
+
+@item
+The Parent-Version attribute of a version names an ancestor
+of that
+version.
+
+@item
+Each element in the Merge-Parent list names an ancestor of that
+version.
+
+@item
+Ancestry is transitive: any ancestor of one of @var{V}'s ancestors is
+also an ancestor of @var{V}.  The number of Parent-Version or
+Merge-Parent entries
+that must be traversed to find an ancestor of @var{V} is called the
+@dfn{distance} of that ancestor from @var{V}.
+@end itemize
+
+Given two versions in a repository, any version that is an ancestor to
+both is called a @dfn{common ancestor}.  A
+common ancestor whose distance from both is minimal is called
+a @dfn{nearest
+common ancestor}.  It is possible for there to be more than one
+nearest common ancestor.  If so, commands attempting to determine the
+nearest common ancestor will either abort or ask the user for help.
+
+Each
+@code{prcs checkin} sets Parent-Version to name the Project-Version
+attribute of the version from
+which the newly
+checked-in version is derived.  Additionally, it sets the New-Merge-Parents
+attribute to the Merge-Parents attribute.
+@end deffn
+
+@node Project-Keywords attribute, , Parent-Version attribute, Descriptors
+@unnumberedsubsec Project-Keywords attribute
+
+@deffn Attribute Project-Keywords (@var{keyword} @var{value}) @dots{}
+
+The Project-Keywords attributes allows the user to define new keywords
+and their values, which will behave exactly like the builtin keywords
+(@pxref{Keywords}).  Each @var{keyword} must be unique and must not match
+one of the builtin keywords.  All files contained in the project version
+described by a descriptor containing a Project-Keywords list will be
+keyed with each @var{keyword}.  Each @var{value} is either a label or a
+string and may not contain a newline character.
+For example, you could include such project meta-data as state
+labels, release labels, and version numbers:
+
+@example
+(Project-Keywords (ReleaseMajorVersion 1)
+                  (ReleaseMinorVersion 1)
+                  (ReleaseMicroVersion 0)
+                  (ReleaseVersion "$ReleaseMajorVersion$.$ReleaseMinorVersion$.$ReleaseMicroVersion$"))
+                  (ProjectState "Release")
+                  (RealAuthor "Josh")) ; in case the login doesn't
+                                       ; provide enough information.
+@end example
+@end deffn
+
+@node Keywords, Subprojects, Descriptors, Top
+@c 1
+@chapter Keywords
+
+Files in a project may contain instances of keywords that (in effect)
+@code{prcs checkin} will replace with certain information.
+Conceptually, upon checkin, each keyword instance in every file
+of the project  (not just
+those listed in the checkin subcommand)
+is updated as described below with the value of its
+keyword in the new project version.  As a performance consideration,
+however, this is implemented in such a way that partial checkins only
+have to examine the files that are listed in the checkin subcommand (@pxref{Keywords and File Identifiers}).
+
+There are two forms of
+keyword instance: simple and formatted.  A simple keyword instance has
+one of the forms
+
+@example
+$@var{keyword}$
+$@var{keyword}: @var{data}$
+@end example
+
+This syntax is strict: @sc{prcs} does not recognize a keyword when there
+is whitespace on either side (separating it from the dollar sign that
+precedes it or the dollar sign or colon that follows).  There may not be
+newlines anywhere in the keyword instance.  If the keyword is one that
+@sc{prcs} recognizes, other than @code{Format}, @code{prcs checkin}
+replaces the instance with an instance of the second form, with the data
+part depending on the particular keyword.  Formatted keyword instances
+allow a more flexible replacement format.
+
+@menu
+* Recognized Keywords::           Keywords that @sc{prcs} knows about, and
+                                      their meanings
+* Recursive Keyword Replacement:: Keywords are replaced recursively
+* Formatted Keyword Instances::   How to get keyword replacement data
+                                      inserted without the usual surroundings
+* Keywords and File Identifiers:: Subtle details about keyword replacement
+                                      semantics.
+@end menu
+@node Recognized Keywords, Recursive Keyword Replacement, Keywords, Keywords
+@c 2
+@unnumberedsec Recognized Keywords
+
+@sc{prcs} understands the following built-in keywords, in addition to
+any declared in the Project-Keywords attribute.  Others are ignored (their
+instances are left unchanged).  Instances of the Source and
+ProjectHeader keywords change whenever the file is moved from one
+directory to another within a project.  Instances of Project,
+ProjectDate, ProjectAuthor, ProjectMajorVersion, ProjectMinorVersion,
+ProjectVersion, and ProjectHeader can change even when the file
+containing them does not, since they depend on the project, not the
+file.  These keywords are known collectively as @dfn{project-related
+keywords}.
+
+@table @asis
+@item Author
+The login of the user who created this checked-in version of the file.
+Changes in a file due solely to project-related keyword replacement do
+not affect the value of this keyword.
+
+@item Date
+The date and time at which this version of the file was checked in.
+Changes in a file due solely to project-related keyword replacement do
+not affect the value of this keyword.
+
+@item Basename
+The base name of the file, as it appears in the Files attribute.
+
+@item Revision
+A notation that serves as a revision number for this file (it is
+independent of the project's version number, and changes only when the
+file changes).
+Changes in a file due solely to project-related keyword replacement do
+not affect the value of this keyword.
+
+@item Id
+A standard header combining the Basename, Revision, Date, and Author.
+
+@item Source
+The full name of the file, as a pathname relative to the root of the
+project's directory tree.
+
+@item Project
+The name of the project containing the file version.
+
+@item ProjectDate
+The date and time the project containing this file version was
+checked in.
+
+@item ProjectAuthor
+The login name of the user who checked in the project version containing this
+file version.
+
+@item ProjectMajorVersion
+The major version name of the project version containing this file version.
+
+@item ProjectMinorVersion
+The minor version name (a number) of the project version containing this file
+version.
+
+@item ProjectVersion
+The complete version designator for this project version.  It has the
+form @var{M}.@var{N}, where @var{M} is the major project-version name
+and @var{N} is the minor project-version name.
+
+@item ProjectHeader
+A standard header combining the Project, ProjectVersion, ProjectDate,
+and ProjectAuthor.
+@end table
+
+@node Recursive Keyword Replacement, Formatted Keyword Instances, Recognized Keywords, Keywords
+@unnumberedsec Recognized Keywords
+
+Keyword replacement is recursive.
+
+Replacement of a keyword takes place on a string which is either the
+quoted contents of a @code{Format} keyword or the defined value of a
+regular keyword instance.  When this string contains an instance of a
+keyword which is not currently being replaced, it recursively outputs
+the value of that keyword.  Processed text is not reexamined.  A keyword
+instance is not replaced when it is appears during a recursive
+replacement of the same keyword, to prevent loops.
+
+One minor glitch in the above description.  Since the @samp{$} character
+delimits keyword instances, tt is necessary to prevent @samp{$}
+characters from being inserted as the value of a non-formatted keyword.
+All text after the first @samp{$} would otherwise end up being inserted
+into the document.  For example, if the keyword @var{K} had value ``I
+have a @samp{$} character!'' were replaced:
+
+@example
+$@var{K}: I have a $ character!$
+@end example
+
+Then, the next replacement would result in:
+
+@example
+$@var{K}: I have a $ character!$ character!$
+@end example
+
+and so on.  Therefore, when spurious @samp{$} characters are found
+inside the contents of a regular keyword value (not @code{Format}), they
+are replaced with the @samp{|} character.
+
+@node Formatted Keyword Instances, Keywords and File Identifiers, Recursive Keyword Replacement, Keywords
+@c 2
+@unnumberedsec Formatted Keyword Instances
+
+Sometimes, you want keyword replacement data to appear without the
+leading @code{$keyword:} and trailing @samp{$}.  A formatted keyword
+instance allows this.  An appearance in your file of
+
+@example
+$Format: "@var{string}"$
+@var{string}
+@end example
+
+@noindent
+will cause @code{prcs checkin} to replace the next line of the source
+file (i.e., the line after the second @samp{$}) with @var{string}, after
+first making modified keyword substitutions in it.  Specifically, each
+instance of @code{$@var{keyword}$} in @var{string} (for which
+@var{keyword} is one of the recognized keywords) is replaced by just the
+data that would be placed to the right of the @samp{:} in a simple
+keyword instance.  The @code{Format} instance itself is not
+altered---only the subsequent line.  For example, if a file in a project contains
+
+@example
+/* $Format: "static char* version = \"$ProjectVersion$\";"$ */
+static char* version = "x.x";
+@end example
+
+@noindent
+then the version of the file checked in for version 1.2 of the project
+will contain
+
+@example
+/* $Format: "static char* version = \"$ProjectVersion$\";"$ */
+static char* version = "1.2";
+@end example
+
+The format string may not contain newlines.  It may contain quotation
+marks if they are stropped with a backslash, as in the example above.
+In general, the backslash quotes the succeeding character.  Any keyword
+instances on a list after a @code{Format} instance are ignored (that is,
+they are left unchanged by keyword substitution).  Any nested instance
+of @code{Format} is also left unchanged.
+
+@node Keywords and File Identifiers, , Formatted Keyword Instances, Keywords
+@c 2
+@unnumberedsec Keywords and File Identifiers
+
+The actual content of a working file upon checkout depends on two
+things: the  internal file identifier recorded for it and the contents
+of the project descriptor.  The internal file identifier designates a
+particular ``raw'' file contents stored in the repository that never
+changes once it is first created.  The checked out file consists of this
+contents modified by keyword replacement. If the same file identifier is
+used for two files in two different projects, the checked-out working
+files will differ in the values supplied for these keywords.  This is a
+subtle point, but it is significant when you copy a file identifier from
+one project to another.
+
+For example, suppose that file F in version 1.2 of project P contains the line
+
+@example
+/* $ProjectVersion: 1.2$ */
+@end example
+
+@noindent and that its entry in the Files attribute of P.prj is
+
+@example
+    (F (P/0_F 1.1))
+@end example
+
+@noindent If you decide to rename F to G for the next version of
+P, you can do so by changing its line in the Files attribute to
+
+@example
+    (G (P/0_F 1.1))
+@end example
+
+@noindent When you check the project back in, creating version 1.3, this
+same line will be retained as its file identifier (assuming, that is,
+you made no changes to G or its former incarnation, F).  However,
+in version 1.3 of P, G  will contain
+
+@example
+/* $ProjectVersion: 1.3$ */
+@end example
+
+That is, @sc{prcs} actually performs all keyword replacement on
+check-out (think of it as lazy replacement).  It only makes a
+user-visible difference in the handling of internal identifiers.  It
+also has a considerable effect on the performance of partial checkins
+(those that contain a list of specific files and directories to check
+in, and copy all unmentioned files from file identifiers listed in the
+Files attribute). Because @sc{prcs} does not have to examine the files
+excluded from
+the file list for keywords, it can process them very quickly.
+
+
+@node Subprojects, Importing Project Versions, Keywords, Top
+@c 1
+@chapter Subprojects
+
+You can use @sc{prcs} to ``bundle together'' a set of projects (so that
+they may be released together, for example).  Suppose that P is the name
+you want to give to the (new) combined project, with P1, P2, and P3 the
+names of the subprojects.  To create the initial version of P, take the
+following steps.
+
+@enumerate
+@item
+Go into a directory
+that is to serve as the working directory for P.
+
+@item
+Use prcs checkout to create a @file{.prj} file for P.
+
+@item
+For each subproject, Pi, create a subdirectory Pi, and in that
+subdirectory, execute the command
+@example
+% prcs checkout -r@dots{} Pi Pi.prj
+@end example
+(replacing `@dots{}' with the appropriate version specifier).
+This checks out the @file{.prj} file for Pi into Pi.
+
+@item
+Modify the Files entry for P to list the @file{.prj} files for the Pi.
+
+@item
+Check in P.
+@end enumerate
+
+To create a working copy of this version of P (including working copies
+of all its subprojects' files), use the following (Bourne shell)
+commands (I'll assume that 0.1 is the version name for P).
+
+@example
+$ prcs checkout -r0.1 P
+$ for i in P1 P2 P3; do
+>   (cd $i; prcs checkout $i)
+> done
+@end example
+
+@noindent
+Obvious modifications of this procedure will serve to create updated
+versions of P.
+
+With a little care, we can automate this process a bit further.  Suppose
+that we establish a convention that we tag each subproject descriptor
+file in the Files list of P:
+
+@example
+(Files
+  ...
+  (P1 (...) :tag=project)
+  (P2 (...) :tag=project)
+  (P3 (...) :tag=project)
+  ...
+)
+@end example
+
+@noindent
+This allows a general-purpose version of the checkout procedure above,
+one that does not require that we remember the names of all the
+subprojects:
+
+@example
+% prcs execute -r0.1 P --match :tag=project -- prcs checkout @{@}
+@end example
+
+@node Importing Project Versions, Environment Variables, Subprojects, Top
+@c 1
+@chapter Importing Project Versions
+
+@sc{Prcs} allows you to create a sequence of project versions out of a
+sequence of releases of a source directory tree.  You may want to do
+this, for example, if you are installing successive versions of some
+system imported from elsewhere and wish to be able to retrieve old
+versions, while still saving space by storing only the changes between
+successive versions.  (See @ref{package and unpackage}, if you want
+to move or copy an entire project from one repository to another.)
+
+@subheading Tracking imported versions
+
+The process is simple.  For concreteness, let us use the name @code{P}
+as the project name.  For the first imported version, we create @code{P}
+and populate it with the first version of the imported source files.  In
+the directory that contains the imported files, use the commands
+
+@example
+% prcs checkout P
+% prcs populate P
+# Edit P.prj #
+% prcs checkin P
+@end example
+
+@noindent
+The editing of @file{P.prj} might consist of setting the
+@code{Project-Description} and @code{New-Version-Log} attributes, and
+possibly adding
+@code{:no-keywords} options to some files.
+
+When you receive a new release of @code{P}, place it in a directory
+structure and, at the top directory of that structure, use the commands
+
+@example
+% prcs checkout P P.prj
+% prcs populate -d P
+# Edit P.prj #
+% prcs checkin P
+@end example
+
+@noindent
+With the @samp{-d} option, the @code{prcs populate} command will add any
+new files found in the working directory, but not listed in
+@file{P.prj}, and will remove any files listed in @file{P.prj}, but not
+present in the working directory.
+Again, you will probably want to edit the @code{New-Version-Log}
+attribute.
+
+Imported software sources often have their own version designations, and
+you may want to have the @sc{prcs} major version identifiers include
+all or part of these designations.  Suppose the first such imported release is
+called @code{1.0-beta}.  In the working directory containing this release,
+you might type
+
+@example
+% prcs checkout -r1.0-beta.0 P
+% prcs populate P
+# Edit P.prj #
+% prcs checkin P
+@end example
+
+@noindent
+On receiving a new release from outside, say @code{1.1-beta}, you would put
+it under a working directory and, from that directory, issue
+the commands
+
+@example
+% prcs checkout -r1.0-beta.@ P P.prj
+% prcs populate -d P
+# Edit P.prj #
+% prcs checkin -r1.1-beta.@ P
+@end example
+
+@subheading Keeping parallel local versions
+
+Sometimes, you will have local modifications or enhancements to a piece
+of imported software, and want to bring your local version up to date
+with successive parallel releases of the imported software.
+To do this,
+use the procedure above for keeping the imported
+releases.  Put your own local releases in another major version, let's
+say @code{Local}.
+To start with,
+you'll use the initial imported release:
+
+@example
+% prcs checkout -rV P P.prj
+# Edit the project #
+% prcs checkin -rLocal P.prj
+@end example
+
+@noindent
+Here, @var{V} is whatever @sc{prcs} version number you have assigned to the
+vendor's (the imported) version.
+Continue making your local modifications in major revision @code{Local}.
+When a
+new external release comes in, first   make
+sure the most recent version of your local version is checked in.
+Then put the new imported version into a fresh directory structure,
+populate a project file, and check it in as outlined above.
+For concreteness,
+let's say that your most recent local version is designated Local.5, and
+the newly-checked-in imported version is designated Vendor.3.
+
+In the working directory for Vendor.3 (which you have just checked in),
+issue the command
+
+@example
+% prcs merge -rLocal.@@ -n P
+@end example
+
+@noindent
+to see where the discrepancies are (or use @code{prcs diff}), and use
+
+@example
+% prcs merge -rLocal.@@ P
+@end example
+
+@noindent
+to merge in the revisions since the last external release with the local
+changes since the last release.  Edit the files to resolve conflicts,
+and edit @file{P.prj} as usual. Finally, check the result back in with
+
+@example
+% prcs checkin -rLocal P
+@end example
+
+@noindent
+which will create version Local.6.  Its parent versions are Local.5 and
+Vendor.3.  Alternatively, you could check out the local version,
+Local.5, and merge against the vendor branch
+
+@example
+% prcs merge -rVendor.@@ P
+@end example
+
+@noindent
+and checkin as Local.6.  The resulting parent versions are the same in
+either case, with the sense of all the merge operations reversed.
+
+@subheading Handling renaming
+
+Sometimes, you will find it desirable to rename the files you import and
+re-arrange their directory structure in your local version.
+You probably only want to perform this restructuring on the Local
+branch of the project, not the Vendor branch.
+Initially, you will create your first
+local version like this:
+
+@example
+% prcs checkout -rV P P.prj
+# Rename files #
+# Edit P.prj to change the names in the Files attribute so
+# as to correspond to your renaming.
+% prcs checkin -rLocal P.prj
+@end example
+
+Editing @file{P.prj} here consists simply in changing the file names,
+not the internal file identifiers.  For example, if the file
+@file{doc/mogrify.1} in branch @var{V} is to be called
+@file{man/mogrify2.1} in the Local branch, you would rename the
+file:
+
+@example
+% mkdir man
+% mv doc/mogrify.1 man/mogrify2.1
+@end example
+
+and then you would edit the line
+for @file{doc/mogrify.1} in @file{P.prj}, which might read
+
+@example
+  (doc/mogrify.1 (P/0_foobar.1 1.1 644))
+@end example
+
+@noindent
+originally, into
+
+@example
+  (man/mogrify2.1 (P/0_foobar.1 1.1 644))
+@end example
+
+@noindent
+The internal file identifier, therefore, records the correspondence
+between @file{doc/mogrify.1} in the @var{V} branch and
+@file{man/mogrify2.1} in the Local branch.  When either of these files
+is updated and checked in, its new internal file identifier will be in
+the same internal-file family; thus the correspondence between the files
+is not lost.
+
+The concept of an internal-file family (@pxref{Files attribute}) was
+introduced to allow @code{prcs diff} and @code{prcs merge} to ``do
+the right things'' (that is, compare or merge against the appropriate files)
+even in the face of such restructuring.  For example, when comparing a Local
+version to a Vendor version, @code{prcs diff} will compare @file{doc/mogrify.1}
+from the Vendor version with @file{man/mogrify.1} in the working files of your
+Local version.
+
+@node Environment Variables, Copying, Importing Project Versions, Top
+@c 1
+@chapter Environment Variables
+
+@c ************************** Note ***************************
+@c The string "@defvr {Environment Variable} " is used to find
+@c environment variables that PRCS looks for.  These are inserted
+@c into the generated source file docs.cc.in and the generated m4
+@c file prcsenv.m4.  Together, they make it so that the compile-
+@c time environment is saved and used when the users's environment
+@c does not have a certain variable set.  If unset at compile time
+@c as well, the documented default is used.  The 'prcs config'
+@c command should print out the value of all environment variables
+@c (except when they are unset and as a result have no effect, like
+@c PRCS_MERGE_COMMAND, for example).  The config_command does not
+@c participate in this auto-generation, and so to add an environment
+@c variable it should be added here, wherever it is used in the
+@c source, and to config_command in prcs.cc.
+@c ************************** Note ***************************
+
+Certain information that @sc{prcs} needs is not likely to be the same
+for different users and installations, and is inconvenient or
+inappropriate to specify with every command.  In such cases, @sc{prcs}
+takes the information from environment variables, where they are
+defined, and uses some implementation-defined default otherwise.
+@sc{prcs} checks first the users's environment, then the builder's
+compile-time environment, and finally uses the documented default.  Here
+is a listing of the environment variables that @sc{prcs} queries, and
+their meanings.  Run @code{prcs config} to see a listing of all the
+environment variables @sc{prcs} is aware of and their values.
+
+@defvr {Environment Variable} PRCS_CONFLICT_EDITOR
+The path of an editor to run on all merged files that generate
+conflicts immediately after the conflict is produced.  This lets you
+handle conflicts one at a time instead of waiting until a merge has
+completed.
+@end defvr
+
+@defvr {Environment Variable} PRCS_DIFF_COMMAND
+Like PRCS_MERGE_COMMAND, a command to produce differences when running
+prcs diff.  There are at least 4 arguments: from label, from filename,
+to label, to filename, preceded by any diff options supplied either on
+the command line or with the PRCS_DIFF_OPTIONS environment variable.
+See PRCS_MERGE_COMMAND below for an example.
+@end defvr
+
+@defvr {Environment Variable} PRCS_DIFF_OPTIONS
+If set, this environment variable supplies space-separated arguments for
+diff.  When diff options are supplied on the command line, this variable
+is ignored.
+@end defvr
+
+@defvr {Environment Variable} PRCS_JOB_NUMBER
+If set, this environment variable specifies a default value for the job
+number when the @code{-j} option is not specified.
+@end defvr
+
+@defvr {Environment Variable} PRCS_LOGQUERY
+When defined, query user at checkin for a New-Version-Log,
+if one is missing from the project file.
+@xref{Version-Log and New-Version-Log attributes}.
+@end defvr
+
+@defvr {Environment Variable} PRCS_MERGE_COMMAND
+The path of a command to run on files to merge. The command is called
+with 7 arguments: working label, working filename, common label, common
+filename, selected label, selected filename, and the output filename.
+The command is expected to merge the files and place the output in the
+output filename, which will also be the name of the working file.  If
+there is no common ancestor, the file @code{/dev/null} is used.  To get
+the default behavior, you could use the script performing the
+following:
+
+@example
+diff3 -maE -Lworkinglabel working -Lcommonlabel common \
+  -Lselectedlabel selected > output
+@end example
+
+The return value is interpreted as with @code{diff3}
+(@pxref{(diff)Top}).  Return 0 to indicate no conflicts, 1 to indicate
+conflicts, and 2 to indicate trouble.  @emph{Warning: as the result of
+a symlink, output and working
+files may be the same!  So, the above
+command will sometimes result in an exploding file because gdiff
+overwrites itself as it merges.}
+
+@end defvr
+
+@defvr {Environment Variable} PRCS_PLAIN_FORMAT
+Has the same effect as specifying @code{--plain-format} on the command
+line.
+@end defvr
+
+@defvr {Environment Variable} PRCS_REPOSITORY
+Path to the repository. Defaults to @file{$HOME/PRCS}.
+@xref{Repository}.
+@end defvr
+
+@defvr {Environment Variable} RCS_PATH
+A colon-separated list of additional directory paths in which to search for
+utility programs, including those that are part of RCS, the Revision
+Control System.
+The current implementation of @sc{prcs} uses RCS to implement part of
+its functions (although in general, this fact is transparent to the
+user).  Since there is no universally standard place to
+install RCS, its location is one of @sc{prcs}'s configuration
+parameters.  Any utilities that @sc{prcs} cannot find in the
+@code{RCS_PATH} directories it looks for in an installation-specific place.
+@end defvr
+
+@defvr {Environment Variable} TMPDIR
+If set, this environment variable is used for temporary file storage.
+@end defvr
+
+@node Copying, , Environment Variables, Top
+@appendix GNU General Public License
+@center Version 2, June 1991
+
+@display
+Copyright @copyright{} 1989, 1991 Free Software Foundation, Inc.
+675 Mass Ave, Cambridge, MA 02139, USA
+
+Everyone is permitted to copy and distribute verbatim copies
+of this license document, but changing it is not allowed.
+@end display
+
+@unnumberedsec Preamble
+
+  The licenses for most software are designed to take away your
+freedom to share and change it.  By contrast, the GNU General Public
+License is intended to guarantee your freedom to share and change free
+software---to make sure the software is free for all its users.  This
+General Public License applies to most of the Free Software
+Foundation's software and to any other program whose authors commit to
+using it.  (Some other Free Software Foundation software is covered by
+the GNU Library General Public License instead.)  You can apply it to
+your programs, too.
+
+  When we speak of free software, we are referring to freedom, not
+price.  Our General Public Licenses are designed to make sure that you
+have the freedom to distribute copies of free software (and charge for
+this service if you wish), that you receive source code or can get it
+if you want it, that you can change the software or use pieces of it
+in new free programs; and that you know you can do these things.
+
+  To protect your rights, we need to make restrictions that forbid
+anyone to deny you these rights or to ask you to surrender the rights.
+These restrictions translate to certain responsibilities for you if you
+distribute copies of the software, or if you modify it.
+
+  For example, if you distribute copies of such a program, whether
+gratis or for a fee, you must give the recipients all the rights that
+you have.  You must make sure that they, too, receive or can get the
+source code.  And you must show them these terms so they know their
+rights.
+
+  We protect your rights with two steps: (1) copyright the software, and
+(2) offer you this license which gives you legal permission to copy,
+distribute and/or modify the software.
+
+  Also, for each author's protection and ours, we want to make certain
+that everyone understands that there is no warranty for this free
+software.  If the software is modified by someone else and passed on, we
+want its recipients to know that what they have is not the original, so
+that any problems introduced by others will not reflect on the original
+authors' reputations.
+
+  Finally, any free program is threatened constantly by software
+patents.  We wish to avoid the danger that redistributors of a free
+program will individually obtain patent licenses, in effect making the
+program proprietary.  To prevent this, we have made it clear that any
+patent must be licensed for everyone's free use or not licensed at all.
+
+  The precise terms and conditions for copying, distribution and
+modification follow.
+
+@iftex
+@unnumberedsec TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+@end iftex
+@ifinfo
+@center TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+@end ifinfo
+
+@enumerate 0
+@item
+This License applies to any program or other work which contains
+a notice placed by the copyright holder saying it may be distributed
+under the terms of this General Public License.  The ``Program'', below,
+refers to any such program or work, and a ``work based on the Program''
+means either the Program or any derivative work under copyright law:
+that is to say, a work containing the Program or a portion of it,
+either verbatim or with modifications and/or translated into another
+language.  (Hereinafter, translation is included without limitation in
+the term ``modification''.)  Each licensee is addressed as ``you''.
+
+Activities other than copying, distribution and modification are not
+covered by this License; they are outside its scope.  The act of
+running the Program is not restricted, and the output from the Program
+is covered only if its contents constitute a work based on the
+Program (independent of having been made by running the Program).
+Whether that is true depends on what the Program does.
+
+@item
+You may copy and distribute verbatim copies of the Program's
+source code as you receive it, in any medium, provided that you
+conspicuously and appropriately publish on each copy an appropriate
+copyright notice and disclaimer of warranty; keep intact all the
+notices that refer to this License and to the absence of any warranty;
+and give any other recipients of the Program a copy of this License
+along with the Program.
+
+You may charge a fee for the physical act of transferring a copy, and
+you may at your option offer warranty protection in exchange for a fee.
+
+@item
+You may modify your copy or copies of the Program or any portion
+of it, thus forming a work based on the Program, and copy and
+distribute such modifications or work under the terms of Section 1
+above, provided that you also meet all of these conditions:
+
+@enumerate a
+@item
+You must cause the modified files to carry prominent notices
+stating that you changed the files and the date of any change.
+
+@item
+You must cause any work that you distribute or publish, that in
+whole or in part contains or is derived from the Program or any
+part thereof, to be licensed as a whole at no charge to all third
+parties under the terms of this License.
+
+@item
+If the modified program normally reads commands interactively
+when run, you must cause it, when started running for such
+interactive use in the most ordinary way, to print or display an
+announcement including an appropriate copyright notice and a
+notice that there is no warranty (or else, saying that you provide
+a warranty) and that users may redistribute the program under
+these conditions, and telling the user how to view a copy of this
+License.  (Exception: if the Program itself is interactive but
+does not normally print such an announcement, your work based on
+the Program is not required to print an announcement.)
+@end enumerate
+
+These requirements apply to the modified work as a whole.  If
+identifiable sections of that work are not derived from the Program,
+and can be reasonably considered independent and separate works in
+themselves, then this License, and its terms, do not apply to those
+sections when you distribute them as separate works.  But when you
+distribute the same sections as part of a whole which is a work based
+on the Program, the distribution of the whole must be on the terms of
+this License, whose permissions for other licensees extend to the
+entire whole, and thus to each and every part regardless of who wrote it.
+
+Thus, it is not the intent of this section to claim rights or contest
+your rights to work written entirely by you; rather, the intent is to
+exercise the right to control the distribution of derivative or
+collective works based on the Program.
+
+In addition, mere aggregation of another work not based on the Program
+with the Program (or with a work based on the Program) on a volume of
+a storage or distribution medium does not bring the other work under
+the scope of this License.
+
+@item
+You may copy and distribute the Program (or a work based on it,
+under Section 2) in object code or executable form under the terms of
+Sections 1 and 2 above provided that you also do one of the following:
+
+@enumerate a
+@item
+Accompany it with the complete corresponding machine-readable
+source code, which must be distributed under the terms of Sections
+1 and 2 above on a medium customarily used for software interchange; or,
+
+@item
+Accompany it with a written offer, valid for at least three
+years, to give any third party, for a charge no more than your
+cost of physically performing source distribution, a complete
+machine-readable copy of the corresponding source code, to be
+distributed under the terms of Sections 1 and 2 above on a medium
+customarily used for software interchange; or,
+
+@item
+Accompany it with the information you received as to the offer
+to distribute corresponding source code.  (This alternative is
+allowed only for noncommercial distribution and only if you
+received the program in object code or executable form with such
+an offer, in accord with Subsection b above.)
+@end enumerate
+
+The source code for a work means the preferred form of the work for
+making modifications to it.  For an executable work, complete source
+code means all the source code for all modules it contains, plus any
+associated interface definition files, plus the scripts used to
+control compilation and installation of the executable.  However, as a
+special exception, the source code distributed need not include
+anything that is normally distributed (in either source or binary
+form) with the major components (compiler, kernel, and so on) of the
+operating system on which the executable runs, unless that component
+itself accompanies the executable.
+
+If distribution of executable or object code is made by offering
+access to copy from a designated place, then offering equivalent
+access to copy the source code from the same place counts as
+distribution of the source code, even though third parties are not
+compelled to copy the source along with the object code.
+
+@item
+You may not copy, modify, sublicense, or distribute the Program
+except as expressly provided under this License.  Any attempt
+otherwise to copy, modify, sublicense or distribute the Program is
+void, and will automatically terminate your rights under this License.
+However, parties who have received copies, or rights, from you under
+this License will not have their licenses terminated so long as such
+parties remain in full compliance.
+
+@item
+You are not required to accept this License, since you have not
+signed it.  However, nothing else grants you permission to modify or
+distribute the Program or its derivative works.  These actions are
+prohibited by law if you do not accept this License.  Therefore, by
+modifying or distributing the Program (or any work based on the
+Program), you indicate your acceptance of this License to do so, and
+all its terms and conditions for copying, distributing or modifying
+the Program or works based on it.
+
+@item
+Each time you redistribute the Program (or any work based on the
+Program), the recipient automatically receives a license from the
+original licensor to copy, distribute or modify the Program subject to
+these terms and conditions.  You may not impose any further
+restrictions on the recipients' exercise of the rights granted herein.
+You are not responsible for enforcing compliance by third parties to
+this License.
+
+@item
+If, as a consequence of a court judgment or allegation of patent
+infringement or for any other reason (not limited to patent issues),
+conditions are imposed on you (whether by court order, agreement or
+otherwise) that contradict the conditions of this License, they do not
+excuse you from the conditions of this License.  If you cannot
+distribute so as to satisfy simultaneously your obligations under this
+License and any other pertinent obligations, then as a consequence you
+may not distribute the Program at all.  For example, if a patent
+license would not permit royalty-free redistribution of the Program by
+all those who receive copies directly or indirectly through you, then
+the only way you could satisfy both it and this License would be to
+refrain entirely from distribution of the Program.
+
+If any portion of this section is held invalid or unenforceable under
+any particular circumstance, the balance of the section is intended to
+apply and the section as a whole is intended to apply in other
+circumstances.
+
+It is not the purpose of this section to induce you to infringe any
+patents or other property right claims or to contest validity of any
+such claims; this section has the sole purpose of protecting the
+integrity of the free software distribution system, which is
+implemented by public license practices.  Many people have made
+generous contributions to the wide range of software distributed
+through that system in reliance on consistent application of that
+system; it is up to the author/donor to decide if he or she is willing
+to distribute software through any other system and a licensee cannot
+impose that choice.
+
+This section is intended to make thoroughly clear what is believed to
+be a consequence of the rest of this License.
+
+@item
+If the distribution and/or use of the Program is restricted in
+certain countries either by patents or by copyrighted interfaces, the
+original copyright holder who places the Program under this License
+may add an explicit geographical distribution limitation excluding
+those countries, so that distribution is permitted only in or among
+countries not thus excluded.  In such case, this License incorporates
+the limitation as if written in the body of this License.
+
+@item
+The Free Software Foundation may publish revised and/or new versions
+of the General Public License from time to time.  Such new versions will
+be similar in spirit to the present version, but may differ in detail to
+address new problems or concerns.
+
+Each version is given a distinguishing version number.  If the Program
+specifies a version number of this License which applies to it and ``any
+later version'', you have the option of following the terms and conditions
+either of that version or of any later version published by the Free
+Software Foundation.  If the Program does not specify a version number of
+this License, you may choose any version ever published by the Free Software
+Foundation.
+
+@item
+If you wish to incorporate parts of the Program into other free
+programs whose distribution conditions are different, write to the author
+to ask for permission.  For software which is copyrighted by the Free
+Software Foundation, write to the Free Software Foundation; we sometimes
+make exceptions for this.  Our decision will be guided by the two goals
+of preserving the free status of all derivatives of our free software and
+of promoting the sharing and reuse of software generally.
+
+@iftex
+@heading NO WARRANTY
+@end iftex
+@ifinfo
+@center NO WARRANTY
+@end ifinfo
+
+@item
+BECAUSE THE PROGRAM IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
+FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW@.  EXCEPT WHEN
+OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES
+PROVIDE THE PROGRAM ``AS IS'' WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED
+OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE@.  THE ENTIRE RISK AS
+TO THE QUALITY AND PERFORMANCE OF THE PROGRAM IS WITH YOU@.  SHOULD THE
+PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING,
+REPAIR OR CORRECTION.
+
+@item
+IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
+REDISTRIBUTE THE PROGRAM AS PERMITTED ABOVE, BE LIABLE TO YOU FOR DAMAGES,
+INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING
+OUT OF THE USE OR INABILITY TO USE THE PROGRAM (INCLUDING BUT NOT LIMITED
+TO LOSS OF DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY
+YOU OR THIRD PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY OTHER
+PROGRAMS), EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGES.
+@end enumerate
+
+@iftex
+@heading END OF TERMS AND CONDITIONS
+@end iftex
+@ifinfo
+@center END OF TERMS AND CONDITIONS
+@end ifinfo
+
+@page
+@unnumberedsec How to Apply These Terms to Your New Programs
+
+  If you develop a new program, and you want it to be of the greatest
+possible use to the public, the best way to achieve this is to make it
+free software which everyone can redistribute and change under these terms.
+
+  To do so, attach the following notices to the program.  It is safest
+to attach them to the start of each source file to most effectively
+convey the exclusion of warranty; and each file should have at least
+the ``copyright'' line and a pointer to where the full notice is found.
+
+@smallexample
+@var{one line to give the program's name and an idea of what it does.}
+Copyright (C) 19@var{yy}  @var{name of author}
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE@.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+@end smallexample
+
+Also add information on how to contact you by electronic and paper mail.
+
+If the program is interactive, make it output a short notice like this
+when it starts in an interactive mode:
+
+@smallexample
+Gnomovision version 69, Copyright (C) 19@var{yy} @var{name of author}
+Gnomovision comes with ABSOLUTELY NO WARRANTY; for details
+type `show w'.  This is free software, and you are welcome
+to redistribute it under certain conditions; type `show c'
+for details.
+@end smallexample
+
+The hypothetical commands @samp{show w} and @samp{show c} should show
+the appropriate parts of the General Public License.  Of course, the
+commands you use may be called something other than @samp{show w} and
+@samp{show c}; they could even be mouse-clicks or menu items---whatever
+suits your program.
+
+You should also get your employer (if you work as a programmer) or your
+school, if any, to sign a ``copyright disclaimer'' for the program, if
+necessary.  Here is a sample; alter the names:
+
+@smallexample
+@group
+Yoyodyne, Inc., hereby disclaims all copyright
+interest in the program `Gnomovision'
+(which makes passes at compilers) written
+by James Hacker.
+
+@var{signature of Ty Coon}, 1 April 1989
+Ty Coon, President of Vice
+@end group
+@end smallexample
+
+This General Public License does not permit incorporating your program into
+proprietary programs.  If your program is a subroutine library, you may
+consider it more useful to permit linking proprietary applications with the
+library.  If this is what you want to do, use the GNU Library General
+Public License instead of this License.
+
+
+
+@c @printindex cp
+
+@contents
+
+@bye
+
+@c Additional documentation strings output by the program that are not
+@c part of the manual.   Placed here to centralize program-generated
+@c documentation source.
+
+@c BEGIN DOCSTRING general_help_string
+@example
+Possible commands are:
+  admin          Requires subcommand (`prcs admin --help' for help).
+  checkin        Checkin project revision.
+  checkout       Checkout project revision.
+  config         Verify compiled in paths, defaults, and environment
+                 variables.
+  delete         Delete named revision of project.
+  depopulate     Remove named files from project descriptor.
+  diff           Show differences between two revisions.
+  execute        Execute a command for each file in a project.
+  info           Print information about versions of project.
+  merge          Reconcile differences between working files and
+                 another revision.
+  package        Package the project and all its revisions into
+                 packagefile.
+  populate       Add named files to project descriptor.
+  rekey          Set keywords in selected files.
+  unpackage      Unpackage project in packagefile.
+Use the --help option with a command for further help.
+@end example
+@c END DOCSTRING
+
+@c BEGIN DOCSTRING admin_help_string
+@example
+Possible subcommands are:
+  access         Set the access permissions on the repository.
+  compress       Instruct PRCS to save disk space for project.
+  init           Create a repository entry.
+  pdelete        Delete a repository entry.
+  prename        Rename a repository entry.
+  rebuild        Instruct PRCS to reconstruct its data files in the
+                 repository.  This command is helpful if the repository
+                 has been damaged or PRCS has reported an error due to
+                 and RCS command failure or missing version data.
+  uncompress     Instruct PRCS to save time in processing project(default).
+Use the --help option with a command for further help.
+@end example
+@c END DOCSTRING
+
+@c LITERAL
+#include "prcs.h"
+#include "syscmd.h"
+#include "docs.h"
+
+const int prcs_version_number[3] = { @PRCS_MAJOR_VERSION_NUMBER@,
+				     @PRCS_MINOR_VERSION_NUMBER@,
+				     @PRCS_MICRO_VERSION_NUMBER@ };
+
+SystemCommand rcs_command(@SYS_RCS_COMMAND_PATH@, "RCS_PATH");
+SystemCommand ci_command(@SYS_CI_COMMAND_PATH@, "RCS_PATH");
+SystemCommand co_command(@SYS_CO_COMMAND_PATH@, "RCS_PATH");
+SystemCommand rlog_command(@SYS_RLOG_COMMAND_PATH@, "RCS_PATH");
+SystemCommand tar_command(@SYS_TAR_COMMAND_PATH@, "RCS_PATH");
+SystemCommand gdiff3_command(@SYS_GDIFF3_COMMAND_PATH@, "RCS_PATH");
+SystemCommand gdiff_command(@SYS_GDIFF_COMMAND_PATH@, "RCS_PATH");
+SystemCommand ls_command(@SYS_LS_COMMAND_PATH@, "RCS_PATH");
+SystemCommand gzip_command(@SYS_GZIP_COMMAND_PATH@, "RCS_PATH");

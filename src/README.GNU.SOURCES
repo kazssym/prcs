@@ -1,0 +1,11 @@
+The GNU sources in this directory, getopt and fnmatch, have all
+been slightly modified.  Except for getopt, the modifications were
+only to the header files to account for their lack of C++ "support",
+meaning to prevent it from not declaring things properly.
+
+The getopt sources in this directory ARE MODIFIED from the GNU getopt
+sources.  They handle "--" differently.  As a result, these source
+files no longer have the __GNU_LIBRARY__ logic.
+
+The version of gperf used to generate prcs-keys.c and prj-names.h is
+my own, I had to modify it somewhat.

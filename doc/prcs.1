@@ -1,0 +1,234 @@
+.ds p \&\s-1PRCS\s0
+.if n .ds - \%--
+.if t .ds - \(em
+.if !\n(.g \{\
+.	if !\w|\*(lq| \{\
+.		ds lq ``
+.		if \w'\(lq' .ds lq "\(lq
+.	\}
+.	if !\w|\*(rq| \{\
+.		ds rq ''
+.		if \w'\(rq' .ds rq "\(rq
+.	\}
+.\}
+.de PE
+.sp \\n()Pu
+.ne 2
+.nf
+.IP
+..
+.de EP
+.fi
+.PP
+.sp \\n()Pu
+..
+.TH PRCS 1
+.SH NAME
+prcs \- Invoke the Project Revision Control System
+.SH SYNOPSIS
+.B prcs
+.I subcommand
+[
+.IR option ".\|.\|.
+] [
+.IR operand .\|.\|.
+]
+.SH DESCRIPTION
+The Project Revision Control System,
+\*p,
+is the front end to a
+set of tools that (like CVS) provide a way to deal with sets of files
+and directories as an entity, preserving coherent versions of the entire
+set.  The command
+.B prcs
+executes the various functions (subcommands) of the the system.
+.PP
+Abstractly,
+\*p
+presents you ("the user") with the abstraction
+of named \fIprojects\fP that have multiple \fI(project) versions\fR,
+each of which is a set of files, arranged into a directory subtree.  A
+project is the collection of all project versions of that project.  Each
+project version contains one distinguished file, called the
+\fI(project) version descriptor\fP, in the top directory of the subtree,
+which contains a description of the files included in that particular
+version.  For a project named \fIP\fP, this file has the name
+\fIP.prj\fP (and so is also called a ".prj file").
+
+.SS Functions Provided
+The subcommands provided allow you to perform the following actions:
+.IP \(bu
+Create a copy of the directory tree (or a part of it) for a given
+project version.  The files in such a copy are called \fIworking
+files\fP and the root directory for these working files is called a
+\fIworking directory\fP.  This process is called \fIchecking-out\fP the
+version (or the working files).  You may select a project version to
+check out by its version number. Modifying the working files has no
+effect on the project version they came from.
+.IP \(bu
+Create a new project version (and a new project, for the first version)
+from working files, or from some mix of working files and the files in a
+another project version.  This is called \fIchecking-in\fP the version
+(or the working files).  Before any check-in, \*p checks to see if
+there have been other modifications to files in this project and warns
+you of conflicts and discrepancies.
+.IP \(bu
+Search for differences between a project version and working files or
+between the files in two versions of a project.
+.IP \(bu
+Insert changes that occurred between two project versions into working
+files.
+This process is called \fImerging\fP because its purpose is to combine
+changes you have made to a set of working files with changes that others
+have made in the meantime.
+It changes only the working files, because in general they will need
+editting to reconcile places where the two sets of changes conflict.
+The resulting merged files are marked with distinctive lines
+indicating places where the two sets of changes that are being combined
+differ from each other.
+One typically edits the merged files
+to reconcile the differences, and then checks in a new version.
+.IP \(bu
+Print out information about the versions of a project contained in the
+repository.
+.PP
+In addition, you may add and subtract the files contained in a new
+project version, or move files from one subdirectory to another by
+editing the working copy of the .prj file before checking in the
+new version.
+.PP
+\*p
+keeps all checked-in project versions in a \fIprojects
+repository\fP.  At any given
+time, you fix a prevailing repository by setting the environment
+variable PRCS_REPOSITORY (which defaults to $HOME/PRCS),
+and do not explicitly mention it in any
+commands.
+.PP
+Each checked-in version has a \fIversion name\fP of the form
+\fIM.N\fP. Here, \fIM\fP, the \fImajor version name\fP, is an
+alphanumeric label\*-either a numeral or a label beginning with a
+letter and consisting of letters, digits, and the characters
+.PE
+    # % ^ - _ + = : , .
+.EP
+\*-and \fIN\fP, the \fIminor version name\fP, is a non-negative
+numeral.  \*p assigns minor version names automatically in sequence.
+Major version names are up to the user; by default, they also are numerals.
+.PP
+\*p uses the approach found in CVS (Concurrent Version System):
+unlike version control systems such as RCS and SCCS,
+\*p
+locks projects
+in the
+repository only while it is actually running
+(in order to make operations on projects
+atomic).
+One simply checks in new versions as desired; the system will
+warn you if others have made parallel changes to the major version of
+the project you are working on that may have to be merged with changes
+you have made.
+.PP
+Where
+\*p
+differs from CVS (and, indeed, other source-code control
+systems of the author's acquaintance) is in its attempt to provide a
+particularly simple model to the user.  A project is a collection of
+files, period.  Although the current implementation of
+\*p
+actually uses RCS in its implementations, none of the details of RCS are
+of any consequence to the user.
+
+.SS Basic Use
+For a complete description of the subcommands, options, files, and
+environment variables of
+\*p,
+see the TexInfo pages provided with the release.
+Here is a brief overview of typical, simple use of the system, which
+may suffice for many users.
+.PP
+The simplest possible use of prcs is just to use it to keep a
+single thread of project versions, thus allowing you to ``roll back'' at
+any time, and allowing multiple people to do maintenance on a single
+system simultaneously.
+.PP
+To start things off with a new project, P1, type
+.PE
+% prcs checkout P1
+.EP
+in the working directory where you are developing your project.  (If you
+haven't yet established a repository,
+\*p will create one.)
+The effect of this command is to create a
+working version descriptor file by the name P1.prj with an empty list
+of files.  The version descriptor contains, among other things, a list
+of the
+names of all files in a particular version of the project (called the
+\fIFiles list\fP).
+.PP
+If
+the project was already underway before you created a \*p project
+for it, you will probably want to start off by adding the names of your existing
+files to this list to bring them under version control. To do so, type
+.PE
+% prcs populate P1
+.EP
+or, if there is only one .prj file, simply
+.PE
+% prcs populate
+.EP
+Edit the file P1.prj (with your favorite text editor) as needed
+to remove any files you don't want to
+control (like .o files, back-up files, and executables).  You can
+also specify the list of files in the population on the command
+line.  The files in any directories in this list will be included
+recursively:
+.PE
+% prcs populate P1 file1 file2
+.EP
+Whenever you want to checkpoint your project, type
+.PE
+% prcs checkin P1     # or just prcs checkin
+.EP
+from the root working directory (the one with P1.prj in it).
+This creates (in effect) a new version in the repository containing
+copies of the files listed in P1.prj, and updates P1.prj to reflect
+the new version's name.  You may specify a new major version name at
+checkin time with the
+.B -r
+option:
+.PE
+% prcs checkin -rMyVersion P1
+.EP
+If
+someone else has checked in files in the meantime, you will be notified
+of discrepancies, which you can handle by typing
+.PE
+% prcs merge
+.EP
+from the root working directory and (after it's done), editing the
+files.
+.PP
+Whenever it comes time to begin working on a deposited version of the project,
+you can go to a clean directory and check
+out the latest version with
+.PE
+% prcs checkout P1
+.EP
+or, if you want a major version other than the (numeric) default,
+.PE
+% prcs checkout -rMyVersion P1
+.EP
+Now you can make any desired modifications and check in as before.
+
+.SH ENVIRONMENT
+.TP
+.B PRCS_REPOSITORY
+Path to the repository. Defaults to $HOME/PRCS.
+.SH IDENTIFICATION
+Author: Paul N. Hilfinger and Josh MacDonald
+.br
+.\" $Format: "Manual Page Revision: $Revision$; Release Date: $ProjectDate$."$
+Manual Page Revision: 1.5; Release Date: Sun, 24 Jun 2001 22:51:30 -0700.
+.br
+Copyright \(co 1994, 1996

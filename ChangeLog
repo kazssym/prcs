@@ -1,0 +1,13 @@
+Sun Apr 19 19:04:07 1998  Josh MacDonald  <jmacd@icw.EECS.Berkeley.EDU>
+
+	* prcs.prj:
+Fix Dyson reference.
+
+
+Tue Mar 17 13:52:50 1998  Josh MacDonald  <jmacd@icw.EECS.Berkeley.EDU>
+
+	* prcs.prj: Added a ChangeLog.  It is now automatically updated by
+ 	prcs-mode.  Added prcs-mode to prcs.el.
+
+	Added scripts/merge-udiff11, a merge command which runs diff -u
+ 	instead of merge with no common file.
