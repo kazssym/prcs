@@ -36,6 +36,10 @@ graphs
 .B prcs_tree_draw
 .RI " project"
 .br
+.B prcs-show-tree
+.RI [[-r <rev-pattern>] ...]
+.RI [args]
+.br
 .SH DESCRIPTION
 This manual page documents briefly the
 .B prcs-visualtree
@@ -69,10 +73,25 @@ Perhaps the info2 field could be used for date.
 \fBprcs_tree_draw\fP is a quick and dirty shell script which takes a
 project name, optional start and end version numbers, extracts the prcs
 info -l data, runs prcs_tree and calls xvcg on the result.
+.PP
+The \fBprcs-show-tree\fP is a more elaborated script that just runs
+prcs_tree_info as shown above, avoiding the cumbersome command-line which is
+quite annoying to enter.
+.PP
+Without leading -r options, it graphs the full project.  With -r options, it
+only graphs the branches whose names match the given patterns.
+.PP
+"args" are additional args to pass to "prcs -l" if needed. Typically this
+can be a project name.  "-r" options should not be specified there.
 .SH SEE ALSO
 .BR prcs (1),
 .BR xvcg (1).
 .br
 .SH AUTHOR
+.PP
+Keith Owens <kaos@ocs.com.au> wrote the prcs_tree* scripts.
+.PP
+Yann Dirson <dirson@debian.org> contributed the prcs-show-tree script.
+.PP
 This manual page was written by Rafael Laboissiere <rafael@debian.org>,
 for the Debian GNU/Linux system (but may be used by others).
