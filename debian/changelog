@@ -7,23 +7,29 @@ prcs (1.3.2pre1-1) unstable; urgency=low
     of the manual.
   * debian/doc-base.prcs-tutorial: Renamed from debian/doc-base.
     of the manual.
-  * debian/man/prcsutils.pod: Fixed typos (closes: #144580).  Added
-    synopsis for scripts contributed by Yann Dirson <dirson@debian.org>.
+  * debian/man/prcs-utils.sgml: Added file, contributed by Yann Dirson
+    <dirson@debian.org>, with fixed typos (closes: #144580) and better
+    synopsis.  I also added the synopsis for the new scripts contributed
+    by Yann (in contrib/).
   * debian/prcs-utils.files: Added files from Yann's suite.
-  * debian/rules: Install files from Yann's suite.  Call configure with
-    --diable-lex-check.  Build HTML files from texinfo documentation
-    (closes: #144567).  Removed auto-patching when usign gcc v3.x.  This
-    is done automatically upstream now.  Install contrib/bash-completion
-    script.
+  * debian/rules:
+    - Install files from Yann's suite.
+    - Call configure with --diable-lex-check.
+    - Build HTML files from texinfo documentation (closes: #144567).
+    - Removed auto-patching when usign gcc v3.x.  This is done
+      automatically by the upstream Makefile now.
+    - Install contrib/bash-completion script.
+    - Build the prcs-utils manpage from the sgml source.
   * debian/docs: Added debian/html directory.
-  * debian/control: Removed flex and added texinfo to Build-Depends.
+  * debian/control: Removed flex and added texinfo and docbook-utils to
+    Build-Depends.
   * debian/prcs-utils.manpages: Added man pages for Yann's suite.
   * debian/dirs: Added etc/bash_completion.d directory.
   * debian/conffiles: Added file.
   * debian/prcs-utils.copyright: Added Yann Dirson and Austin Donnelly
     to the list of upstream authors.
 
- --
+ -- Rafael Laboissiere <rafael@debian.org>  Mon, 29 Apr 2002 11:53:43 +0200
 
 prcs (1.3.1-1) unstable; urgency=low
 

@@ -36,8 +36,7 @@ build-stamp:
 # .elc files
 	make EMACS=no
 	pod2man $(contribdir)/prcs-synch > $(debbase)/man/prcs-synch.1
-	pod2man --section=1 --center="PRCS" --date=2001-10-28 \
-          $(debbase)/man/prcsutils.pod > $(debbase)/man/prcs-utils.1
+	( cd $(debbase)/man/ ; docbook2man prcs-utils.sgml )
 	( cd $(contribdir) ; \
           for p in rprcs visualtree prcsutils ; do \
 	    tar xfz $$p.tar.gz ; \
@@ -52,12 +51,12 @@ build-stamp:
 clean:
 	dh_testdir
 	dh_testroot
-	rm -rf $(debhtml)
 	rm -f build-stamp install-stamp
 
 	if [ -f Makefile ]; then make distclean; fi
 
-	( cd $(debbase)/man ; rm -f prcs-synch.1 prcs-utils.1 )
+	rm -rf $(debhtml)
+	( cd $(debbase)/man ; rm -f prcs-synch.1 prcs-utils.1 manpage.* )
 	for p in rprcs visualtree prcsutils ; \
           do rm -rf $(contribdir)/$$p ; \
         done
