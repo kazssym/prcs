@@ -1,6 +1,8 @@
 #!/bin/sh
+set -e
 
 branches=
+XVCGFLAGS=
 while [ $# -gt 0 ]
 do
     case "$1" in
@@ -8,6 +10,11 @@ do
 	branches="$branches $2"
 	shift
 	;;
+    -ps)
+        XVCGFLAGS="-color -psoutput $2"
+        rm -f "$2"
+        shift
+        ;;
     -*)
 	echo >&2 "unkown option $1"
 	exit 1
@@ -18,6 +25,7 @@ do
     esac
     shift
 done
+
 
 (
     if [ -z "$branches" ]
@@ -39,8 +47,4 @@ done
 	    fi
 	done
     fi
-) | prcs_tree_info | xvcg -
-
-
-
-
+) | prcs_tree_info | xvcg ${XVCGFLAGS} -

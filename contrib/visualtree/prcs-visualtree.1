@@ -38,6 +38,7 @@ graphs
 .br
 .B prcs-show-tree
 .RI [[-r <rev-pattern>] ...]
+.RI [-ps <filename>]
 .RI [args]
 .br
 .SH DESCRIPTION
@@ -80,6 +81,9 @@ quite annoying to enter.
 .PP
 Without leading -r options, it graphs the full project.  With -r options, it
 only graphs the branches whose names match the given patterns.
+.PP
+Use the -ps option to output the graph directly to an Encapsulated
+PostScript file, instead of calling xvcg to display the revision tree.
 .PP
 "args" are additional args to pass to "prcs -l" if needed. Typically this
 can be a project name.  "-r" options should not be specified there.
