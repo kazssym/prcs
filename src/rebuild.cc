@@ -264,7 +264,7 @@ static PrVoidError delete_unreferenced_versions_file(RepEntry* rep_entry,
 static PrVoidError ignoring(ProjectVersionData* project_data)
 {
     prcswarning << "Project version " << project_data << "'s project file is invalid "
-      "and will be ignored. " << dotendl;
+      "and will be ignored" << dotendl;
 
     bug ();
 
