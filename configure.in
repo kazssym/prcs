@@ -36,6 +36,17 @@ fi
 ,
 ENVVARS=yes)
 
+AC_ARG_ENABLE(lex-check, [  --disable-lex-check     disable check for lex.  Lex (or flex) is needed for
+                          building .c files from .l files, and only
+                          maintainers need this.],
+if eval "test x$enable_lex_check = xyes"; then
+  DO_LEX_CHECK=yes
+else
+  DO_LEX_CHECK=no
+fi
+,
+DO_LEX_CHECK=yes)
+
 dnl Checks for programs.  This crap is for new stuff in autoconf-2.13 that
 dnl automatically adds -O2 to CFLAGS, which is quite annoying.
 
@@ -414,7 +425,10 @@ dnl
 AC_LANG_C
 
 AC_PROG_RANLIB
+
+if eval "test x$DO_LEX_CHECK = xyes"; then
 AM_PROG_LEX
+fi
 
 OLDPATH=$PATH
 dnl Add /usr/ucb for whoami on Solaris
