@@ -281,7 +281,7 @@ public:
     const char* project_path()      const;
     const char* full_version()      const;
 
-    void update_attributes (ProjectVersionData* new_data);
+    PrVoidError update_attributes (ProjectVersionData* new_data);
 
     /* Attributes */
     PrPrcsAttrsPtrError intern_attrs (const DstringPtrArray*, int ngroup, const char* name, bool validate);

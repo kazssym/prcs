@@ -44,7 +44,7 @@
  *     case you want to forget why you put an assertion in in the
  *     first place.  */
 #ifndef NDEBUG
-EXTERN void abort(void);
+/*EXTERN void abort(void);*/
 #include <stdio.h>
 #if defined(__GNUG__) && defined(PRCS_DEVEL)
 #define ASSERT(condition, message) \

@@ -608,7 +608,9 @@ With `prcs-careful-parses' off, this would be:
         (define-key prcs-mode-map "\C-c\C-r" 'prcs-rekey))
     ;; FSF Emacs
     (let ((map (make-sparse-keymap)))
-      (set-keymap-parent map shared-lisp-mode-map)
+      (set-keymap-parent map (if (boundp 'lisp-mode-shared-map)
+				 lisp-mode-shared-map
+			       shared-lisp-mode-map))
       (define-key map "\C-c\C-c" 'prcs-checkin)
       (define-key map "\C-c\C-d" 'prcs-diff)
       (define-key map "\C-c\C-i" 'prcs-info)

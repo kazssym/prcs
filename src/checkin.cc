@@ -120,7 +120,7 @@ PrPrcsExitStatusError checkin_command()
 
     project->quick_elim_update();
 
-    project->update_attributes(new_project_data);
+    Return_if_fail(project->update_attributes(new_project_data));
 
     Return_if_fail(write_new_prjfile(project, new_project_data));
 
@@ -272,7 +272,7 @@ static PrVoidError compute_modified(ProjectDescriptor *project,
     return NoError;
 }
 
-void ProjectDescriptor::update_attributes(ProjectVersionData *new_project_data)
+PrVoidError ProjectDescriptor::update_attributes(ProjectVersionData *new_project_data)
 {
     /* The Versions. */
     if (strcmp (*project_version_minor(), "0") != 0) {
@@ -286,13 +286,30 @@ void ProjectDescriptor::update_attributes(ProjectVersionData *new_project_data)
     checkin_time()->sprintf("%s", get_utc_time());
 
     /* the Logs */
-    version_log()->assign(*new_version_log());
+    if (option_version_log) {
+	if (new_version_log()->length() != 0) {
+	    prcsquery << "You have supplied a version log on the command line, but the project file contains a new version log already.  "
+		      << force("Overriding")
+		      << report("Override")
+		      << optfail('n')
+		      << defopt('y', "Override the project file")
+		      << query("Override");
+
+	    Return_if_fail(prcsquery.result());
+	}
+	version_log()->assign(option_version_log_string);
+    } else {
+	version_log()->assign(*new_version_log());
+    }
+
     new_version_log()->truncate(0);
 
     /* the Checkin-Login attribute */
     checkin_login()->assign(get_login());
 
     set_full_version (true);
+
+    return NoError;
 }
 
 PrVoidError check_project(ProjectDescriptor *project)

@@ -51,9 +51,10 @@ static const char* find_keyword(const char* s, int len, int* old_len, const char
 {
     int i;
 
-    for (i = 0; i < len; i += 1)
-	if (!isalnum(s[i]))
+    for (i = 0; i < len; i += 1) {
+	if (s[i] == '$' || s[i] == ':')
 	    break;
+    }
 
     static Dstring* buf = NULL;
 

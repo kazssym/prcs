@@ -82,6 +82,8 @@ int option_not_match_file = 0;
 int option_all_files = 0;
 int option_preorder = 0;
 int option_pipe = 0;
+int option_nokeywords = 0;
+int option_version_log = 0;
 #ifdef PRCS_DEVEL
 int option_n_debug = 1;
 int option_tune = 10;
@@ -91,10 +93,10 @@ int option_skilled_merge = 0;
 int option_plain_format = 0;
 int option_sort = 0;
 
-const char *option_match_file_pattern;
-const char *option_not_match_file_pattern;
-const char *option_sort_type;
-
+const char *option_match_file_pattern = NULL;
+const char *option_not_match_file_pattern = NULL;
+const char *option_sort_type = NULL;
+const char *option_version_log_string = NULL;
 
 const char* temp_file_1 = NULL;
 const char* temp_file_2 = NULL;
@@ -1130,10 +1132,10 @@ NprVoidError Err_write(int fd, const void* buf, size_t nbytes)
 	do {
 	    c = write(fd, buf, nbytes);
 	} while (c < 0 && errno == EINTR);
-	
+
 	if (c < 0)
 	    return WriteFailure;
-	
+
 	nbytes -= c;
 	buf = ((const char*)buf) + c;
     }

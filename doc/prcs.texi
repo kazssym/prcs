@@ -1110,6 +1110,11 @@ sure to always use one of the context diff formats.  See the
 PRCS_DIFF_OPTIONS environment variable @xref{Environment Variables}.
 @end deffn
 
+@deffn {Option} {-@b{-}no-keywords}
+Causes @code{prcs populate} to add all files with the :no-keywords
+attribute.
+@end deffn
+
 @deffn {Option} {-@b{-}not} pattern
 Used in @code{prcs execute} to indicate that the names of files to be
 processed, or the options attached to them, must not match @var{pattern}.
@@ -1185,6 +1190,11 @@ created.  Thus, the file that was originally linked to is unchanged.
 @deffn {Standard Option} -v
 @deffnx {Long Form} {-@b{-}version}
 Prints the version of PRCS and exits.
+@end deffn
+
+@deffn {Option} {-@b{-}version-log=@var{new version log}}
+Causes @code{prcs checkin} to set the Version-Log on the command line.
+You will be prompted if there is an existing New-Version-Log already.
 @end deffn
 
 @deffn {Option} -z

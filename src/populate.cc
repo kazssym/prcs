@@ -229,6 +229,10 @@ static int hash_dir(const char* dir, InoTable* T, PathTable *P)
 
 static bool heuristic_keyword_guess(const char* path)
 {
+    if (option_nokeywords) {
+	return true;
+    }
+
     FILE* file;
     char buffer[1024];
     int nread = 0;

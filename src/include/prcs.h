@@ -113,6 +113,8 @@ extern int option_pipe;                    /* --pipe */
 extern int option_skilled_merge;           /* -s */
 extern int option_plain_format;            /* --plain-format */
 extern int option_sort;                    /* --sort */
+extern int option_nokeywords;              /* --no-keywords */
+extern int option_version_log;             /* --version-log */
 #ifdef PRCS_DEVEL
 #define option_debug (! option_n_debug)    /* --debug */
 extern int option_n_debug;                 /* ! --debug */
@@ -122,6 +124,7 @@ extern int option_tune;                    /* --tune */
 extern const char *option_match_file_pattern;
 extern const char *option_not_match_file_pattern;
 extern const char *option_sort_type;
+extern const char *option_version_log_string;
 
 extern const int prcs_version_number[3];
 

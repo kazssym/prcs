@@ -6,6 +6,40 @@ Please send bug reports to prcs-bugs@XCF.Berkeley.EDU.  See the file
 `README' for a description of how to report bugs.
 
 
+** Changes since version 1.2.16
+
+* Fix a keyword-substitution bug reported by Daniel Villeneuve whereby
+  a string of the form "$Key = 4 * $Key" (i.e., some Perl code).  The
+  documentation never allowed this but the implementation was
+  incorrect.  Only a string such as "$Key$" or "$Key: ...$" will have
+  keywords replaced.
+
+* Add a new --version-log= option to 'prcs checkin' to allow
+  specifying the Version-Log on the command line.  You will be
+  prompted if there is an existing New-Version-Log already.
+
+* Remove a declaration of abort() that was conflicting with the
+  headers in RedHat 7.x and causing compilation problems.  The
+  declaration was probably there because SunOS 4.3 headers were
+  lacking...  I guess this means SunOS 4.3 is no longer supported.
+
+* Add a new --no-keywords option to 'prcs populate' to add files with
+  the :no-keywords attribute.  Remember that you can make an entire
+  files section have :no-keywords as follows:
+
+  (Files :no-keywords
+    (file1 ())
+    (file2 ())
+    ...
+    )
+
+  (We probably should have a :keywords attribute to negate this
+  effect, but we don't.)
+
+* Fix prcs.el to support Emacs 21, which for some reason renames
+  shared-lisp-mode-map to lisp-mode-shared-map.
+
+
 ** Changes since version 1.2.15
 
 * Incorporate new contrib submissions.  See the contrib subdirectory

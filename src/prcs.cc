@@ -148,9 +148,14 @@ static CommandNamePair const command_names[] = {
 #define PIPE_CHAR        '\304'
 #define PLAINFORMAT_CHAR '\305'
 #define SORT_CHAR        '\306'
+#define NOKEYW_CHAR      '\307'
+#define VLOG_CHAR        '\310'
+
 #define EXECUTE_STR      "\300\301\302\303\304"
 #define PLAINFORMAT_STR  "\305"
 #define SORT_STR         "\306"
+#define NOKEYW_STR       "\307"
+#define VLOG_STR         "\310"
 
 static CommandOptionPair const command_options[] = {
     { 'i', "--immediate", &option_immediate_uncompression },
@@ -162,6 +167,8 @@ static CommandOptionPair const command_options[] = {
     { 'P', "--exclude-project-file", &option_exclude_project_file },
     { 'u', "--unlink", &option_unlink },
     { 's', "--skilled-merge", &option_skilled_merge },
+    { NOKEYW_CHAR, "--no-keywords", &option_nokeywords },
+    { VLOG_CHAR, "--version-log", &option_version_log },
     { SORT_CHAR, "--sort", &option_sort },
     { MATCH_CHAR, "--match", &option_match_file },
     { NOTMATCH_CHAR, "--not", &option_not_match_file },
@@ -202,6 +209,8 @@ static struct option const long_options[] = {
   {"revision",                required_argument, 0, 'r'},
   {"unlink",                  no_argument, 0, 'u'},
   {"skilled-merge",           no_argument, 0, 's'},
+  {"no-keywords",             no_argument, 0, NOKEYW_CHAR},
+  {"version-log",             required_argument, 0, VLOG_CHAR},
   {"sort",                    required_argument, 0, SORT_CHAR},
   {"match",                   required_argument, 0, MATCH_CHAR},
   {"not",                     required_argument, 0, NOTMATCH_CHAR},
@@ -210,8 +219,10 @@ static struct option const long_options[] = {
   {"pipe",                    no_argument, 0, PIPE_CHAR},
   {0,0,0,0}};
 
+/* It looks like a bug in the optstring that EXECUTE_STR members don't
+ * have ':' characters, but GNU getopt doesn't seem to mind. */
 static const char prcs_optstring[] = "+vhHLlnqfR:r:NkidzFpPruj:s"
-                                     EXECUTE_STR PLAINFORMAT_STR SORT_STR ":"
+                                     EXECUTE_STR PLAINFORMAT_STR NOKEYW_STR VLOG_STR ":" SORT_STR ":"
 #ifdef PRCS_DEVEL
 "Dt:"
 #endif
@@ -221,7 +232,7 @@ static PrcsCommand commands[] = {
     /* commands accepting -r */
     {"checkin", "", "@", "@", NoFlags,
      checkin_command, checkin_help_string,
-     OneRevisionArg, InsureProjectName, "uj", NoDiffArgs, -1 },
+     OneRevisionArg, InsureProjectName, "uj" VLOG_STR, NoDiffArgs, -1 },
 
     {"checkout", "@", "@", "@", NoFlags,
      checkout_command, checkout_help_string,
@@ -250,7 +261,7 @@ static PrcsCommand commands[] = {
     /* commands not accepting -r */
     {"populate", NULL, NULL, NULL, NoFlags,
      populate_command, populate_help_string,
-     NoRevisionArg, InsureProjectName, "du", NoDiffArgs, -1 },
+     NoRevisionArg, InsureProjectName, "du" NOKEYW_STR, NoDiffArgs, -1 },
 
     {"depopulate", NULL, NULL, NULL, NoFlags,
      depopulate_command, depopulate_help_string,
@@ -864,6 +875,8 @@ static bool read_command_line(int argc, char** argv)
 	case PIPE_CHAR: option_pipe = 1; break;
 	case PLAINFORMAT_CHAR: option_plain_format = 1; break;
 	case SORT_CHAR: option_sort = 1; option_sort_type = optarg; break;
+	case NOKEYW_CHAR: option_nokeywords = 1; break;
+	case VLOG_CHAR: option_version_log = 1; option_version_log_string = optarg; break;
 #ifdef PRCS_DEVEL
 	case 'D': option_n_debug = 0; break;
 	case 't': option_tune = atoi (optarg); break;
