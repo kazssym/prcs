@@ -1,3 +1,3 @@
-debian/man/prcs-emerge.1
-debian/man/prcs-ediff.1
-debian/man/prcs-callback.1
+emacs/prcs-emerge.1
+emacs/prcs-ediff.1
+emacs/prcs-callback.1

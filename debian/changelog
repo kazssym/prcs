@@ -1,15 +1,14 @@
 prcs (1.3.2-1) unstable; urgency=low
 
-  * NOT YET READY FOR RELEASE!
   * New upstream release.  There has been a total reorganisation of the
     contrib dir, done by myself upstream.  All the files that used to
-    be in debian/man has been moved elsewhere.  Also, the prcsstatus
-    script in the prcs-utils package does not die anymore when
+    be in debian/man has been moved elsewhere.  MAny changes to the
+    files debian/*.{files, odcs,manpages} due to the overhaul. Also, the
+    prcsstatus script in the prcs-utils package does not die anymore when
     PRCS_REPOSITORY is unset (closes: #144568).
   * debian/doc-base: Contains now the doc-base entry for the HTML version
     of the manual.
   * debian/doc-base.prcs-tutorial: Renamed from debian/doc-base.
-    of the manual.
   * debian/man/prcs-utils.sgml: Added file, contributed by Yann Dirson
     <dirson@debian.org>, with fixed typos (closes: #144580) and better
     synopsis.  I also added the synopsis for the new scripts contributed
@@ -25,14 +24,17 @@ prcs (1.3.2-1) unstable; urgency=low
     - Build the prcs-utils manpage from the sgml source.
   * debian/docs: Added debian/html directory.
   * debian/control: Removed flex and added texinfo and docbook-utils to
-    Build-Depends.
+    Build-Depends.  Upgraded dependency of prcs-synch on ssh from Suggests
+    to Recommends, since ssh is no more in non-us now.  Since some scripts
+    have been moved from the prcs into the prcs-utils package, prcs-utils
+    confilcts with prcs << 1.3.2-1.
   * debian/prcs-utils.manpages: Added man pages for Yann's suite.
   * debian/dirs: Added etc/bash_completion.d directory.
   * debian/conffiles: Added file.
   * debian/prcs-utils.copyright: Added Yann Dirson and Austin Donnelly
     to the list of upstream authors.
 
- --
+ -- Rafael Laboissiere <rafael@debian.org>  Sun, 12 May 2002 14:41:18 +0200
 
 prcs (1.3.1-1) unstable; urgency=low
 

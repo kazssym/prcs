@@ -42,7 +42,7 @@ Description: ELisp support for the Project Revision Control System
 Package: prcs-synch
 Architecture: all
 Depends: ${perl:Depends}, prcs, textutils (>= 2.0-10)
-Suggests: ssh
+Recommends: ssh
 Conflicts: prcs (<< 1.2.15-1)
 Description: Synchronize PRCS projects between repositories
  The prcs-synch script tries to synchronize two PRCS (Project Revision
@@ -60,6 +60,7 @@ Description: Visualize PRCS projects in a graph
 Package: prcs-utils
 Architecture: all
 Depends: ${perl:Depends}, prcs
+Conflicts: prcs (<< 1.3.2-1)
 Description: Utilities for PRCS
  Some utilities to be used in combination with PRCS (Project Revision
  Control System).  Contains the following scripts: prcspatch, prcspatch2,

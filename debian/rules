@@ -25,6 +25,27 @@ debetc		:= $(debtmp)/etc
 debest		:= $(debetc)/emacs/site-start.d/
 debhtml		:= $(debbase)/html
 contribdir	:= contrib
+contrib_perl    := contrib/misc/prcs-clean \
+                   contrib/misc/prcs-synch \
+                   contrib/prcsstatus/prcsstatus \
+                   contrib/prcsutils/prcsbranches \
+                   contrib/prcsutils/prcs_checkfiles \
+                   contrib/prcsutils/prcsentry \
+                   contrib/prcsutils/prcsfind \
+                   contrib/prcsutils/prcsguess \
+                   contrib/prcsutils/prcspatch \
+                   contrib/prcsutils/prcspatch2 \
+                   contrib/visualtree/prcs_tree_info.pl \
+                   contrib/visualtree/prcs_tree_draw \
+                   contrib/prcs-move/prcs-mv \
+                   contrib/prcs-move/prcs-what-may-move \
+                   contrib/prcs-move/prcs-ttyask-move \
+                   contrib/prcs-move/prcs-assist-move \
+                   emacs/prcs-callback \
+                   emacs/prcs-emerge \
+                   emacs/prcs-ediff
+contrib_sh      := contrib/rprcs/rprcs \
+                   contrib/javadoc/prcs-javadoc
 
 build: build-stamp
 build-stamp:
@@ -68,23 +89,15 @@ install-stamp: build-stamp
 	  mandir=$(debman) infodir=$(debinf)
 	( cd $(debtmp)/$(deblsp) ; rm -f prcs-ediff.el* *.elc )
 	chmod +x $(debbase)/fix-perl-path.pl
-	( cd $(contribdir) ; \
-	  for i in *-command ; do \
-            install -c --mode=0755 $$i $(debbin)/prcs-$$i ; \
-          done ; \
-          for i in prcs-callback prcs-clean prcs-emerge prcs-ediff \
-                   prcs-synch visualtree/prcs_tree_info.pl \
-                   visualtree/prcs_tree_draw prcsutils/prcs* \
-                   prcs-mv prcs-what-may-move prcs-ttyask-move \
-                   prcs-assist-move ; do \
-            install -c --mode=0755 $$i $(debbin)/`basename $$i .pl` ; \
-            $(debbase)/fix-perl-path.pl $(debbin)/`basename $$i .pl` ; \
-	  done ;\
-          for i in rprcs/rprcs prcs-javadoc ; do \
-            install -c --mode=0755 $$i $(debbin) ; \
-          done )
+	for i in $(contrib_perl) ; do \
+          install -c --mode=0755 $$i $(debbin)/`basename $$i .pl` ; \
+          $(debbase)/fix-perl-path.pl $(debbin)/`basename $$i .pl` ; \
+	done ;\
+	for i in $(contrib_sh) ; do \
+          install -c --mode=0755 $$i $(debbin) ; \
+        done
 	install --mode=644 contrib/misc/bash-completion \
-	    $(debetc)/bash_completion.d/prcs
+	  $(debetc)/bash_completion.d/prcs
 
 	dh_installman -A
 	dh_movefiles -i
@@ -111,6 +124,7 @@ binary-arch: build install
 	dh_testdir -a
 	dh_testroot -a
 	dh_installdocs -a
+	dh_installexamples -a contrib/example/* -XCVS
 	dh_installchangelogs -a ChangeLog
 	dh_strip -a
 	dh_compress -a
