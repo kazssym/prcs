@@ -55,8 +55,7 @@ autotools-stamp:
 	ln -s /usr/share/misc/config.sub config.sub
 	ln -s /usr/share/misc/config.guess config.guess
 	touch autotools-stamp
-				
-				
+
 build: build-stamp
 build-stamp: patch-stamp autotools-stamp
 	dh_testdir
@@ -78,7 +77,7 @@ clean: unpatch
 	dh_testdir
 	dh_testroot
 
-	-rm -f config.sub config.guess	
+	-rm -f config.sub config.guess
 	rm -f build-stamp install-stamp autotools-stamp
 
 	-patch -p0 --force --reverse < debian/rebuild.cc-patch
@@ -102,6 +101,10 @@ install-stamp: build-stamp
 
 	make install EMACS=no DESTDIR=$(debtmp) lispdir=$(deblsp) \
 	  mandir=$(debman) infodir=$(debinf)
+
+        # Get rid of unwanted info files
+	rm -f $(debusr)/share/info/dir*
+
 	( cd $(debtmp)/$(deblsp) ; rm -f *.elc )
 	chmod +x $(debbase)/fix-perl-path.pl
 	for i in $(contrib_perl) ; do \
