@@ -1,7 +1,7 @@
 #!/bin/sh -e
 # File: postinst
 # Description: Postinst file for the Debian prcs package
-# Author: Rafael Laboissière <rafael@icp.inpg.fr>
+# Author: Rafael Laboissiere <rafael@debian.org>
 # Created on: 29 Oct 1998 14:07:48 +0100
 # Last modified on: Tue Jan 18 09:19:34 CET 2000
 

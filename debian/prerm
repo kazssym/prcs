@@ -1,7 +1,7 @@
 #!/bin/sh -e
 # File: prerm
 # Description: Postrm file for the Debian prcs package
-# Author: Rafael Laboissière <rafael@icp.inpg.fr>
+# Author: Rafael Laboissiere <rafael@debian.org>
 # Created on: 29 Oct 1998 14:07:48 +0100
 # Last modified on: Sun Oct 28 18:17:18 CET 2001
 

@@ -1,3 +1,10 @@
+prcs (1.3.2-6) unstable; urgency=low
+
+  * debian/control: Changed dependency of prcs-synch on textutils to
+    coreutils (closes: #163452).
+
+ -- Rafael Laboissiere <rafael@debian.org>  Sun,  6 Oct 2002 16:39:10 +0200
+
 prcs (1.3.2-5) unstable; urgency=low
 
   * debian/rules: Added upstream file prcs-ediff.el to the prcs-el

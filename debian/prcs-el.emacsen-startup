@@ -1,7 +1,7 @@
 ;; -*- Emacs-Lisp -*-
 ;; File: prcs-el.emacsen-startup
 ;; Description: Startup file for the prcs-mode in Debian systems
-;; Author: Rafael Laboissière <rafael@icp.inpg.fr>
+;; Author: Rafael Laboissiere <rafael@debian.org>
 ;; Created on: Oct 23 1999
 ;; Last modified on: Thu Jun  3 20:21:05 CEST 1999
 

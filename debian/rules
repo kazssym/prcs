@@ -3,7 +3,7 @@
 #
 # File: rules
 # Description: debian/rules file for the prcs package
-# Author: Rafael Laboissiere <rafael@icp.inpg.fr>
+# Author: Rafael Laboissiere <rafael@debian.org>
 #         (with help from Samuel Tardieu <sam@debian.org>)
 # Created on: Thu Nov  5 15:42:22 CET 1998
 # $Id$

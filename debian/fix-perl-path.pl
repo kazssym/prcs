@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # File: fix-perl-path.pl
 # Description: Fix path for Perl scripts after initial `#!' in Debian systems
-# Author: Rafael Laboissière <rafael@icp.inpg.fr>
+# Author: Rafael Laboissiere <rafael@debian.org>
 # Created on: 15 Jun 1998 22:03:41 +0200
 # Last modified on: Mon Nov 15 01:33:58 CET 1999
 

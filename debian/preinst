@@ -1,7 +1,7 @@
 #!/bin/sh -e
 # File: preinst
 # Description: Pre-installation file for the Debian prcs package
-# Author: Rafael Laboissière <rafael@icp.inpg.fr>
+# Author: Rafael Laboissiere <rafael@debian.org>
 # Created on: 29 Oct 1998 14:07:48 +0100
 # Last modified on: Mon Apr 10 14:17:57 CEST 2000
 

@@ -41,7 +41,7 @@ Description: ELisp support for the Project Revision Control System
 
 Package: prcs-synch
 Architecture: all
-Depends: ${perl:Depends}, prcs, textutils (>= 2.0-10)
+Depends: ${perl:Depends}, prcs, coreutils (>= 4.5.1-2)
 Recommends: ssh
 Conflicts: prcs (<< 1.2.15-1)
 Description: Synchronize PRCS projects between repositories
