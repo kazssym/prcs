@@ -1,0 +1,68 @@
+=head1 NAME
+
+B<prcsutils> - Some utilities to be used in combination with PRCS.
+
+=head1 PROGRAMS
+
+=over 4
+
+=item B<prcspatch>
+
+Create a patch file ignoring the project descriptor.
+patch file is generated from diffs for working project
+and goes to stdout.
+
+=item B<prcspatch2>
+
+Create a patch file for project given on command line and
+two revisions given on command line.
+patch file contains differences between given revisions
+and is named after project and the two revisions.
+
+=item B<prcsfind>
+
+Should be used in combination with emacs's 'M-x grep'
+replace the 'grep -n' command with a call to prcsfind
+
+=item B<prcsbranches>
+
+Display the different branch names of a project.
+
+usage : $0 <project> or simply $0 when a .prj file is in cd.
+
+=item B<prcsguess>
+
+Tries to guess the project in a certain directory.
+result on stdout, return 1 if no successfull guess
+could be done, 2 in case of trouble.
+
+=item B<prcsentry>
+
+Give the contents of an entry of the project descriptor
+Usage:
+
+    $ prcsentry Project-Description
+    "A number of prcs related utilities."
+
+=item B<prcsstatus>
+
+Gives info about the status of files in a project
+
+=item B<prcs_checkfiles>
+
+Check the file list in the prcs project file with the files
+(not directories) in the current source tree.  Double checks
+the populate-ignore list.
+
+=back
+
+=head1 SEE ALSO
+
+prcs(1)
+
+=head1 AUTHOR
+
+Hugo Cornelis <hugo@bbf.uia.ac.be>.
+
+This manual page was written by Rafael Laboissiere <rafael@debian.org>,
+for the Debian GNU/Linux system (but may be used by others).

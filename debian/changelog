@@ -1,6 +1,33 @@
+prcs (1.3.0-1) unstable; urgency=low
+
+  * New upstream release.
+  * Upgraded to Standards-Version: 3.5.6.
+  * debian/control: 
+    - Change dependencies from the transitional "perl-5.005" and
+      "perl-5.6" packages to "perl" (closes: #113207). 
+    - prcs-synch is moved into non-US, due to the recommendation on
+      ssh. (closes: #109405). 
+    - Added versioned dependencies on debhelper and textutils. 
+  * The PRCS contributed software is now in contrib/ (it used to be in
+    scripts/).  The debian/rules file has been modified accordingly.  In
+    particular, a new variable called contribdir is created.  Also,
+    debian/docs reflects now the new situation.
+  * debian/rules: 
+    - Removed call to dh_testversion.
+    - Removed unnecessary settings of CFLAGS and CXXFLAGS in the call of
+      make. 
+  * debian/prerm: Renamed from debian/postrm, due to the lintian
+    warnign that install-info should be called from the prerm script.
+  * debian/*copyright: Updated download URL.
+  * Added new package prcs-visualtree.
+  * Updated man pages for prcs-ediff, prcs-emerge, prcs-synch, and
+    prcs-visualtree.1 (in debian/man/).
+
+ -- Rafael Laboissiere <rafael@debian.org>  Sun, 28 Oct 2001 22:46:34 +0100
+
 prcs (1.2.15-11.potato.2) unstable; urgency=low
 
-  * Debian/control: Removed diff, tar, fileutils, and gzip from
+  * debian/control: Removed diff, tar, fileutils, and gzip from
     Build-Depends, since these packages are build-essential.
 
  -- Rafael Laboissiere <rafael@icp.inpg.fr>  Thu, 29 Mar 2001 13:30:01 +0200
@@ -353,6 +380,4 @@ prcs (1.1.1-1) unstable; urgency=low
 
  -- Herbert Xu <herbert@debian.org>  Fri, 28 Mar 1997 14:22:56 +1100
 
-Local variables:
-mode: debian-changelog
-End:
+

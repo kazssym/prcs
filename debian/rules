@@ -22,7 +22,7 @@ debinf		:= $(debshr)/info
 deblsp		:= /usr/share/emacs/site-lisp/$(package)
 debema		:= $(debusr)/lib/emacsen-common/packages
 debest		:= $(debtmp)/etc/emacs/site-start.d/
-
+contribdir	:= contrib
 
 build: build-stamp
 build-stamp:
@@ -31,10 +31,18 @@ build-stamp:
 	./configure --prefix=/usr --disable-environment --disable-debug
 # Use EMACS=no on the command line to avoid useless compilation of
 # .elc files
-	make CFLAGS="-O2 -g -Wall" \
-		CXXFLAGS="-O2 -g -Wall -fno-implicit-templates" \
-		EMACS=no
-	pod2man scripts/prcs-synch > $(debbase)/man/prcs-synch.1
+	make EMACS=no
+	pod2man $(contribdir)/prcs-synch > $(debbase)/man/prcs-synch.1
+	pod2man --section=1 --center="PRCS" --date=2001-10-28 \
+          $(debbase)/man/prcsutils.pod > $(debbase)/man/prcs-utils.1 
+	( cd $(contribdir) ; \
+          for p in rprcs visualtree prcsutils ; do \
+	    tar xfz $$p.tar.gz ; \
+          done ; \
+          rm -f prcsutils/prcsutils.prj ; \
+          perl -pi -e \
+               's|\./(prcs_tree.pl)|prcs_tree_info|;s|(/.*)+/(xvcg)|$$2|' \
+               visualtree/prcs_tree_draw )
 	touch build-stamp
 
 clean:
@@ -44,7 +52,10 @@ clean:
 
 	if [ -f Makefile ]; then make distclean; fi
 
-	rm -f $(debbase)/man/prcs-synch.1 $(debbase)/prcs-javadoc.1
+	( cd $(debbase)/man ; rm -f prcs-synch.1 prcs-utils.1 )
+	for p in rprcs visualtree prcsutils ; \
+          do rm -rf $(contribdir)/$$p ; \
+        done
 	dh_clean
 
 install: install-stamp
@@ -58,33 +69,28 @@ install-stamp: build-stamp
 	  mandir=$(debman) infodir=$(debinf)
 	( cd $(debtmp)/$(deblsp) ; rm -f prcs-ediff.el* *.elc )
 	chmod +x $(debbase)/fix-perl-path.pl
-	( cd scripts ; \
+	( cd $(contribdir) ; \
 	  for i in *-command ; do \
             install -c --mode=0755 $$i $(debbin)/prcs-$$i ; \
           done ; \
-          for i in prcs-callback prcs-clean prcs-emerge prcs-synch ; do \
-            install -c --mode=0755 $$i $(debbin) ; \
-            $(debbase)/fix-perl-path.pl $(debbin)/$$i ; \
+          for i in prcs-callback prcs-clean prcs-emerge prcs-ediff \
+                   prcs-synch visualtree/prcs_tree_info.pl \
+                   visualtree/prcs_tree_draw prcsutils/prcs*; do \
+            install -c --mode=0755 $$i $(debbin)/`basename $$i .pl` ; \
+            $(debbase)/fix-perl-path.pl $(debbin)/`basename $$i .pl` ; \
 	  done ;\
-          for i in rprcs prcs-javadoc ; do \
+          for i in rprcs/rprcs prcs-javadoc ; do \
             install -c --mode=0755 $$i $(debbin) ; \
           done )
 
-# Fix broken section of prcs-javadoc man page
-	if [ -f scripts/prcs-javadoc.8 ] ; then \
-	  cp scripts/prcs-javadoc.8 $(debbase)/prcs-javadoc.1 ; \
-	  dh_installmanpages -a scripts/prcs-javadoc.8 ; \
-	else \
-	  dh_installmanpages -a ; \
-	fi
-
+	dh_installman -A
 	dh_movefiles -i
+
 # Do this hack until Bug#17111 is fixed - R.L.
 	( cd $(debtmp) ; rm -rf etc usr/lib usr/share/emacs )
 	touch install-stamp
 
 binary-indep: build install
-	dh_testversion ge 2.0.72
 	dh_testdir -i
 	dh_testroot -i
 	dh_installdocs -i
@@ -99,7 +105,6 @@ binary-indep: build install
 	dh_builddeb -i
 
 binary-arch: build install
-	dh_testversion ge 2.0.72
 	dh_testdir -a
 	dh_testroot -a
 	dh_installdocs -a

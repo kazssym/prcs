@@ -1,0 +1,17 @@
+This package was debianized by Rafael Laboissiere <rafael@debian> on
+Sun Oct 28 19:00:16 CET 2001
+
+It was downloaded from:
+    http://prdownloads.sourceforge.net/prcs/
+
+Upstream author:
+    Keith Owens <kaos@ocs.com.au>
+
+Copyright:
+    The scripts in this package (apart from short prcs_tree_draw) have the
+    following copyright statement:
+    #       <file>.pl.  Copyright 1998 Keith Owens <kaos@ocs.com.au>.
+    #       Released under the GNU Public Licence.
+
+(For the complete text of the GPL, see /usr/share/common-licenses/GPL.)
+

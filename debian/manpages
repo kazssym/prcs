@@ -1,0 +1,7 @@
+doc/prcs.1
+contrib/prcs-javadoc.8
+debian/man/prcs-clean.1
+debian/man/prcs-diff-command.1
+debian/man/prcs-merge-command.1
+debian/man/rprcs.1
+

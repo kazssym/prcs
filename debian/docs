@@ -1,10 +1,8 @@
-ANNOUNCE
 AUTHORS
 FAQ
 NEWS
 README
 TODO 
-Y2K
 debian/prcs-tutorial.html
-scripts/README.rprcs
-scripts/rprcs_session.log
+contrib/rprcs/README.rprcs
+contrib/rprcs/rprcs_session.log

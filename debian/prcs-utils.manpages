@@ -1,0 +1,10 @@
+debian/man/prcs-utils.1
+debian/man/prcspatch.1
+debian/man/prcspatch2.1
+debian/man/prcsentry.1
+debian/man/prcsfind.1
+debian/man/prcsbranches.1
+debian/man/prcsguess.1
+debian/man/prcsentry.1
+debian/man/prcsstatus.1
+debian/man/prcs_checkfiles.1
