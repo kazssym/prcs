@@ -4,7 +4,7 @@
 # disclaimers. Contact Jesse Glick <Jesse.Glick@netbeans.com> for
 # information and to report bugs.
 #
-# $PrcsModeVersion: 1.60 on Sat, 06 Feb 1999 17:57:04 -0500 $
+# $PrcsModeVersion: 1.61 on Sat, 06 Feb 1999 17:57:04 -0500 $
 
 # When called with some number of arguments, this script:
 #
@@ -25,7 +25,7 @@ magic_2='CaLlBaCk-ToKeN'
 (
     echo "$magic_1$magic_2"
     echo "$#"
-    for arg do echo "$arg"; done
+    for arg; do echo "$arg"; done
 ) > /dev/tty
 read status < /dev/tty
 # echo $* $status >>/tmp/pc-trace
