@@ -15,6 +15,7 @@ EXTRA_DIST = \
 	pfe.tar.gz \
 	visualtree.tar.gz \
 	prcsutils.tar.gz \
-	pck.tar.gz
+	pck.tar.gz \
+	bash-completion
 
 bin_SCRIPTS = prcs-callback prcs-emerge prcs-ediff

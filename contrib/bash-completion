@@ -1,0 +1,126 @@
+#-*- mode: shell-script;-*-
+
+# Debian GNU/Linux prcs(1) completion for Bash.
+# Copyright (C) 2002 Rafael Laboissiere <rafael@laboissiere.net>
+# Distribute under the terms of the GNU GPL.
+
+# This script is intended to work with the /etc/bash_completion file and the
+# associated /etc/bash_completion.d/ sourcing mechanism (see Ian Macdonald's
+# bashcompletion project at http://freshmeat.net/projects/bashcompletion/).
+# If you are using this script standalone, please define first the "have"
+# function like this:
+#    have ()
+#    {
+#        unset -v have;
+#        type $1 >&/dev/null;
+#        [ $? -eq 0 ] && have="yes"
+#    }
+
+have prcs &&
+_prcs()
+{
+    local subcommands admin_subcommands stdopt cur prev prevprev \
+          repo projects extraopt
+
+    subcommands='--help --version admin checkin checkout config delete \
+                 depopulate diff execute info merge package populate \
+		 rekey unpackage changes'
+    admin_subcommands='--help compress uncompress access rebuild init \
+                       pdelete pinfo prename'
+    stdopt='--help --force --jobs --long-format --long-long-format \
+            --no-action --plain-format --quiet --repository --skilled-merge \
+            --version'
+
+    COMPREPLY=()
+    cur=${COMP_WORDS[COMP_CWORD]}
+    prev=${COMP_WORDS[COMP_CWORD-1]}
+    if [ "$COMP_CWORD" -ge 2 ] ; then
+        prevprev=${COMP_WORDS[COMP_CWORD-2]}
+    fi
+
+    if [ "$PRCS_REPOSITORY" ] ; then
+        repo=$PRCS_REPOSITORY
+    else
+        repo="$HOME/PRCS"
+    fi
+    projects=$( \ls -1 $repo | grep ^$cur )
+
+    if [ "$COMP_CWORD" = 1 ] ; then
+	COMPREPLY=( $( compgen -W "$subcommands" | grep ^$cur ) )
+        return 0
+    else
+        if [ "$COMP_CWORD" = 2 ] ; then
+	    case "$prev" in
+	    admin)
+	        COMPREPLY=( $( compgen -W "$admin_subcommands" | grep ^$cur ) )
+                ;;
+            checkin|checkout|diff|merge|rekey|info|changes\
+            |populate|depopulate|package|execute)
+	        case "$prev" in
+		checkin)
+                    extraopt='--revision --unlink --jobs --version-log'
+                    ;;
+                checkout)
+                    extraopt='--revision --unlink --preserve \
+                              --exclude-project-file'
+                    ;;
+                diff)
+                    extraopt='--revision --keywords --new \
+                              --exclude-project-file'
+                    ;;
+                merge)
+                    extraopt='--revision --unlink --skilled-merge'
+                    ;;
+		rekey)
+                    extraopt='--unlink'
+                    ;;
+                info)
+                    extraopt='--revision --sort'
+                    ;;
+                changes)
+                    extraopt='--revision'
+                    ;;
+                populate)
+                    extraopt='--delete --unlink --no-keywords'
+                    ;;
+                depopulate)
+                    extraopt='--unlink'
+                    ;;
+                package)
+                    extraopt='--compress'
+                    ;;
+                execute)
+                    extraopt='--revision --exclude-project-file \
+                              --pre --all --pipe --match --not'
+                    ;;
+                esac
+
+                COMPREPLY=( $projects $( compgen -W "$stdopt $extraopt" \
+                               -G '*.prj' | grep ^$cur ) )
+                ;;
+            *)
+                ;;
+            esac
+        else
+            if [ "$COMP_CWORD" = 3 -a "$prevprev" = admin ] ; then
+	        case "$prev" in
+                compress|uncompress|access|rebuild|init|pdelete|prename)
+                    extraopt=''
+                    case "$prev" in
+                    uncompress)
+                        extraopt='--immediate'
+                    esac
+                    COMPREPLY=( $projects $( compgen -W "$stdopt $extraopt" \
+                               -G '*.prj' | grep ^$cur ) )
+                    ;;
+                *)
+                    ;;
+                esac
+            else
+                COMPREPLY=( $( compgen -o default ) )
+            fi
+        fi
+    fi
+}
+
+[ "$have" ] && complete -F _prcs prcs
