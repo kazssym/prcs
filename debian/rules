@@ -28,9 +28,9 @@ patch: patch-stamp
 patch-stamp:
 	dh_testdir
 	if test `dpkg --print-architecture` = hppa \
-           || dpkg --compare-versions `gcc --version` ge 3.0 ; then \
+           || dpkg --compare-versions `g++ --version` ge 3.0 ; then \
 	  if [ ! -e patch-stamp ] ; then \
-            patch < $(debbase)/prcs-1.3.1gcc3.diffs ; \
+            patch -p1 < $(debbase)/prcs-1.3.1gcc3.diffs ; \
             touch patch-stamp ; \
           fi ; \
         fi
@@ -69,7 +69,7 @@ clean:
         done
 
 	if [ -e patch-stamp ] ; then \
-          patch -R < $(debbase)/prcs-1.3.1gcc3.diffs ; \
+          patch -p1 -R < $(debbase)/prcs-1.3.1gcc3.diffs ; \
           rm -f patch-stamp ; \
         fi
 
