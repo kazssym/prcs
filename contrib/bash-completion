@@ -47,80 +47,81 @@ _prcs()
 
     if [ "$COMP_CWORD" = 1 ] ; then
 	COMPREPLY=( $( compgen -W "$subcommands" | grep ^$cur ) )
-        return 0
-    else
-        if [ "$COMP_CWORD" = 2 ] ; then
-	    case "$prev" in
-	    admin)
-	        COMPREPLY=( $( compgen -W "$admin_subcommands" | grep ^$cur ) )
-                ;;
-            checkin|checkout|diff|merge|rekey|info|changes\
-            |populate|depopulate|package|execute)
-	        case "$prev" in
-		checkin)
-                    extraopt='--revision --unlink --jobs --version-log'
-                    ;;
-                checkout)
-                    extraopt='--revision --unlink --preserve \
-                              --exclude-project-file'
-                    ;;
-                diff)
-                    extraopt='--revision --keywords --new \
-                              --exclude-project-file'
-                    ;;
-                merge)
-                    extraopt='--revision --unlink --skilled-merge'
-                    ;;
-		rekey)
-                    extraopt='--unlink'
-                    ;;
-                info)
-                    extraopt='--revision --sort'
-                    ;;
-                changes)
-                    extraopt='--revision'
-                    ;;
-                populate)
-                    extraopt='--delete --unlink --no-keywords'
-                    ;;
-                depopulate)
-                    extraopt='--unlink'
-                    ;;
-                package)
-                    extraopt='--compress'
-                    ;;
-                execute)
-                    extraopt='--revision --exclude-project-file \
-                              --pre --all --pipe --match --not'
-                    ;;
-                esac
 
-                COMPREPLY=( $projects $( compgen -W "$stdopt $extraopt" \
-                               -G '*.prj' | grep ^$cur ) )
+    elif [ "$COMP_CWORD" = 2 ] ; then
+        case "$prev" in
+	admin)
+	    COMPREPLY=( $( compgen -W "$admin_subcommands" | grep ^$cur ) )
+            ;;
+        checkin|checkout|diff|merge|rekey|info|changes\
+        |populate|depopulate|package|execute)
+	    case "$prev" in
+		checkin)
+                extraopt='--revision --unlink --jobs --version-log'
                 ;;
-            *)
+            checkout)
+                extraopt='--revision --unlink --preserve \
+                          --exclude-project-file'
+                ;;
+            diff)
+                extraopt='--revision --keywords --new \
+                          --exclude-project-file'
+                ;;
+            merge)
+                extraopt='--revision --unlink --skilled-merge'
+                ;;
+		    rekey)
+                extraopt='--unlink'
+                ;;
+            info)
+                extraopt='--revision --sort'
+                ;;
+            changes)
+                extraopt='--revision'
+                ;;
+            populate)
+                extraopt='--delete --unlink --no-keywords'
+                ;;
+            depopulate)
+                extraopt='--unlink'
+                ;;
+            package)
+                extraopt='--compress'
+                ;;
+            execute)
+                extraopt='--revision --exclude-project-file \
+                          --pre --all --pipe --match --not'
                 ;;
             esac
-        else
-            if [ "$COMP_CWORD" = 3 -a "$prevprev" = admin ] ; then
-	        case "$prev" in
-                compress|uncompress|access|rebuild|init|pdelete|prename)
-                    extraopt=''
-                    case "$prev" in
-                    uncompress)
-                        extraopt='--immediate'
-                    esac
-                    COMPREPLY=( $projects $( compgen -W "$stdopt $extraopt" \
+
+            COMPREPLY=( $projects $( compgen -W "$stdopt $extraopt" \
                                -G '*.prj' | grep ^$cur ) )
-                    ;;
-                *)
-                    ;;
-                esac
-            else
-                COMPREPLY=( $( compgen -o default ) )
-            fi
-        fi
+            ;;
+        *)
+            ;;
+        esac
+
+    elif [ "$COMP_CWORD" = 3 -a "$prevprev" = admin ] ; then
+        case "$prev" in
+        compress|uncompress|access|rebuild|init|pdelete|prename)
+            extraopt=''
+            case "$prev" in
+            uncompress)
+                extraopt='--immediate'
+            esac
+            COMPREPLY=( $projects $( compgen -W "$stdopt $extraopt" \
+                           -G '*.prj' | grep ^$cur ) )
+            ;;
+        *)
+            ;;
+        esac
+
+    else
+        COMPREPLY=( $( compgen -o default | grep ^$cur ) )
     fi
+    
+    return 0
+
 }
 
 [ "$have" ] && complete -F _prcs prcs
