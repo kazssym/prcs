@@ -10,7 +10,14 @@
     <manvolnum>1</manvolnum>
   </refmeta>
 
-  </refsynopsisdiv>
+  <refnamediv>
+    <refname>prcs-move</refname>
+    <refpurpose>
+      Tools to help dealing with file renamings in combination with PRCS
+    </refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
     <cmdsynopsis>
       <command>prcs-mv</>
       <arg req><replaceable>src</></arg>
