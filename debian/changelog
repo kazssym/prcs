@@ -1,3 +1,62 @@
+prcs (1.3.3-1) unstable; urgency=low
+
+  * New upstream release.
+  * debian/control:
+    - Bumped Standards-VErsion to 3.6.1 (no changes needed).
+    - Build-Depend on dpatch.
+  * debian/rules:
+    - Removed call to make patch-stamp and the Debian specific patches 
+      rebuild.cc-patch and prcserror.cc-patch (applied upstream).
+    - Added dpatch support for the Debian patches in the contrib dir that
+      used to be in the diff.gz file.
+
+ -- Rafael Laboissiere <rafael@debian.org>  Sat,  7 Aug 2004 12:46:36 +0200
+
+prcs (1.3.2-10) unstable; urgency=low
+
+  * debian/prcs-el.files: Added manpages files, which used to be delcared
+    ion debian/prcs-el.manpages.  After the regeneration of
+    doc/Makefile.in with automake, these files got installed in
+    debian/tmp, ending up in package prcs.  This caused an upgrade error
+    for the prcs package.
+  * debian/prcs-el.mapages: Removed file.
+
+ -- Rafael Laboissiere <rafael@debian.org>  Sun, 16 Nov 2003 17:47:49 +0100
+
+prcs (1.3.2-9) unstable; urgency=low
+
+  * Regenerate autotools files by running aclocal, automake, and
+    autoconf, such that file /usr/share/info/dir.gz is not included in the
+    package (closes: #220955).
+  * debian/rules: Remove files config.sub and config.guess in target
+    clean.
+
+ -- Rafael Laboissiere <rafael@debian.org>  Sun, 16 Nov 2003 17:08:04 +0100
+
+prcs (1.3.2-8) unstable; urgency=low
+
+  * doc/Makefile.in: Redirect stderr to stdout in command "install-info
+    --version", such that the package will build correctly with any
+    version of install-info.  Thanks to Andreas Metzler
+    <ametzler@logic.univie.ac.at> for the patch (closes: #219970).
+
+ -- Rafael Laboissiere <rafael@debian.org>  Fri, 14 Nov 2003 03:34:00 +0100
+
+prcs (1.3.2-7) unstable; urgency=low
+
+  * debian/rules:
+    - Apply patches for compilation g++ 3.3.  The patch files are
+      debian/{rebuild,prcserror}.cc-patch.
+    - Added autotools-stamp rule for copying config.guess and config.sub
+      from the autotools-dev package.
+  * debian/control:
+    - Added autotools-dev to Build-Depends.
+    - In the Description field, use the style "Homepage: http://[...]" as
+      advised by the Best Packaging Practices manual.
+    - Bumped Standards-Version to 3.5.9.
+
+ -- Rafael Laboissiere <rafael@debian.org>  Sun, 18 May 2003 22:18:55 +0200
+
 prcs (1.3.2-6) unstable; urgency=low
 
   * debian/control: Changed dependency of prcs-synch on textutils to

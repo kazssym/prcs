@@ -4,3 +4,6 @@ usr/bin/prcs-emerge
 usr/bin/prcs-ediff
 usr/lib/
 usr/share/emacs
+usr/share/man/man1/prcs-emerge.1
+usr/share/man/man1/prcs-ediff.1
+usr/share/man/man1/prcs-callback.1

@@ -2,8 +2,8 @@ Source: prcs
 Section: devel
 Priority: optional
 Maintainer: Rafael Laboissiere <rafael@debian.org>
-Standards-Version: 3.5.6
-Build-Depends: debhelper (>= 2.0.72), perl, rcs, patch, texinfo, docbook-utils
+Standards-Version: 3.6.1
+Build-Depends: debhelper (>= 2.0.72), perl, rcs, patch, texinfo, docbook-utils, autotools-dev, dpatch
 
 Package: prcs
 Architecture: any
@@ -23,8 +23,7 @@ Description: The Project Revision Control System
  package called prcs-synch contains a tool to synchronize PRCS projects
  between repositories, both locally and remotely.
  .
- For further information look at
-     http://prcs.sourceforge.net
+ Homepage: http://prcs.sourceforge.net
 
 Package: prcs-el
 Architecture: all
