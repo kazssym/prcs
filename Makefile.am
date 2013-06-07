@@ -1,6 +1,8 @@
 ## Process this file with automake to produce Makefile.in
 ## $Id$
 
+ACLOCAL_AMFLAGS = -Im4
+
 SUBDIRS = src doc contrib emacs m4 be
 
 EXTRA_DIST = \
