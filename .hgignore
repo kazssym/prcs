@@ -1,0 +1,12 @@
+syntax: glob
+
+# These files are added by autoreconf.
+depcomp
+elisp-comp
+install-sh
+missing
+ylwrap
+
+syntax: regexp
+~$
+\.orig$
