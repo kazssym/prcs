@@ -1,5 +1,12 @@
 syntax: glob
 
+config.log
+
+# These files are automatically generated.
+Makefile.in
+configure
+aclocal.m4
+
 # These files are added by autoreconf.
 depcomp
 elisp-comp
@@ -8,5 +15,7 @@ missing
 ylwrap
 
 syntax: regexp
+^autom4te\.cache/
 ~$
 \.orig$
+\.rej$
