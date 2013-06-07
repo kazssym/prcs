@@ -228,7 +228,7 @@ main ()
   exit (select (3, &read_fds, NULL, NULL, &tv));
 }],
 ac_cv_select_type=FD_SET_TYPE,
-AC_TRY_RUN([
+[AC_TRY_RUN([
 #include <string.h>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -260,7 +260,7 @@ main ()
   exit (select (3, (int*)(&read_fds), NULL, NULL, &tv));
 }],
 ac_cv_select_type=int,
-AC_TRY_RUN([
+[AC_TRY_RUN([
 #include <string.h>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -292,9 +292,9 @@ main ()
   exit (select (3, (void*)(&read_fds), NULL, NULL, &tv));
 }],
 ac_cv_select_type=void,
-ac_cv_select_type=FD_SET_TYPE,
-ac_cv_select_type=FD_SET_TYPE),
-ac_cv_select_type=FD_SET_TYPE),
+ac_cv_select_type=FD_SET_TYPE)
+])
+],
 ac_cv_select_type=FD_SET_TYPE)])
 
 AC_DEFINE_UNQUOTED(SELECT_TYPE, $ac_cv_select_type, [Defines the FDSET type.])
