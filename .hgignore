@@ -1,9 +1,17 @@
 syntax: glob
+prcs
+prcs.info
 
+.deps/
+Makefile
+config.status
+stamp-h1
+config.h
 config.log
 
 # These files are automatically generated.
 Makefile.in
+config.h.in
 configure
 aclocal.m4
 
@@ -16,6 +24,8 @@ ylwrap
 
 syntax: regexp
 ^autom4te\.cache/
+\.o$
+\.elc$
 ~$
 \.orig$
 \.rej$
