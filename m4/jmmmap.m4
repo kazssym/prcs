@@ -132,6 +132,6 @@ main()
 }
 ], ac_cv_func_mmap=yes, ac_cv_func_mmap=no, ac_cv_func_mmap=no)])
 if test $ac_cv_func_mmap = yes; then
-  AC_DEFINE([HAVE_MMAP], [], [Define to 1 if 'mmap' works.])
+  AC_DEFINE([HAVE_MMAP], 1, [Define to 1 if 'mmap' works.])
 fi
 ])
