@@ -41,8 +41,9 @@ extern "C" {
 #include "utils.h"
 }
 
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
+using namespace std;
 
 #ifdef NULL
 #undef NULL

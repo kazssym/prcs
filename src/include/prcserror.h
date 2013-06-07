@@ -24,16 +24,14 @@
 #define _PRCSERROR_H_
 
 
-#include <iostream.h>
-#include <iomanip.h>
+#include <iostream>
+#include <iomanip>
+using namespace std;
 #if defined(__GNUG__)
-# if defined(__APPLE__)
-#  include <streambuf.h>
-   typedef filebuf stdiobuf;
-# else
-#  include <stdiostream.h>
-# endif /* if defined(__APPLE__) */
-# include <strstream.h>
+# include <streambuf>
+  typedef filebuf stdiobuf;
+  typedef stringbuf strstreambuf;
+# include <sstream>
 #else
 # include <fstream.h>
   typedef filebuf stdiobuf;
@@ -499,7 +497,7 @@ protected:
 
 extern char const default_fail_query_message[];
 
-#if !defined(__GNUG__) && !defined(__MWERKS__)
+#if !defined(__MWERKS__)
 template <class TP> class omanip {
     ostream& (*_f)(ostream&, TP);
     TP _a;
