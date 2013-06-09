@@ -251,7 +251,7 @@ bool weird_pathname(const char* N)
 
 const char* strip_leading_path(const char* P)
 {
-    char* s = strrchr(P, '/');
+    const char* s = strrchr(P, '/');
 
     if ( s == '\0' )
         return P;
