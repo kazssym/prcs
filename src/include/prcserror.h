@@ -498,14 +498,23 @@ protected:
 extern char const default_fail_query_message[];
 
 #if !defined(__MWERKS__)
+template<class TP> class omanip; // forward
+template<class TP>
+ostream &operator<<(ostream &o, const omanip<TP> &m); // forward
+
 template <class TP> class omanip {
     ostream& (*_f)(ostream&, TP);
     TP _a;
 public:
     omanip(ostream& (*f)(ostream&, TP), TP a) : _f(f), _a(a) { }
 
-    friend ostream& operator<<(ostream& o, const omanip<TP>& m);
+    friend ostream& operator<<<>(ostream& o, const omanip<TP>& m);
 };
+
+template<class TP>
+ostream &operator<<(ostream &o, const omanip<TP> &m) {
+    return m._f(o, m._a);
+}
 #endif
 
 ostream& __omanip_query(ostream& s, const char* message);
