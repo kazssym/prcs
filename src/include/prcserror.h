@@ -28,10 +28,10 @@
 #include <iomanip>
 using namespace std;
 #if defined(__GNUG__)
-# include <streambuf>
-  typedef filebuf stdiobuf;
-  typedef stringbuf strstreambuf;
+# include <ext/stdio_sync_filebuf.h>
+  typedef __gnu_cxx::stdio_sync_filebuf<char> stdiobuf;
 # include <sstream>
+  typedef std::stringbuf strstreambuf;
 #else
 # include <fstream.h>
   typedef filebuf stdiobuf;
