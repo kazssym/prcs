@@ -130,6 +130,10 @@ public:
 
 class AttrDesc { public: const char* name; AttrType type; };
 
+class PrcsAttrs; // forward
+extern bool attrs_equal(const PrcsAttrs *const &x, const PrcsAttrs *const &y);
+extern int attrs_hash(const PrcsAttrs *const &s, int M);
+
 class PrcsAttrs {
     friend class ProjectDescriptor;
     friend class FileEntry;
