@@ -43,6 +43,7 @@ extern "C" {
 
 #include <iostream>
 #include <fstream>
+#include <ext/stdio_filebuf.h>
 using namespace std;
 
 #ifdef NULL

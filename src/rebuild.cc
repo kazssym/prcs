@@ -995,7 +995,7 @@ void RebuildFile::init_stream()
 	buf = new filebuf(seg->fd());
 	buf->seekoff(0,ios::end);
 #else
-        buf = new filebuf(fdopen(dup(seg->fd()), "a+"), ios::out);
+        buf = new __gnu_cxx::stdio_filebuf<char>(fdopen(dup(seg->fd()), "a+"), ios::out);
         buf->pubseekoff(0, ios::end, ios::out);
 #endif
 	os = new ostream(buf);
