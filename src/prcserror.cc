@@ -40,6 +40,7 @@ static const int min_tty_width = 40;
 static char** argv_save = NULL;
 static int argc_save;
 
+static string re_query_string;
 const char* re_query_message = NULL;
 int re_query_len;
 
@@ -55,7 +56,7 @@ int return_if_fail_if_ne_val;
  stdiobuf stdout_stream(stdout);
  stdiobuf stderr_stream(stderr);
 #endif /* if defined(__APPLE__) */
-strstreambuf query_stream;
+stringbuf query_stream;
 
 static PrettyStreambuf pretty_stdout_stream(&stdout_stream, NULL);
 static PrettyStreambuf pretty_stderr_stream(&stderr_stream, NULL);
@@ -108,9 +109,7 @@ int PrettyStreambuf::overflow(int c)
 
 int PrettyStreambuf::xsputn(const char* s0, int n0)
 {
-#ifndef __GNUG__
 #  define xsputn sputn
-#endif
 
     if (dont_print && *dont_print)
 	return n0;
@@ -190,19 +189,13 @@ int PrettyStreambuf::xsputn(const char* s0, int n0)
 
     return n;
 
-#ifndef __GNUG__
 #  undef xsputn
-#endif
 }
 
 int PrettyStreambuf::sync()
 {
     xsputn(NULL, 0);
-#ifdef __GNUG__
-    return forward->sync();
-#else
     return forward->pubsync();
-#endif
 }
 
 static int tty_width(int fileno)
@@ -220,13 +213,8 @@ static int tty_width(int fileno)
 
 void re_query()
 {
-#ifdef __GNUG__
-    stdout_stream.xsputn(re_query_message, re_query_len);
-    stdout_stream.sync();
-#else
     stdout_stream.sputn(re_query_message, re_query_len);
     stdout_stream.pubsync();
-#endif
 }
 
 void continue_handler(SIGNAL_ARG_TYPE)
@@ -324,11 +312,7 @@ ostream& __omanip_setcol(ostream& o, int col)
 {
     PrettyStreambuf& ps = ((PrettyOstream&)o).ostreambuf();
 
-#ifdef __GNUG__
-    ps.xsputn(NULL, 0);
-#else
     ps.sputn(NULL, 0);
-#endif
     ps.set_column(col);
 
     return o;
@@ -405,11 +389,7 @@ ostream& prcsendl(ostream& s)
 {
     PrettyStreambuf &ps = ((PrettyOstream&)s).ostreambuf();
 
-#ifdef __GNUG__
-    ps.xsputn("\n", 1);
-#else
     ps.sputn("\n", 1);
-#endif
 
     ps.reset_column();
 
@@ -420,11 +400,7 @@ ostream& dotendl(ostream& s)
 {
     PrettyStreambuf &ps = ((PrettyOstream&)s).ostreambuf();
 
-#ifdef __GNUG__
-    ps.xsputn(".\n", 2);
-#else
     ps.sputn(".\n", 2);
-#endif
 
     ps.reset_column();
 
@@ -452,7 +428,7 @@ PrettyStreambuf::PrettyStreambuf(streambuf *forward0, int* dont_print0)
 }
 
 /* QueryOstream */
-QueryOstream::QueryOstream(strstreambuf* base_stream0,
+QueryOstream::QueryOstream(stringbuf* base_stream0,
 			   PrettyStreambuf* query_stream0,
 			   stdiobuf* stdout_stream0,
 			   stdiobuf* stderr_stream0)
@@ -516,31 +492,30 @@ ostream& QueryOstream::bang(BangFlag* flag)
 
 ostream& QueryOstream::string_query_manip(const char* message)
 {
-#ifndef __GNUG__
 #  define xsputn       sputn
 #  define sync         pubsync
 #  define seekoff(p,w) pubseekoff((p),(w), ios::out)
-#endif
     if(option_force_resolution && option_be_silent) {
 	/* silence */
     } else if(option_force_resolution) {
 	*this << " -- " << default_input << prcsendl;
 	string_val = PrConstCharPtrError(default_input);
-	stderr_stream->xsputn(base_stream->str(),
-			      base_stream->out_waiting());
+        string s = base_stream->str();
+	stderr_stream->xsputn(s.data(), s.size());
 	stderr_stream->sync();
     } else if(option_report_actions) {
 	*this << " -- " << default_input << prcsendl;
 	string_val = PrConstCharPtrError(default_input);
-	stdout_stream->xsputn(base_stream->str(),
-			      base_stream->out_waiting());
+        string s = base_stream->str();
+	stdout_stream->xsputn(s.data(), s.size());
 	stdout_stream->sync();
     } else {
 	*this << "[" << default_input << "] " << message;
 	query_stream->sync();
 
-	re_query_message = base_stream->str();
-	re_query_len = base_stream->out_waiting();
+        re_query_string = base_stream->str();
+	re_query_message = re_query_string.c_str();
+	re_query_len = re_query_string.size();
 
 	while(true) {
 	    stdout_stream->xsputn(re_query_message, re_query_len);
@@ -569,7 +544,6 @@ ostream& QueryOstream::string_query_manip(const char* message)
     re_query_message = NULL;
 
     query_stream->reset_column();
-    base_stream->freeze(0);
     base_stream->seekoff(0, ios::beg);
     option_count = 0;
     force_option = 0;
@@ -577,11 +551,9 @@ ostream& QueryOstream::string_query_manip(const char* message)
     help_string = NULL;
 
     return *this;
-#ifndef __GNUG__
 #  undef xsputn
 #  undef sync
 #  undef seekoff
-#endif
 }
 
 ostream& QueryOstream::help_manip(const char* message)
@@ -592,11 +564,9 @@ ostream& QueryOstream::help_manip(const char* message)
 
 ostream& QueryOstream::query_manip(const char* message)
 {
-#ifndef __GNUG__
 #  define xsputn  sputn
 #  define sync    pubsync
 #  define seekoff(p,w) pubseekoff((p),(w), ios::out)
-#endif
     if(force_option != 0 && option_force_resolution) {
         for (int i = 0; i < option_count; i += 1) {
 	    if (force_option == options[i].let) {
@@ -612,22 +582,22 @@ ostream& QueryOstream::query_manip(const char* message)
     } else if(option_report_actions) {
 	*this << report_message << dotendl;
 	query_stream->sync();
-	stdout_stream->xsputn(base_stream->str(),
-			      base_stream->out_waiting());
+        string s = base_stream->str();
+	stdout_stream->xsputn(s.data(), s.size());
 	stdout_stream->sync();
 	val = options[default_option].val;
     } else if(option_force_resolution) {
 	*this << force_message << dotendl;
 	query_stream->sync();
-	stderr_stream->xsputn(base_stream->str(),
-			      base_stream->out_waiting());
+        string s = base_stream->str();
+	stderr_stream->xsputn(s.data(), s.size());
 	stderr_stream->sync();
 	val = options[default_option].val;
     } else if(bang_flag && bang_flag->flag) {
 	*this << force_message << dotendl;
 	query_stream->sync();
-	stdout_stream->xsputn(base_stream->str(),
-			      base_stream->out_waiting());
+        string s = base_stream->str();
+	stdout_stream->xsputn(s.data(), s.size());
 	stdout_stream->sync();
 	val = options[default_option].val;
     } else {
@@ -659,8 +629,9 @@ ostream& QueryOstream::query_manip(const char* message)
 
 	query_stream->sync();
 
-	re_query_message = base_stream->str();
-	re_query_len = base_stream->out_waiting();
+        re_query_string = base_stream->str();
+	re_query_message = re_query_string.c_str();
+	re_query_len = re_query_string.size();
 
 	while(true) {
 	    char c;
@@ -717,7 +688,6 @@ ostream& QueryOstream::query_manip(const char* message)
     re_query_message = NULL;
 
     query_stream->reset_column();
-    base_stream->freeze(0);
     base_stream->seekoff(0, ios::beg);
     force_option = 0;
     option_count = 0;
@@ -725,11 +695,9 @@ ostream& QueryOstream::query_manip(const char* message)
     help_string = NULL;
 
     return *this;
-#ifndef __GNUG__
 #  undef xsputn
 #  undef sync
 #  undef seekoff
-#endif
 }
 
 ostream& __omanip_query(ostream& s, const char* message) {

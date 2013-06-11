@@ -31,7 +31,6 @@ using namespace std;
 # include <ext/stdio_sync_filebuf.h>
   typedef __gnu_cxx::stdio_sync_filebuf<char> stdiobuf;
 # include <sstream>
-  typedef std::stringbuf strstreambuf;
 #else
 # include <fstream.h>
   typedef filebuf stdiobuf;
@@ -308,9 +307,7 @@ public:
     const char* fill_prefix() const;
     bool fill_pretty() const;
 
-#ifndef __GNUG__
 protected:
-#endif
     virtual int xsputn(const char* s, int n);
     virtual int overflow(int c = EOF);
     virtual int sync();
@@ -453,7 +450,7 @@ private:
 #define MAX_QUERY_OPTIONS 10
 
 public:
-    QueryOstream(strstreambuf *base_stream0,
+    QueryOstream(stringbuf *base_stream0,
 		 PrettyStreambuf* query_stream0,
 		 stdiobuf* stdout_stream0,
 		 stdiobuf* stderr_stream0);
@@ -477,7 +474,7 @@ public:
 
 protected:
 
-    strstreambuf *base_stream;
+    stringbuf *base_stream;
     PrettyStreambuf* query_stream;
     stdiobuf *stdout_stream, *stderr_stream;
     PrCharError val;
