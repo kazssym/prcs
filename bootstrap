@@ -1,6 +1,0 @@
-#!/bin/sh
-EMACS=emacs
-set -e
-# emacs --batch did not work...
-(cd src && "$EMACS" -Q -l ../doc/make-docs.el -f make-docs-noargs -f kill-emacs)
-autoreconf --install
