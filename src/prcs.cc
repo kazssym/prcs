@@ -122,7 +122,7 @@ static struct CleanupHandler *cleanup_handler_list = NULL;
 static struct CleanupHandler *alarm_handler_list = NULL;
 
 static const char check_rcs_arg[] = "-V";
-static const char check_rcs_expected[] = "*RCS version 5*";
+static const char check_rcs_expected[] = "*GNU RCS* 5.*";
 static const CommandNamePair check_rcs = { &rcs_command, "rcs" };
 
 static const char check_diff_arg[] = "-v";
