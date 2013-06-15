@@ -25,15 +25,6 @@ extern "C"{
 
 #include "prcs.h"
 
-#if defined(__GNUG__) || defined(__MWERKS__)
-#if defined(__GNUG__)
-#include <strstream.h>
-#else
-#include "be-strstream.h"
-#endif
-static ostrstream sprintfbuf;
-#endif
-
 ostream& operator<<(ostream& os, const Dstring* S)
 {
     return os << S->cast();
@@ -60,18 +51,10 @@ void Dstring::sprintfa(const char* fmt, ...)
 
     va_start(args, fmt);
 
-    sprintfbuf.freeze(0);
-#ifdef __GNUG__
-    sprintfbuf.rdbuf()->seekoff(0, ios::beg);
-#else
-    sprintfbuf.rdbuf()->pubseekoff(0, ios::beg, ios::out);
-#endif
-
-    sprintfbuf.vform(fmt, args);
-
-    sprintfbuf << '\0';
-
-    append(sprintfbuf.str());
+    char *str;
+    vasprintf(&str, fmt, args);
+    append(str);
+    free(str);
 
     va_end(args);
 }
@@ -84,18 +67,10 @@ void Dstring::sprintf(const char* fmt, ...)
 
     truncate(0);
 
-    sprintfbuf.freeze(0);
-#ifdef __GNUG__
-    sprintfbuf.rdbuf()->seekoff(0, ios::beg);
-#else
-    sprintfbuf.rdbuf()->pubseekoff(0, ios::beg, ios::out);
-#endif
-
-    sprintfbuf.vform(fmt, args);
-
-    sprintfbuf << '\0';
-
-    append(sprintfbuf.str());
+    char *str;
+    vasprintf(&str, fmt, args);
+    append(str);
+    free(str);
 
     va_end(args);
 }
