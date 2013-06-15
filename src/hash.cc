@@ -23,6 +23,7 @@
 #include "hash.h"
 #include "config.h"
 #include <string.h>
+#include <stdint.h>
 
 class FileEntry;
 class PrcsAttrs;
@@ -144,7 +145,7 @@ int hash(const unsigned int& x, int M)
 
 int hash(FileEntry*const& x, int M)
 {
-  return (unsigned int)x % M;
+  return (uintptr_t)x % M;
 }
 
 #define generic template<class Key, class Data>
