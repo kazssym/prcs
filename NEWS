@@ -1,10 +1,26 @@
 PRCS NEWS -- history of user-visible changes. -*- Text -*-
-$Date$
-$ReleaseVersion: 1.3.2 $
+$Date: Sat, 27 Jan 2007 17:11:23 -0800 $
+$ReleaseVersion: 1.3.4 $
 
 Please send bug reports to prcs-bugs@XCF.Berkeley.EDU.  See the file
 `README' for a description of how to report bugs.
 
+
+** Changes since version 1.3.3
+
+* Builds with gcc4.  Thanks to Andrew Collier.
+
+* Works better on CIFS file systems.
+  - Repositories w/o symlink support.  When symlinks are supported, PRCS uses
+  symlinks for checkin; the underlying RCS command reads files via the
+  symlink. When symlinks are not supported, it copies the input files.
+
+** Changes since version 1.3.2
+
+* Make it work with gcc-3.2.  I'm sorry if this doesn't compile with earlier
+  compilers.
+
+
 ** Changes since version 1.3.1
 
 * Contrib reorganization: Thanks to Rafael Laboissiere for reorganizing the
@@ -559,7 +575,7 @@ Please send bug reports to prcs-bugs@XCF.Berkeley.EDU.  See the file
 
    (TodaysDate "Today's date is: $\Date$")
 
-  produces: $TodaysDate: Today's date is: Fri, 03 May 2002 20:09:57 +0400 $
+  produces: $TodaysDate: Today's date is: Sat, 27 Jan 2007 17:11:23 -0800 $
 
    (ThisWontCrash "This is bad: $\ThisWontCrash$")
 

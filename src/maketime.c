@@ -59,7 +59,7 @@
 #include <maketime.h>
 
 char const maketId[] =
-  "$Id$";
+  "$Id: maketime.c 1.4 Tue, 29 Sep 1998 13:26:59 -0700 jmacd $";
 
 static int isleap P ((int));
 static int month_days P ((struct tm const *));

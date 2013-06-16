@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: dstring.h 1.3.1.2.1.4.2.4.1.2 Sun, 09 May 2004 18:21:12 -0700 jmacd $
  */
 
 
@@ -45,6 +45,9 @@ public:
 };
 
 #undef parenttype
+
+#include <iostream>
+#include <ostream>
 
 ostream& operator<<(ostream&, const Dstring*);
 ostream& operator<<(ostream&, const Dstring&);

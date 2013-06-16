@@ -16,11 +16,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: prcs.cc 1.23.1.1.1.14.1.18.1.8.1.16.1.1.1.7.1.41.1.2 Wed, 06 Feb 2002 20:57:16 -0800 jmacd $
  */
 
 /* $Format: "static const char prcs_version_id[] = \"$ProjectVersion$ $ProjectAuthor$ $ProjectDate$\";"$ */
-static const char prcs_version_id[] = "1.3.2-release.1 jmacd Fri, 03 May 2002 20:09:57 +0400";
+static const char prcs_version_id[] = "1.3.3-relase.21 jmacd Sat, 27 Jan 2007 17:17:01 -0800";
 
 #include "fnmatch.h"
 

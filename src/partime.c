@@ -68,7 +68,7 @@
 #include <partime.h>
 
 char const partimeId[] =
-  "$Id$";
+  "$Id: partime.c 1.5 Wed, 16 Jul 1997 13:12:15 -0700 jmacd $";
 
 
 /* Lookup tables for names of months, weekdays, time zones.  */

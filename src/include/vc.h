@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: vc.h 1.6.1.5.1.11.1.1.1.10 Wed, 06 Feb 2002 20:57:16 -0800 jmacd $
  */
 
 

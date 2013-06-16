@@ -1,5 +1,4 @@
-dnl I don't like the standard mmap test, its broken in
-dnl several ways.
+dnl This is not used since autoconf-2
 
 AC_DEFUN([JM_FUNC_MMAP],
 [AC_CACHE_CHECK(for working mmap read private, ac_cv_func_mmap,

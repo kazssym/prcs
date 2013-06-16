@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: rebuild.h 1.9.1.3 Fri, 04 Apr 1997 02:12:20 -0800 jmacd $
  */
 
 

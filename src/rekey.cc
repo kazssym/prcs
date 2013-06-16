@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: rekey.cc 1.4.1.5.1.11 Tue, 06 Oct 1998 13:31:13 -0700 jmacd $
  */
 
 #include "prcs.h"

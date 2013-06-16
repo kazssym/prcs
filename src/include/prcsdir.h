@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: prcsdir.h 1.7.1.2 Wed, 22 Jan 1997 12:02:00 -0800 jmacd $
  */
 
 

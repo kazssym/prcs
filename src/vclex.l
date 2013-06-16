@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: vclex.l 1.5.1.1.1.16.1.9 Sun, 28 Oct 2001 00:54:02 -0700 jmacd $
  */
 
 %option nounput

@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: checkout.h 1.5.1.5.1.5 Sat, 28 Jun 1997 18:13:35 -0700 jmacd $
  */
 
 

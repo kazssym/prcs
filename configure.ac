@@ -1,7 +1,7 @@
 dnl -*-Mode: C; comment-start: "dnl "-*-
 dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ([2.69])
-AC_INIT([prcs], [1.3.3k1])
+AC_INIT([prcs], [1.3.4k1])
 AC_CONFIG_SRCDIR([src/prcs.cc])
 AC_CONFIG_HEADERS([config.h])
 AC_CANONICAL_HOST
@@ -11,7 +11,7 @@ PRCS_MAJOR_VERSION_NUMBER=1
 dnl $Format: "PRCS_MINOR_VERSION_NUMBER=$ReleaseMinorVersion$" $
 PRCS_MINOR_VERSION_NUMBER=3
 dnl $Format: "PRCS_MICRO_VERSION_NUMBER=$ReleaseMicroVersion$" $
-PRCS_MICRO_VERSION_NUMBER=3
+PRCS_MICRO_VERSION_NUMBER=4
 AC_DEFINE_UNQUOTED([PACKAGE_VERSION_MAJOR], [$PRCS_MAJOR_VERSION_NUMBER],
 [Define to the major version number.])
 AC_DEFINE_UNQUOTED([PACKAGE_VERSION_MINOR], [$PRCS_MINOR_VERSION_NUMBER],
@@ -148,17 +148,7 @@ AC_CHECK_SIZEOF(long, 4)
 AC_CHECK_SIZEOF(short, 4)
 AC_CHECK_SIZEOF(int, 4)
 
-case $host in
-*hpux8*|*hpux9*|*hpux10*|*solaris2.4*)
-    ac_cv_func_mmap=NO ;;
-esac
-
-AC_ARG_ENABLE(mmap,  [  --enable-mmap           turn on mmap],
-if eval test "x$enable_mmap = xyes"; then
-JM_FUNC_MMAP
-fi
-,
-JM_FUNC_MMAP)
+AC_FUNC_MMAP
 
 AC_TYPE_SIGNAL
 AC_CHECK_FUNCS(getcwd gethostname getwd mkdir fork rmdir strerror strtol uname)
@@ -447,8 +437,8 @@ echo ""
 WARNED=yes
 fi
 
-gdiff_ver="`$SYS_GDIFF_COMMAND_PATH -v | sed -ne '1{s/diff .*GNU diffutils.*  *//; s/\([[^.]][[^.]]*.[[^.]][[^.]]*\).*/\1/; p;}'`"
-if test "$gdiff_ver" != "2.7"; then
+gdiff_ver="`$SYS_GDIFF_COMMAND_PATH -v | grep diffutils`"
+if test "$gdiff_verX" == "X"; then
 echo ""
 echo "* Warning: The DIFF command $SYS_GDIFF_COMMAND_PATH is not version 2.7,"
 echo "* you can to remove the file config.cache, install the correct"

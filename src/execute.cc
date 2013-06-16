@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: execute.cc 1.10.1.26 Sat, 30 Oct 1999 18:47:14 -0700 jmacd $
  */
 
 extern "C" {

@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: fileent.h 1.3.1.2.1.12.1.2.1.16 Sun, 28 Oct 2001 00:54:02 -0700 jmacd $
  */
 
 

@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: prjlex.l 1.3 Sun, 09 Mar 1997 04:26:29 -0800 jmacd $
  */
 
 %option nounput

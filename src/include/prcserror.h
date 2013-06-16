@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: prcserror.h 1.14.1.5.1.11.2.2 Sun, 09 May 2004 18:21:12 -0700 jmacd $
  */
 
 
@@ -288,9 +288,9 @@ const NprError<Type>& operator<<(Type& var, const NprError<Type>& val)
  *     streambuf from breaking lines at whitespace inside the quotes.
  *     It forwards all output to another stremabuf.  Currently, there
  *     are three of these used in PRCS.  The ostream prcserror's
- *     streambuf forwards its output to a stdiobuf(stderr).  The
+ *     streambuf forwards its output to a filebuf(stderr).  The
  *     ostream prcsout's streambuf forwards its output to a
- *     stdiobuf(stdout).  The ostream prcsquery's streambuf forwards
+ *     filebuf(stdout).  The ostream prcsquery's streambuf forwards
  *     its output to a ostrstreambuf, since prcsquery doesn't know
  *     whether to send its output to stdout or stderr until the query
  *     is received.  */
@@ -330,18 +330,14 @@ protected:
 class PrettyOstream : public ostream {
 public:
     PrettyOstream(PrettyStreambuf* stream, ErrorToken err)
-	:
-#ifndef __GNUG__
-         ios(stream),
-#endif
-         ostream(stream), _buf(stream), _err(err)
+	:ostream(stream),
+	 _buf(stream),
+	 _err(err)
         { }
     PrettyOstream(PrettyStreambuf* stream, NonErrorToken err)
-        :
-#ifndef __GNUG__
-         ios(stream),
-#endif
-	 ostream(stream), _buf(stream), _err(err)
+        : ostream(stream),
+	  _buf(stream),
+	  _err(err)
         { }
     PrettyStreambuf& ostreambuf() const { return *_buf; }
     PrVoidError error() const { return _err; }
@@ -452,8 +448,8 @@ private:
 public:
     QueryOstream(stringbuf *base_stream0,
 		 PrettyStreambuf* query_stream0,
-		 stdiobuf* stdout_stream0,
-		 stdiobuf* stderr_stream0);
+		 streambuf* stdout_stream0,
+		 streambuf* stderr_stream0);
 
     /*
      * Manipulator methods.
@@ -476,7 +472,7 @@ protected:
 
     stringbuf *base_stream;
     PrettyStreambuf* query_stream;
-    stdiobuf *stdout_stream, *stderr_stream;
+    streambuf *stdout_stream, *stderr_stream;
     PrCharError val;
     PrConstCharPtrError string_val;
 

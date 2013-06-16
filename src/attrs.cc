@@ -33,7 +33,7 @@ is_file_attribute_hash (register const char *str, register int len)
      41, 41, 41, 41, 41, 25, 41, 41, 41, 41,
      41,  0, 41, 41, 41, 41, 41, 41,
     };
-  return len + hash_table[str[len - 1]] + hash_table[str[0]];
+  return len + hash_table[(int)str[len - 1]] + hash_table[(int)str[0]];
 }
 
 

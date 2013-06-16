@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: merge.cc 1.18.1.1.1.26.1.1.1.4.1.9.1.43 Sun, 21 Jan 2007 21:28:21 -0800 jmacd $
  */
 
 extern "C" {
@@ -63,6 +63,7 @@ class Mergeable; /* This is an opaque type.  It doesn't exist.  I'm
 struct MergeControl {
 protected:
 
+    virtual ~MergeControl() { }
     ProjectDescriptor* project;
 
     PrVoidError         run_merge (Mergeable *,

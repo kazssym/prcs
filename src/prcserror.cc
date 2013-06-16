@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: prcserror.cc 1.8.1.11.1.3.1.7.1.11.2.3 Sun, 09 May 2004 18:21:12 -0700 jmacd $
  */
 
 
@@ -102,15 +102,13 @@ int PrettyStreambuf::overflow(int c)
 {
     line_buffer.append(c);
     if(isspace(c))
-	xsputn(NULL, 0);
+	sputn(NULL, 0);
 
     return 1;
 }
 
 int PrettyStreambuf::xsputn(const char* s0, int n0)
 {
-#  define xsputn sputn
-
     if (dont_print && *dont_print)
 	return n0;
 
@@ -136,11 +134,11 @@ int PrettyStreambuf::xsputn(const char* s0, int n0)
 
 		if(!new_line) {
 		    for(int j = prefix.length(); j; j -= 1) {
-			forward->xsputn(" ", 1);
+			forward->sputn(" ", 1);
 			col += 1;
 		    }
 		} else {
-		    forward->xsputn(prefix.cast(), prefix.length());
+		    forward->sputn(prefix.cast(), prefix.length());
 		    col += prefix.length();
 		}
 
@@ -160,41 +158,39 @@ int PrettyStreambuf::xsputn(const char* s0, int n0)
 	    if(wordlen == 0) {
 		if(*s == '\n' || (col + 1 > width)) {
 		    new_line = false;
-		    forward->xsputn("\n", 1);
+		    forward->sputn("\n", 1);
 		    advance_buffer(s, n, col, 1);
 		    col = 0;
 		} else {
-		    forward->xsputn(s, 1);
+		    forward->sputn(s, 1);
 		    advance_buffer(s, n, col, 1);
 		}
 	    } else if(wordlen + col <= width) {
-		forward->xsputn(s, wordlen);
+		forward->sputn(s, wordlen);
 		advance_buffer(s, n, col, wordlen);
 	    } else if((wordlen + prefix.length() >= width) && (col == prefix.length())) {
-		forward->xsputn(s, wordlen);
+		forward->sputn(s, wordlen);
 		advance_buffer(s, n, col, wordlen);
 	    } else if(wordlen == 1 && col == width) {
 		new_line = false;
-		forward->xsputn(s, 1);
+		forward->sputn(s, 1);
 		advance_buffer(s, n, col, wordlen);
-		forward->xsputn("\n", 1);
+		forward->sputn("\n", 1);
 		col = 0;
 	    } else {
 		new_line = false;
-		forward->xsputn("\n", 1);
+		forward->sputn("\n", 1);
 		col = 0;
 	    }
 	}
     }
 
     return n;
-
-#  undef xsputn
 }
 
 int PrettyStreambuf::sync()
 {
-    xsputn(NULL, 0);
+    sputn(NULL, 0);
     return forward->pubsync();
 }
 
@@ -373,7 +369,7 @@ int PrettyStreambuf::set_column(int col0)
 
     Dstring spaces(' ', diff);
     bool cb = set_fill_break(false);
-    xsputn(spaces.cast(), diff);
+    sputn(spaces.cast(), diff);
     set_fill_break(cb);
 
     return col0;
@@ -393,6 +389,8 @@ ostream& prcsendl(ostream& s)
 
     ps.reset_column();
 
+    ps.pubsync ();
+
     return s;
 }
 
@@ -404,6 +402,8 @@ ostream& dotendl(ostream& s)
 
     ps.reset_column();
 
+    ps.pubsync ();
+
     return s;
 }
 
@@ -414,6 +414,8 @@ ostream& perror(ostream& s)
     s << ": " << strerror(errno) << '\n';
 
     ps.reset_column();
+
+    ps.pubsync ();
 
     return s;
 }
@@ -430,12 +432,9 @@ PrettyStreambuf::PrettyStreambuf(streambuf *forward0, int* dont_print0)
 /* QueryOstream */
 QueryOstream::QueryOstream(stringbuf* base_stream0,
 			   PrettyStreambuf* query_stream0,
-			   stdiobuf* stdout_stream0,
-			   stdiobuf* stderr_stream0)
-    :
-#ifndef __GNUG__
-     ios(query_stream0),
-#endif
+			   streambuf *stdout_stream0,
+			   streambuf *stderr_stream0)
+    :ios(query_stream0),
      PrettyOstream(query_stream0, NoError),
      base_stream(base_stream0),
      query_stream(query_stream0),
@@ -492,34 +491,31 @@ ostream& QueryOstream::bang(BangFlag* flag)
 
 ostream& QueryOstream::string_query_manip(const char* message)
 {
-#  define xsputn       sputn
-#  define sync         pubsync
-#  define seekoff(p,w) pubseekoff((p),(w), ios::out)
     if(option_force_resolution && option_be_silent) {
 	/* silence */
     } else if(option_force_resolution) {
 	*this << " -- " << default_input << prcsendl;
 	string_val = PrConstCharPtrError(default_input);
         string s = base_stream->str();
-	stderr_stream->xsputn(s.data(), s.size());
-	stderr_stream->sync();
+	stderr_stream->sputn(s.data(), s.size());
+	stderr_stream->pubsync();
     } else if(option_report_actions) {
 	*this << " -- " << default_input << prcsendl;
 	string_val = PrConstCharPtrError(default_input);
         string s = base_stream->str();
-	stdout_stream->xsputn(s.data(), s.size());
-	stdout_stream->sync();
+	stdout_stream->sputn(s.data(), s.size());
+	stdout_stream->pubsync();
     } else {
 	*this << "[" << default_input << "] " << message;
-	query_stream->sync();
+	query_stream->pubsync();
 
         re_query_string = base_stream->str();
 	re_query_message = re_query_string.c_str();
 	re_query_len = re_query_string.size();
 
 	while(true) {
-	    stdout_stream->xsputn(re_query_message, re_query_len);
-	    stdout_stream->sync();
+	    stdout_stream->sputn(re_query_message, re_query_len);
+	    stdout_stream->pubsync();
 
 	    Dstring *ans = new Dstring; /* leak */
 
@@ -544,16 +540,13 @@ ostream& QueryOstream::string_query_manip(const char* message)
     re_query_message = NULL;
 
     query_stream->reset_column();
-    base_stream->seekoff(0, ios::beg);
+    base_stream->pubseekoff(0, ios::beg, ios::out);
     option_count = 0;
     force_option = 0;
     bang_flag = NULL;
     help_string = NULL;
 
     return *this;
-#  undef xsputn
-#  undef sync
-#  undef seekoff
 }
 
 ostream& QueryOstream::help_manip(const char* message)
@@ -564,9 +557,6 @@ ostream& QueryOstream::help_manip(const char* message)
 
 ostream& QueryOstream::query_manip(const char* message)
 {
-#  define xsputn  sputn
-#  define sync    pubsync
-#  define seekoff(p,w) pubseekoff((p),(w), ios::out)
     if(force_option != 0 && option_force_resolution) {
         for (int i = 0; i < option_count; i += 1) {
 	    if (force_option == options[i].let) {
@@ -581,24 +571,24 @@ ostream& QueryOstream::query_manip(const char* message)
 	val = options[default_option].val;
     } else if(option_report_actions) {
 	*this << report_message << dotendl;
-	query_stream->sync();
+	query_stream->pubsync();
         string s = base_stream->str();
-	stdout_stream->xsputn(s.data(), s.size());
-	stdout_stream->sync();
+	stdout_stream->sputn(s.data(), s.size());
+	stdout_stream->pubsync();
 	val = options[default_option].val;
     } else if(option_force_resolution) {
 	*this << force_message << dotendl;
-	query_stream->sync();
+	query_stream->pubsync();
         string s = base_stream->str();
-	stderr_stream->xsputn(s.data(), s.size());
-	stderr_stream->sync();
+	stderr_stream->sputn(s.data(), s.size());
+	stderr_stream->pubsync();
 	val = options[default_option].val;
     } else if(bang_flag && bang_flag->flag) {
 	*this << force_message << dotendl;
-	query_stream->sync();
+	query_stream->pubsync();
         string s = base_stream->str();
-	stdout_stream->xsputn(s.data(), s.size());
-	stdout_stream->sync();
+	stdout_stream->sputn(s.data(), s.size());
+	stdout_stream->pubsync();
 	val = options[default_option].val;
     } else {
 	char query_buf[40];
@@ -627,7 +617,7 @@ ostream& QueryOstream::query_manip(const char* message)
 
 	*this << message << query_buf;
 
-	query_stream->sync();
+	query_stream->pubsync();
 
         re_query_string = base_stream->str();
 	re_query_message = re_query_string.c_str();
@@ -637,8 +627,8 @@ ostream& QueryOstream::query_manip(const char* message)
 	    char c;
 	    int found = false;
 
-	    stdout_stream->xsputn(re_query_message, re_query_len);
-	    stdout_stream->sync();
+	    stdout_stream->sputn(re_query_message, re_query_len);
+	    stdout_stream->pubsync();
 
 	    c = get_user_char();
 
@@ -688,16 +678,13 @@ ostream& QueryOstream::query_manip(const char* message)
     re_query_message = NULL;
 
     query_stream->reset_column();
-    base_stream->seekoff(0, ios::beg);
+    base_stream->pubseekoff(0, ios::beg, ios::out);
     force_option = 0;
     option_count = 0;
     bang_flag = NULL;
     help_string = NULL;
 
     return *this;
-#  undef xsputn
-#  undef sync
-#  undef seekoff
 }
 
 ostream& __omanip_query(ostream& s, const char* message) {

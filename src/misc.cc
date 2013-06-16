@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: misc.cc 1.30.1.3.1.17.1.11.1.7.1.18.1.38 Sun, 21 Jan 2007 21:33:12 -0800 jmacd $
  */
 
 extern "C" {
@@ -92,6 +92,8 @@ int option_jobs = 1;
 int option_skilled_merge = 0;
 int option_plain_format = 0;
 int option_sort = 0;
+
+static bool symlinks_dont_work = false;
 
 const char *option_match_file_pattern = NULL;
 const char *option_not_match_file_pattern = NULL;
@@ -1217,6 +1219,31 @@ NprVoidError Err_symlink(const char* a, const char* b)
 	return NonFatalError;
     else
 	return NoError;
+}
+
+// Note: this function is only used in contexts where we create
+// symbolic links in the repository.  This is for developing on
+// a CIFS file system added in 1.3.3, but...
+NprVoidError Err_symlink_or_copy(const char* a, const char* b)
+{
+    if(symlinks_dont_work) {
+	If_fail(fs_copy_filename(a, b)) {
+	    return NonFatalError;
+	} else {
+	    return NoError;
+	}
+    }
+    if(symlink(a, b) < 0) {
+	int x = errno;
+	if (x == EPERM || x == EACCES) {
+	    symlinks_dont_work = true;
+	    prcserror << "Symbolic links not supported in repository" << prcsendl;
+	    return Err_symlink_or_copy(a, b);
+	}
+	return NonFatalError;
+    } else {
+	return NoError;
+    }
 }
 
 NprIntError Err_waitpid(int pid, pid_t* pid_ret, bool nohang)

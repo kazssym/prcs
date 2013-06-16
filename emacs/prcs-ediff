@@ -1,7 +1,7 @@
 #!/usr/local/bin/perl5
 # Original author: Ulrich Pfeifer
 # modified jglick@sig.bsh.com:
-# $Id$
+# $Id: prcs-ediff 1.2 Sat, 11 Apr 1998 17:54:43 -0700 jmacd $
 
 use strict;
 use Cwd qw(cwd);

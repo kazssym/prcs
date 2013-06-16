@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: rebuild.cc 1.3.1.1.1.8.1.21.1.4.1.4.1.14.1.8 Sat, 27 Jan 2007 15:31:07 -0800 jmacd $
  */
 
 extern "C" {
@@ -39,6 +39,10 @@ extern "C" {
 #include "fileent.h"
 #include "syscmd.h"
 #include "checkin.h"
+
+#if __GNUG__ > 3 || (__GNUG__ == 3 && __GNUC_MINOR__ >= 2)
+#include <ext/stdio_filebuf.h>
+#endif
 
 struct RebuildCallbackData {
     RepEntry* rep_entry;
@@ -994,8 +998,14 @@ void RebuildFile::init_stream()
 #if __GNUG__ < 3
 	buf = new filebuf(seg->fd());
 	buf->seekoff(0,ios::end);
-#else
+#elif __GNUG__ == 3 and __GNUC_MINOR__ < 2
         buf = new __gnu_cxx::stdio_filebuf<char>(fdopen(dup(seg->fd()), "a+"), ios::out);
+        buf->pubseekoff(0, ios::end, ios::out);
+#else
+	// Note: used to be a four argument constructor w/ third as
+	// bool, passing false.  I can't remember what it was.
+        buf = new __gnu_cxx::stdio_filebuf<char> (fdopen(dup(seg->fd()), "a+"), ios::out,
+						  default_segment_size);
         buf->pubseekoff(0, ios::end, ios::out);
 #endif
 	os = new ostream(buf);

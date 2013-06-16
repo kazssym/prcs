@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: projdesc.cc 1.9.1.1.1.4.1.17.1.5.1.17.3.9.1.34.2.2 Sun, 21 Jan 2007 21:28:21 -0800 jmacd $
  */
 
 extern "C" {
@@ -48,6 +48,9 @@ extern "C" {
 /* in attrs.cc */
 extern const struct AttrDesc*
 is_file_attribute (register const char *str, register int len);
+
+bool attrs_equal(const PrcsAttrs*const& x, const PrcsAttrs*const& y);
+int attrs_hash(const PrcsAttrs*const & s, int M);
 
 static const char bad_match_help_string[] =
 "When trying to determine how files are related between versions, PRCS "

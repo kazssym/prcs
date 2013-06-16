@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: system.h 1.10.1.5 Sun, 21 Jan 2007 21:28:21 -0800 jmacd $
  */
 
 
@@ -38,6 +38,7 @@ NprVoidError Err_close(int fd);
 NprVoidError Err_rename(const char* file, const char* file2);
 NprVoidError Err_chmod(const char* file, mode_t mode);
 NprVoidError Err_symlink(const char* linkname, const char* file);
+NprVoidError Err_symlink_or_copy(const char* linkname, const char* file);
 NprVoidError Err_write(int fd, const void* buf, size_t nbytes);
 NprVoidError Err_fwrite(const void* buf, size_t nbytes, FILE* out);
 NprVoidError Err_read_expect(int fd, void* buf, size_t nbytes);

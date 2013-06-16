@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: dstring.cc 1.2.1.3.1.1.1.6.2.4 Sun, 09 May 2004 18:21:12 -0700 jmacd $
  */
 
 extern "C"{
