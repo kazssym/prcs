@@ -407,16 +407,19 @@ fi
 
 WARNED=no
 
-if test "`$SYS_RCS_COMMAND_PATH -V`" != 'RCS version 5.7'; then
+case "`$SYS_RCS_COMMAND_PATH -V | head -1`" in
+# These patterns should match 5.8 and later.
+[*GNU\ RCS*5.[89]] | [*GNU\ RCS*5.[89].*] | [*GNU\ RCS*5.[1-9][0-9]*]) ;;
+*)
 echo ""
-echo "* Warning: The RCS command $SYS_RCS_COMMAND_PATH is not version 5.7,"
+echo "* Warning: The RCS command $SYS_RCS_COMMAND_PATH is not version 5.8+,"
 echo "* you can to remove the file config.cache, install the correct"
 echo "* version of RCS, and reconfigure with the new version first in your"
 echo "* path.  Alternatively, you can proceed and use the RCS_PATH"
 echo "* environment variable to set the path for RCS commands."
 echo ""
-WARNED=yes
-fi
+WARNED=yes ;;
+esac
 
 gdiff_ver="`$SYS_GDIFF_COMMAND_PATH -v | grep diffutils`"
 if test "$gdiff_verX" == "X"; then
