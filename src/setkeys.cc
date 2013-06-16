@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: setkeys.cc 1.4.1.5.1.8.1.2.1.9 Wed, 24 Oct 2001 03:23:43 -0700 jmacd $
  */
 
 extern "C" {

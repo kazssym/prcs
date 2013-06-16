@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: projdesc.h 1.3.1.1.1.2.1.10.1.1.1.6.3.8.1.21 Fri, 08 Feb 2002 18:02:20 -0800 jmacd $
  */
 
 

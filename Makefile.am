@@ -1,5 +1,5 @@
 ## Process this file with automake to produce Makefile.in
-## $Id$
+## $Id: Makefile.am 1.9.1.29 Sun, 09 May 2004 19:20:56 -0700 jmacd $
 
 SUBDIRS = src doc contrib emacs m4 be
 
@@ -12,18 +12,14 @@ EXTRA_DIST = \
 	config-be \
 	prcs-1.3gcc3.diffs
 
-if GCC3PATCH
-
-PATCHFILE = prcs-1.3gcc3.diffs
-BUILT_SOURCES = patch-stamp
-
-patch-stamp:
-	patch -p1 < ${PATCHFILE} && touch patch-stamp
-
-clean-local:
-	if test -f patch-stamp; then patch -p1 --reverse < ${PATCHFILE} && rm -f patch-stamp; fi
-
-endif
+#if GCC3PATCH
+#PATCHFILE = prcs-1.3gcc3.diffs
+#BUILT_SOURCES = patch-stamp
+#patch-stamp:
+#	patch -p1 < ${PATCHFILE} && touch patch-stamp
+#clean-local:
+#	if test -f patch-stamp; then patch -p1 --reverse < ${PATCHFILE} && rm -f patch-stamp; fi
+#endif
 
 ## This doesn't work with gmake -j, but I can't figure it out.
 all-local:

@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: hash.cc 1.2.1.1.1.3.2.13 Sat, 30 Oct 1999 20:28:32 -0700 jmacd $
  */
 
 

@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: syscmd.cc 1.5.1.19.1.10.1.18 Wed, 14 Oct 1998 20:50:34 -0700 jmacd $
  */
 
 

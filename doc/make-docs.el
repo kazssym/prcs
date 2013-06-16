@@ -16,7 +16,7 @@
 ;; along with this program; if not, write to the Free Software
 ;; Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ;;
-;; $Id$
+;; $Id: make-docs.el 1.8.1.5 Tue, 20 May 1997 22:48:31 -0700 jmacd $
 
 ;; Much of the code in this file comes from the emacs lisp source
 ;; file makeinfo.el.  It was modified to suit the purpose of

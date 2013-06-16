@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: lock.cc 1.10.1.1.1.11.1.6 Sun, 25 May 1997 21:10:06 -0700 jmacd $
  */
 
 

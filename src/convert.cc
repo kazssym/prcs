@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: convert.cc 1.10.1.6 Sun, 28 Oct 2001 00:54:02 -0700 jmacd $
  */
 
 #include "prcs.h"

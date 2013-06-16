@@ -32,7 +32,7 @@ ProjectDescriptor::prj_lookup_hash (register const char *str, register int len)
       0, 32, 32, 32, 32,  0, 32, 32, 32, 32,
      32, 32, 32, 32, 32, 32, 32, 32,
     };
-  return len + hash_table[str[len - 1]] + hash_table[str[0]];
+  return len + hash_table[(int)str[len - 1]] + hash_table[(int)str[0]];
 }
 
 

@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: prcs.h 1.16.1.15.1.6.1.12.1.21.1.3 Sun, 09 May 2004 18:21:12 -0700 jmacd $
  */
 
 
@@ -41,8 +41,40 @@ extern "C" {
 #include "utils.h"
 }
 
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
+#include <streambuf>
+#include <sstream>
+
+using std::ostream;
+using std::streambuf;
+using std::char_traits;
+using std::basic_streambuf;
+using std::filebuf;
+using std::ofstream;
+using std::ifstream;
+using std::cout;
+using std::cerr;
+using std::ios;
+using std::stringbuf;
+using std::string;
+using std::ostringstream;
+
+/* Backwards C++ compatibility, thanks to Lars Duening <lars@bearnip.com>
+ * I can't explain why I used so many different, overlapping C++
+ * features to begin with.  */
+class strstreambuf : public stringbuf {
+  private:
+    string tmpstr; // holds result of str()
+  public:
+    int out_waiting() { return pptr() - pbase() - (0 == *pptr() ? 1 : 0); }
+    const char * str() {
+      tmpstr = stringbuf::str();
+      return tmpstr.c_str();
+    }
+    void freeze(int n=1)
+      { ASSERT(n==0, "strstreambuf::freeze(1) not implemented."); }
+};
 
 #ifdef NULL
 #undef NULL

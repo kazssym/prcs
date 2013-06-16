@@ -6,7 +6,6 @@ EXTRA_DIST = \
 	misc \
 	pck \
 	pfe \
-	prcs2svn \
 	prcs-move \
 	prcsstatus \
 	prcsutils \

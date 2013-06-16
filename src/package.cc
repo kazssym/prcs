@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: package.cc 1.15.1.2.1.8.1.8.1.7.1.12 Wed, 06 Feb 2002 20:57:16 -0800 jmacd $
  */
 
 extern "C" {

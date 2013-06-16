@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: utils.c 1.6.1.1 Sun, 05 Jan 1997 02:59:04 -0800 jmacd $
  */
 
 

@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: checkout.cc 1.16.1.24.1.3.1.8.1.1.1.27 Sat, 02 Feb 2002 13:07:41 -0800 jmacd $
  */
 
 #include "prcs.h"

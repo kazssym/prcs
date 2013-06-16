@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: dynarray.h 1.2.1.1.1.8.2.6.1.2 Tue, 05 Feb 2002 08:31:28 -0800 jmacd $
  */
 
 

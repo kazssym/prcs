@@ -1,9 +1,6 @@
 #!/bin/sh
 set -e
 
-# (c) 2002-2003 Yann Dirson <ydirson@altern.org>
-# Licenced under the GNU GPL, version 2.
-
 # FIXME: should have an "undo" option
 # FIXME: should use special markers instead of ADDED/DELETED
 
@@ -36,16 +33,7 @@ cd `dirname $PRJ`
 # move the file unless -p was given
 if [ $PRJONLY = 0 ]
 then
-    # source must exist
     [ -r "$1" ] || error "\`$1' does not exist"
-
-    # allow moving into a directory
-    if [ -d "$2" ]
-    then
-	set -- "$1" "`echo $2 | sed 's,/*$,,'`/`basename $1`"
-    fi
-
-    # destination must not exist
     [ ! -r "$2" ] || error "\`$2' already exists"
 
     mv -v "$1" "$2"

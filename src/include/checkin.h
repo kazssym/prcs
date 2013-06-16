@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: checkin.h 1.3.1.4.1.7.1.1 Sun, 05 Jan 1997 02:59:04 -0800 jmacd $
  */
 
 

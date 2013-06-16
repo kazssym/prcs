@@ -16,29 +16,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: prcserror.h 1.14.1.5.1.11.2.2 Sun, 09 May 2004 18:21:12 -0700 jmacd $
  */
 
 
 #ifndef _PRCSERROR_H_
 #define _PRCSERROR_H_
-
-
-#include <iostream.h>
-#include <iomanip.h>
-#if defined(__GNUG__)
-# if defined(__APPLE__)
-#  include <streambuf.h>
-   typedef filebuf stdiobuf;
-# else
-#  include <stdiostream.h>
-# endif /* if defined(__APPLE__) */
-# include <strstream.h>
-#else
-# include <fstream.h>
-  typedef filebuf stdiobuf;
-# include "be-strstream.h"
-#endif
 
 
 extern "C" {
@@ -291,9 +274,9 @@ const NprError<Type>& operator<<(Type& var, const NprError<Type>& val)
  *     streambuf from breaking lines at whitespace inside the quotes.
  *     It forwards all output to another stremabuf.  Currently, there
  *     are three of these used in PRCS.  The ostream prcserror's
- *     streambuf forwards its output to a stdiobuf(stderr).  The
+ *     streambuf forwards its output to a filebuf(stderr).  The
  *     ostream prcsout's streambuf forwards its output to a
- *     stdiobuf(stdout).  The ostream prcsquery's streambuf forwards
+ *     filebuf(stdout).  The ostream prcsquery's streambuf forwards
  *     its output to a ostrstreambuf, since prcsquery doesn't know
  *     whether to send its output to stdout or stderr until the query
  *     is received.  */
@@ -310,9 +293,8 @@ public:
     const char* fill_prefix() const;
     bool fill_pretty() const;
 
-#ifndef __GNUG__
 protected:
-#endif
+
     virtual int xsputn(const char* s, int n);
     virtual int overflow(int c = EOF);
     virtual int sync();
@@ -335,18 +317,14 @@ protected:
 class PrettyOstream : public ostream {
 public:
     PrettyOstream(PrettyStreambuf* stream, ErrorToken err)
-	:
-#ifndef __GNUG__
-         ios(stream),
-#endif
-         ostream(stream), _buf(stream), _err(err)
+	:ostream(stream),
+	 _buf(stream),
+	 _err(err)
         { }
     PrettyOstream(PrettyStreambuf* stream, NonErrorToken err)
-        :
-#ifndef __GNUG__
-         ios(stream),
-#endif
-	 ostream(stream), _buf(stream), _err(err)
+        : ostream(stream),
+	  _buf(stream),
+	  _err(err)
         { }
     PrettyStreambuf& ostreambuf() const { return *_buf; }
     PrVoidError error() const { return _err; }
@@ -457,8 +435,8 @@ private:
 public:
     QueryOstream(strstreambuf *base_stream0,
 		 PrettyStreambuf* query_stream0,
-		 stdiobuf* stdout_stream0,
-		 stdiobuf* stderr_stream0);
+		 filebuf          *stdout_stream0,
+		 filebuf          *stderr_stream0);
 
     /*
      * Manipulator methods.
@@ -481,7 +459,7 @@ protected:
 
     strstreambuf *base_stream;
     PrettyStreambuf* query_stream;
-    stdiobuf *stdout_stream, *stderr_stream;
+    filebuf         *stdout_stream, *stderr_stream;
     PrCharError val;
     PrConstCharPtrError string_val;
 
@@ -499,16 +477,23 @@ protected:
 
 extern char const default_fail_query_message[];
 
-#if !defined(__GNUG__) && !defined(__MWERKS__)
+template <class TP> class omanip;
+
+template <class TP> ostream& operator<< (ostream& o, const omanip<TP>& m);
+
 template <class TP> class omanip {
     ostream& (*_f)(ostream&, TP);
     TP _a;
 public:
     omanip(ostream& (*f)(ostream&, TP), TP a) : _f(f), _a(a) { }
 
-    friend ostream& operator<<(ostream& o, const omanip<TP>& m);
+    friend ostream& operator<< <>(ostream& o, const omanip<TP>& m);
 };
-#endif
+
+template <class TP> ostream& operator<< (ostream& o, const omanip<TP>& m)
+{
+    return (*m._f)(o, m._a);
+}
 
 ostream& __omanip_query(ostream& s, const char* message);
 omanip<const char*> query(const char* message);

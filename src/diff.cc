@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: diff.cc 1.20.1.19.1.3.1.6.1.22 Sun, 17 Sep 2000 17:56:26 -0700 jmacd $
  */
 
 #include "prcs.h"

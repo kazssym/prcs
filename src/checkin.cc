@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: checkin.cc 1.22.1.2.1.9.1.23.1.1.1.6.1.15.1.2.1.50 Sun, 21 Jan 2007 21:28:21 -0800 jmacd $
  */
 
 #include "prcs.h"
@@ -891,7 +891,7 @@ PrVoidError ProjectDescriptor::checkin_project_file(ProjectVersionData *new_proj
 
     unlink (tmp_name);
 
-    If_fail (Err_symlink (abs_path, tmp_name))
+    If_fail (Err_symlink_or_copy (abs_path, tmp_name))
       pthrow prcserror << "Error creating symbolic link "
 		      << squote(tmp_name) << perror;
 
@@ -1066,7 +1066,7 @@ static PrVoidError slow_eliminate_prepare(ProjectDescriptor *project)
 		Return_if_fail(fullpath << name_in_cwd(fe->working_path()));
 	    }
 
-	    If_fail (Err_symlink(fullpath, fe->temp_file_path())) {
+	    If_fail (Err_symlink_or_copy(fullpath, fe->temp_file_path())) {
 		pthrow prcserror << "Error creating symbolic link "
 				<< squote(fe->temp_file_path()) << perror;
 	    }
@@ -1130,35 +1130,69 @@ static PrVoidError checkin_cleanup_handler(void* data, bool sig)
     return NoError;
 }
 
-static void kill_one_subdir(const char* string, Dstring& fill)
+/* Given an input string, it modiifes the string to contain the parent path.
+ * Returns false if there are no more entries.  Path may not be empty. */
+static bool parent_path_of(Dstring &string)
 {
-    int len = strip_leading_path(string) - string;
+    int inlen = string.length();
 
-    if(len > 0)
-	len -= 1;
+    ASSERT(inlen > 0, "");
 
-    fill.assign(string, len);
+    /* First remove any trailing slash, then remove the trailing component. */
+    if (string.index(inlen-1) == '/') {
+	string.truncate(inlen-1);
+    }
+
+    /* Earlier steps avoid the case of a "/" path name, so the path should
+     * still be non-empty. */
+    ASSERT(string.length() > 0, "");
+
+    /* The length of the A/B/C/D/ compent, minus the length of E. */
+    const char *p = string.cast();
+    int len = strip_leading_path(p) - p;
+
+    if (len == 0) {
+	return false;
+    }
+
+    /* Leave a trailing '/'.  This is important for the strncmp() in
+     * maybe_void_file_entry_subdir. */
+    string.truncate(len);
+    ASSERT (string.index(string.length() - 1) == '/', "");
+    return true;
 }
 
-static PrBoolError try_elim_subdir(FileEntry* fe, MissingFileAction action)
-    /* returns whether to skip this file.  It is given that stat() or
-     * lstat() failed on this file */
+/* Returns whether to skip this file entry because, for example, we already
+ * determined that its parent directory doesn't exist (and has been ignored).
+ * It is given that stat() or lstat() failed on this file, and this performs
+ * one of several possible actions: query the user, report to the user, issue
+ * a report for forced operations, etc. */
+static PrBoolError maybe_void_file_entry_subdir(FileEntry* fe, MissingFileAction action)
 {
     static DstringPtrArray* eliminated_subdirs = NULL;
     struct stat buf;
     const char* name = fe->working_path();
+    bool has_parent;
 
     if(!eliminated_subdirs)
 	eliminated_subdirs = new DstringPtrArray;
 
+    /* If it doesn't have any slashes in the path, then there are no parents
+     * for this entry to be a subdirectory of. */
     if(!strchr(name, '/'))
 	return false;
 
-    Dstring this_subdir;
-    Dstring last_subdir;
+    /* The two path variables.  The first value for parent_path is the parent
+     * of the argument.  Then we walk up the path using this_path and
+     * parent_path. */
+    Dstring parent_path (name);
+    Dstring this_path;
 
-    kill_one_subdir(name, this_subdir);
+    /* Now reduce parent_path to the last trailing slash. */
+    has_parent = parent_path_of(parent_path);
+    ASSERT (has_parent, "checked in strchr() above");
 
+    /* Warning: this is linear search in a nested loop. */
     foreach(elim_ptr, eliminated_subdirs, DstringPtrArray::ArrayIterator) {
 	Dstring* elim = *elim_ptr;
 
@@ -1179,22 +1213,27 @@ static PrBoolError try_elim_subdir(FileEntry* fe, MissingFileAction action)
 	}
     }
 
-    if(stat(this_subdir, &buf) >= 0 || errno != ENOENT)
+    if(stat(parent_path, &buf) >= 0 || errno != ENOENT)
 	return false;
 
-    while(this_subdir.length() > 0) {
-	last_subdir.assign(this_subdir);
+    for (;;) {
 
-	kill_one_subdir(this_subdir, this_subdir);
+	this_path.assign(parent_path);
 
-	const char* s = this_subdir;
+	has_parent = parent_path_of(parent_path);
+
+	if (! has_parent) {
+	    break;
+	}
+	
+	const char* s = parent_path;
 
 	if(stat(s[0] == 0 ? "." : s, &buf) >= 0) {
 	    static BangFlag bang;
 
 	    switch (action) {
 	    case QueryUserRemoveFromCommandLine:
-		prcsquery << "The directory " << squote(last_subdir)
+		prcsquery << "The directory " << squote(this_path)
 			  << " does not exist.  "
 			  << force("Ignoring all entries")
 			  << report("Ignore all entries")
@@ -1208,20 +1247,20 @@ static PrBoolError try_elim_subdir(FileEntry* fe, MissingFileAction action)
 		fe->set_on_command_line(false);
 		break;
 	    case NoQueryUserRemoveFromCommandLine:
-		prcswarning << "The directory " << squote(last_subdir)
+		prcswarning << "The directory " << squote(this_path)
 			    << " does not exist.  Ignoring all entries" << dotendl;
 
 		fe->set_on_command_line(false);
 		break;
 	    case SetNotPresentWarnUser:
-		prcswarning << "The directory " << squote(last_subdir)
+		prcswarning << "The directory " << squote(this_path)
 			    << " does not exist.  Assuming all entries are unmodified" << dotendl;
 
 		fe->set_present(false);
 		break;
 	    }
 
-	    eliminated_subdirs->append(new Dstring(last_subdir));
+	    eliminated_subdirs->append(new Dstring(this_path));
 
 	    return true;
 
@@ -1249,7 +1288,7 @@ PrVoidError eliminate_working_files(ProjectDescriptor* project, MissingFileActio
 
 	    bool ignore_subdir;
 
-	    Return_if_fail(ignore_subdir << try_elim_subdir(fe, action));
+	    Return_if_fail(ignore_subdir << maybe_void_file_entry_subdir(fe, action));
 
 	    if(ignore_subdir)
 		continue;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: utils.h 1.18.1.3 Wed, 24 Oct 2001 03:23:43 -0700 jmacd $
  */
 
 /* This file contains a bunch of stuff, including some really super ugly

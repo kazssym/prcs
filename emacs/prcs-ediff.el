@@ -1,4 +1,4 @@
-;; $Id$
+;; $Id: prcs-ediff.el 1.2 Tue, 23 Feb 1999 17:56:28 -0800 jmacd $
 
 (eval-and-compile (setq load-path (cons ".." (cons "." load-path))))
 (require 'ediff)

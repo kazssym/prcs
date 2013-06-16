@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: prcsver.cc 1.2.1.11.3.7 Tue, 05 Feb 2002 11:49:08 -0800 jmacd $
  */
 
 #include "prcs.h"

@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: info.cc 1.11.1.1.1.15.1.3.1.17.2.6 Fri, 08 Feb 2002 18:02:20 -0800 jmacd $
  */
 #include "fnmatch.h"
 

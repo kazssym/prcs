@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: convert.h 1.4.1.2 Wed, 05 Feb 1997 19:17:55 -0800 jmacd $
  */
 
 

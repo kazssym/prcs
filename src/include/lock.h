@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ * $Id: lock.h 1.7.1.7.1.6 Tue, 29 Sep 1998 13:26:59 -0700 jmacd $
  */
 
 #ifndef _LOCK_H_
