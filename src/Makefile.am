@@ -9,7 +9,7 @@ bin_PROGRAMS = prcs
 
 BUILT_SOURCES = prcs-keys.c prj-names.h
 
-prcs_LDADD = @LIBOBJS@
+prcs_LDADD = @LIBOBJS@ ../libgnu/libgnu.a
 
 prcs_DEPENDENCIES = @LIBOBJS@
 

@@ -60,6 +60,7 @@ if test -z "$CXXFLAGS"; then test_CXXFLAGS=set; fi
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_CPP
+gl_EARLY
 
 if test "$test_CFLAGS" = set; then
   CFLAGS=
@@ -129,6 +130,7 @@ AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS(limits.h sys/ioctl.h unistd.h \
 		 bstring.h sys/select.h sys/stream.h)
+gl_INIT
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -479,7 +481,7 @@ PRCS_DEFAULT_ENV_VARS
 AC_PROG_MAKE_SET
 AC_PROG_INSTALL(prcs)
 
-AC_OUTPUT(Makefile src/Makefile doc/Makefile src/include/Makefile contrib/Makefile emacs/Makefile m4/Makefile be/Makefile src/docs.cc)
+AC_OUTPUT(Makefile libgnu/Makefile src/Makefile doc/Makefile src/include/Makefile contrib/Makefile emacs/Makefile m4/Makefile be/Makefile src/docs.cc)
 
 if test $WARNED = yes; then
 echo ""

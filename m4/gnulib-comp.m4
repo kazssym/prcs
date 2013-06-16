@@ -28,7 +28,7 @@
 # other built files.
 
 
-# This macro should be invoked from ./configure.in, in the section
+# This macro should be invoked from ./configure.ac, in the section
 # "Checks for programs", right after AC_PROG_CC, and certainly before
 # any checks for libraries, header files, types and library functions.
 AC_DEFUN([gl_EARLY],
@@ -62,7 +62,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module xsize:
 ])
 
-# This macro should be invoked from ./configure.in, in the section
+# This macro should be invoked from ./configure.ac, in the section
 # "Check for header files, types and library functions".
 AC_DEFUN([gl_INIT],
 [
@@ -292,7 +292,6 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/memchr.m4
   m4/mmap-anon.m4
   m4/multiarch.m4
-  m4/onceonly.m4
   m4/printf.m4
   m4/size_max.m4
   m4/ssize_t.m4

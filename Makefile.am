@@ -3,7 +3,7 @@
 
 ACLOCAL_AMFLAGS = -Im4
 
-SUBDIRS = src doc contrib emacs m4 be
+SUBDIRS = libgnu src doc contrib emacs m4 be
 
 EXTRA_DIST = \
 	prcs.prj \
