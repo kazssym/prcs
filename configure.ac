@@ -1,8 +1,9 @@
 dnl -*-Mode: C; comment-start: "dnl "-*-
 dnl Process this file with autoconf to produce a configure script.
-AC_REVISION($Id$)dnl
-AC_INIT(src/prcs.cc)
-AM_CONFIG_HEADER(config.h)
+AC_PREREQ([2.69])
+AC_INIT([prcs], [1.3.3k1])
+AC_CONFIG_SRCDIR([src/prcs.cc])
+AC_CONFIG_HEADERS([config.h])
 AC_CANONICAL_HOST
 
 dnl $Format: "PRCS_MAJOR_VERSION_NUMBER=$ReleaseMajorVersion$" $
@@ -11,9 +12,14 @@ dnl $Format: "PRCS_MINOR_VERSION_NUMBER=$ReleaseMinorVersion$" $
 PRCS_MINOR_VERSION_NUMBER=3
 dnl $Format: "PRCS_MICRO_VERSION_NUMBER=$ReleaseMicroVersion$" $
 PRCS_MICRO_VERSION_NUMBER=3
+AC_DEFINE_UNQUOTED([PACKAGE_VERSION_MAJOR], [$PRCS_MAJOR_VERSION_NUMBER],
+[Define to the major version number.])
+AC_DEFINE_UNQUOTED([PACKAGE_VERSION_MINOR], [$PRCS_MINOR_VERSION_NUMBER],
+[Define to the minor version number.])
+AC_DEFINE_UNQUOTED([PACKAGE_VERSION_MICRO], [$PRCS_MICRO_VERSION_NUMBER],
+[Define to the micro version number.])
 
-dnl $Format: "AM_INIT_AUTOMAKE(prcs, $ReleaseVersion$)" $
-AM_INIT_AUTOMAKE([prcs], [1.3.3k1])
+AM_INIT_AUTOMAKE
 
 AC_SUBST(PRCS_MAJOR_VERSION_NUMBER)
 AC_SUBST(PRCS_MINOR_VERSION_NUMBER)
