@@ -21,8 +21,9 @@ prcs_SOURCES = prcs.cc changes.cc sexp.cc fileent.cc projdesc.cc checkin.cc \
 	docs.cc attrs.cc utils.c getopt.c getopt1.c md5c.c maketime.c \
 	partime.c vclex.l prcs-keys.c prjlex.l regex.c
 
-include/docs.h docs.cc.in: ../doc/prcs.texi ../doc/make-docs.el
-	$(EMACS) --batch -l $(srcdir)/../doc/make-docs.el -f make-docs-noargs
+## This appeared to fail for unknown reasons.
+#include/docs.h docs.cc.in: ../doc/prcs.texi ../doc/make-docs.el
+#	$(EMACS) --batch -l $(srcdir)/../doc/make-docs.el -f make-docs-noargs
 
 misc.cc prcs.cc: include/docs.h
 projdesc.cc: prj-names.h
