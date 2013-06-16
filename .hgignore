@@ -1,7 +1,9 @@
 syntax: glob
 prcs
 prcs.info
+elc-stamp
 
+docs.cc
 Makefile
 config.status
 stamp-h1
@@ -19,6 +21,7 @@ depcomp
 elisp-comp
 install-sh
 missing
+texinfo.tex
 ylwrap
 
 syntax: regexp
