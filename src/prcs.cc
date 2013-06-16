@@ -45,11 +45,11 @@ extern "C" {
 #include "getopt.h"
 }
 
-/* $Format: "const int prcs_version_number[3] = { $ReleaseMajorVersion$, $ReleaseMinorVersion$, $ReleaseMicroVersion$ };" $ */
-const int prcs_version_number[3] = { 1, 3, 2 };
+const int prcs_version_number[3] = {
+    PACKAGE_VERSION_MAJOR, PACKAGE_VERSION_MICRO, PACKAGE_VERSION_MINOR
+};
 
-/* $Format: "const char prcs_version_string[] = \"$ReleaseVersion$\";"$ */
-const char prcs_version_string[] = "1.3.2";
+const char prcs_version_string[] = PACKAGE_VERSION;
 
 /* The following classes are only used inside this file, and oraganize
  * several arrays of information used to select the command and
