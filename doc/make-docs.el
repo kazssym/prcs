@@ -239,9 +239,9 @@ which contains the region after applying makeinfo"
 	(insert "};\n")
 	(setq vars-cpy vars)
 	(set-buffer doc-m4-buffer)
-	(insert "AC_DEFUN(PRCS_DEFAULT_ENV_VARS,\n[\n")
+	(insert "AC_DEFUN([PRCS_DEFAULT_ENV_VARS],\n[")
 	(while vars-cpy
-	  (insert "PRCS_DEFAULT_ENV_VAR(" (car vars-cpy) ")\n")
+	  (insert "PRCS_DEFAULT_ENV_VAR([" (car vars-cpy) "])\n")
 	  (setq vars-cpy (cdr vars-cpy)))
 	(insert "])\n"))
       ;; Doc strings
