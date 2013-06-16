@@ -107,7 +107,7 @@ int PrettyStreambuf::overflow(int c)
     return 1;
 }
 
-int PrettyStreambuf::xsputn(const char* s0, int n0)
+streamsize PrettyStreambuf::xsputn(const char* s0, streamsize n0)
 {
     if (dont_print && *dont_print)
 	return n0;

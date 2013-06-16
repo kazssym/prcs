@@ -308,7 +308,7 @@ public:
     bool fill_pretty() const;
 
 protected:
-    virtual int xsputn(const char* s, int n);
+    virtual streamsize xsputn(const char* s, streamsize n);
     virtual int overflow(int c = EOF);
     virtual int sync();
 
