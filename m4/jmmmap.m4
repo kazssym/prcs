@@ -1,7 +1,7 @@
 dnl I don't like the standard mmap test, its broken in
 dnl several ways.
 
-AC_DEFUN(JM_FUNC_MMAP,
+AC_DEFUN([JM_FUNC_MMAP],
 [AC_CACHE_CHECK(for working mmap read private, ac_cv_func_mmap,
 [AC_TRY_RUN([
 /* Josh's READ ONLY mmap test.  This is taken from, but heavily
@@ -132,6 +132,6 @@ main()
 }
 ], ac_cv_func_mmap=yes, ac_cv_func_mmap=no, ac_cv_func_mmap=no)])
 if test $ac_cv_func_mmap = yes; then
-  AC_DEFINE([HAVE_MMAP], 1, [Define to 1 if 'mmap' works.])
+  AC_DEFINE([HAVE_MMAP], [1], [Define to 1 if 'mmap' works.])
 fi
 ])
