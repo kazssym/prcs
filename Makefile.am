@@ -12,7 +12,8 @@ EXTRA_DIST = \
 	INSTALL \
 	README.BE \
 	config-be \
-	prcs-1.3gcc3.diffs
+	prcs-1.3gcc3.diffs \
+	m4/gnulib-cache.m4
 
 #if GCC3PATCH
 #PATCHFILE = prcs-1.3gcc3.diffs
