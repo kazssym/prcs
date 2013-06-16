@@ -102,27 +102,6 @@ if eval "test x$LIBGPLUSPLUS != x -a x$GCC = xyes"; then
   CXXFLAGS="-nostdinc++ -I$LIBGPLUSPLUS/g++-include $CXXFLAGS"
   LDFLAGS="-L$LIBGPLUSPLUS $LDFLAGS"
 fi
-
-AC_ARG_ENABLE(gcc3patch,
-  [  --enable-gcc3patch    Automatically apply gcc3patch], 
-  [case "${enableval}" in
-   yes) patch_it=true ;;
-    no) patch_it=false ;;
-     *) AC_MSG_ERROR(bad value ${enableval} for --enable-gcc3patch) ;;
-   esac],
-   [patch_it=auto])
-
-if test "$patch_it" = "auto"; then
-  if $CC -v 2>&1 | grep 'gcc version 3' > /dev/null; then
-    patch_it=true
-  else
-    patch_it=false
-  fi
-fi
-
-echo "checking whether to apply gcc3 patch... $patch_it"
-  
-AM_CONDITIONAL(GCC3PATCH, test x$patch_it = xtrue)
 	  
 dnl Checks for header files.
 AC_HEADER_DIRENT
