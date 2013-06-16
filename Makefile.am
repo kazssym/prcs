@@ -51,6 +51,3 @@ develdist:
 	tar -cf prcs-@VERSION@-devel.tar `prcs execute -f --not :.*directory prcs-@VERSION@`
 	gzip prcs-@VERSION@-devel.tar
 	@rm -rf prcs-@VERSION@
-
-acinclude.m4: m4/jmmmap.m4 m4/prcsbuild.m4 m4/prcsenv.m4 doc/prcs.texi doc/make-docs.el
-	(cd m4; $(MAKE) m4)
