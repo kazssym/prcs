@@ -6,7 +6,6 @@ ACLOCAL_AMFLAGS = -Im4
 SUBDIRS = libgnu src doc contrib emacs be
 
 EXTRA_DIST = \
-	prcs.prj \
 	FAQ \
 	TODO \
 	INSTALL \
