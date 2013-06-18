@@ -1,6 +1,6 @@
 SUBDIRS = include
 
-INCLUDES = -I$(srcdir)/include
+AM_CPPFLAGS = -I$(srcdir)/include -I../libgnu
 
 EXTRA_DIST = README.GNU.SOURCES prcserror.tl dynarray.tl hash.tl \
 	     prcs-keys.c prcs-keys.gperf prj-names.h prj-names.gperf
