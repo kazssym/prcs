@@ -12,6 +12,7 @@ EXTRA_DIST = \
 	INSTALL \
 	README.BE \
 	config-be \
+	README-original \
 	m4/gnulib-cache.m4
 
 #if GCC3PATCH
