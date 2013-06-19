@@ -11,12 +11,17 @@ config.h
 config.log
 
 # These files are automatically generated.
+vclex.c
+prjlex.c
 Makefile.in
+aclocal.m4
 config.h.in
 configure
-aclocal.m4
 
 # These files are added by autoreconf.
+INSTALL
+config.guess
+config.sub
 depcomp
 elisp-comp
 install-sh
