@@ -28,12 +28,15 @@ projdesc.cc: prj-names.h
 
 JGPERF=jgperf
 
-prj-names.h: prj-names.gperf
-	$(JGPERF) -A -G -C -a -t -T -p \
-		-N ProjectDescriptor::prj_lookup_func \
-		-H ProjectDescriptor::prj_lookup_hash \
-		-W ProjectDescriptor::_pftable \
-		< $< > $@
+$(srcdir)/prj-names.h: $(srcdir)/prj-names.gperf
+	@rm -f $@-t
+	cd $(srcdir) && test -n "$(GPERF)" \
+	  && $(GPERF) -L ANSI-C -G -C -t -T -k '$$,1' \
+	    -N ProjectDescriptor::prj_lookup_func \
+	    -H ProjectDescriptor::prj_lookup_hash \
+	    -W ProjectDescriptor::_pftable \
+	    prj-names.gperf | sed 's/^static  *//' > prj-names.h-t
+	test -s $@-t && mv $@-t $@
 
 prcs-keys.c: prcs-keys.gperf
 	$(JGPERF) -A -C -a -r -k1,9 \

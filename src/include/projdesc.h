@@ -359,8 +359,8 @@ private:
     int operator=(const ProjectDescriptor&);
 
     /* Parsing. */
-    int prj_lookup_hash (const char *str, int len);
-    const PrjFields *prj_lookup_func (const char *str, int len);
+    unsigned int prj_lookup_hash (const char *str, unsigned int len);
+    const PrjFields *prj_lookup_func (const char *str, unsigned int len);
     PrConstSexpPtrError read_list(int offset);
     PrConstSexpPtrError read_list_token(PrjTokenType type, int offset);
     PrConstSexpPtrError read_list_elt();
