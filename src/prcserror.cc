@@ -35,6 +35,7 @@ extern "C" {
 }
 
 #include "misc.h"
+#include <ext/stdio_sync_filebuf.h>
 
 static const int min_tty_width = 40;
 static char** argv_save = NULL;
@@ -49,13 +50,10 @@ ErrorToken global_error_token;
 int return_if_fail_if_ne_val;
 #endif
 
-#if defined(__APPLE__)
- stdiobuf stdout_stream(STDOUT_FILENO);
- stdiobuf stderr_stream(STDERR_FILENO);
-#else
- stdiobuf stdout_stream(stdout);
- stdiobuf stderr_stream(stderr);
-#endif /* if defined(__APPLE__) */
+// stdio_sync_filebuf objects do not have its own buffers and do not close
+// the underlying stdio streams.
+__gnu_cxx::stdio_sync_filebuf<char> stdout_stream(stdout);
+__gnu_cxx::stdio_sync_filebuf<char> stderr_stream(stderr);
 stringbuf query_stream;
 
 static PrettyStreambuf pretty_stdout_stream(&stdout_stream, NULL);
