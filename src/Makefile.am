@@ -11,8 +11,6 @@ BUILT_SOURCES = prcs-keys.c prj-names.h
 
 prcs_LDADD = @LIBOBJS@ ../libgnu/libgnu.a
 
-prcs_DEPENDENCIES = @LIBOBJS@
-
 prcs_SOURCES = prcs.cc changes.cc sexp.cc fileent.cc projdesc.cc checkin.cc \
 	checkout.cc repository.cc populate.cc syscmd.cc vc.cc diff.cc \
 	info.cc misc.cc package.cc merge.cc lock.cc rebuild.cc \
@@ -49,3 +47,6 @@ prcs-keys.c: prcs-keys.gperf
 #		-N is_file_attribute \
 #		-H is_file_attribute_hash \
 #		< $< > $@
+
+../libgnu/libgnu.a:
+	cd ../libgnu && $(MAKE) libgnu.a
