@@ -7,8 +7,6 @@ SUBDIRS = libgnu src doc contrib emacs be
 
 EXTRA_DIST = \
 	FAQ \
-	TODO \
-	INSTALL \
 	README.BE \
 	config-be \
 	README-original \
