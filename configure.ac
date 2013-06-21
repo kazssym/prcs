@@ -53,55 +53,10 @@ fi
 ,
 DO_LEX_CHECK=yes)
 
-if test -z "$CFLAGS";   then test_CFLAGS=set;   fi
-if test -z "$CPPFLAGS"; then test_CPPFLAGS=set; fi
-if test -z "$CXXFLAGS"; then test_CXXFLAGS=set; fi
-
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_CPP
 gl_EARLY
-
-if test "$test_CFLAGS" = set; then
-  CFLAGS=
-fi
-
-if test "$test_CPPFLAGS" = set; then
-  CPPFLAGS=
-fi
-
-if test "$test_CXXFLAGS" = set; then
-  CXXFLAGS=
-fi
-
-if test -n "$DEBUGFLAG"; then
-  CFLAGS="$DEBUGFLAG $CFLAGS"
-  CXXFLAGS="$DEBUGFLAG $CXXFLAGS"
-else
-  if echo "$CFLAGS" | grep "\-O" > /dev/null 2> /dev/null; then
-    true
-  else
-    CFLAGS="$CFLAGS -O2"
-  fi
-  if echo "$CXXFLAGS" | grep "\-O" > /dev/null 2> /dev/null; then
-    true
-  else
-    CXXFLAGS="$CXXFLAGS -O2"
-  fi
-fi
-
-if eval "test x$GXX = xyes"; then
-  if echo "$CXXFLAGS" | grep "\-Wall" > /dev/null 2> /dev/null; then
-    true
-  else
-    CXXFLAGS="$CXXFLAGS -Wall"
-  fi
-fi
-
-if eval "test x$LIBGPLUSPLUS != x -a x$GCC = xyes"; then
-  CXXFLAGS="-nostdinc++ -I$LIBGPLUSPLUS/g++-include $CXXFLAGS"
-  LDFLAGS="-L$LIBGPLUSPLUS $LDFLAGS"
-fi
 	  
 dnl Checks for header files.
 AC_HEADER_DIRENT
