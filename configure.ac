@@ -56,6 +56,7 @@ DO_LEX_CHECK=yes)
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_CPP
+AC_CHECK_PROGS(GPERF, gperf)
 gl_EARLY
 	  
 dnl Checks for header files.
