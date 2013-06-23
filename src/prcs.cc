@@ -46,7 +46,7 @@ extern "C" {
 }
 
 const int prcs_version_number[3] = {
-    PACKAGE_VERSION_MAJOR, PACKAGE_VERSION_MICRO, PACKAGE_VERSION_MINOR
+    PACKAGE_VERSION_MAJOR, PACKAGE_VERSION_MINOR, PACKAGE_VERSION_MICRO
 };
 
 const char prcs_version_string[] = PACKAGE_VERSION;
