@@ -39,10 +39,13 @@ $(srcdir)/prj-names.h: $(srcdir)/prj-names.gperf
 	test -s $@-t && mv $@-t $@
 
 prcs-keys.c: prcs-keys.gperf
-	$(JGPERF) -A -C -a -r -k1,9 \
-		-N is_builtin_keyword \
-		-H is_builtin_keyword_hash \
-		< $< > $@
+	@rm -f $@-t
+	cd $(srcdir) && test -n "$(GPERF)" \
+	  && $(GPERF) -L ANSI-C -C -k '1,9' \
+	    -N is_builtin_keyword \
+	    -H is_builtin_keyword_hash \
+	    prcs-keys.gperf > $(@F)-t
+	test -s $@-t && mv $@-t $@
 
 # gperf sucks way too much for me to fix this
 #attrs.cc: attrs.gperf
