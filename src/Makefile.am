@@ -23,11 +23,6 @@ prcs_SOURCES = prcs.cc changes.cc sexp.cc fileent.cc projdesc.cc checkin.cc \
 #include/docs.h docs.cc.in: ../doc/prcs.texi ../doc/make-docs.el
 #	$(EMACS) --batch -l $(srcdir)/../doc/make-docs.el -f make-docs-noargs
 
-misc.cc prcs.cc: include/docs.h
-projdesc.cc: prj-names.h
-
-JGPERF=jgperf
-
 $(srcdir)/prj-names.h: $(srcdir)/prj-names.gperf
 	@rm -f $@-t
 	cd $(srcdir) && test -n "$(GPERF)" \
