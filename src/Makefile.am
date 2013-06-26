@@ -35,7 +35,7 @@ $(srcdir)/prj-names.h: $(srcdir)/prj-names.gperf
 	    -N ProjectDescriptor::prj_lookup_func \
 	    -H ProjectDescriptor::prj_lookup_hash \
 	    -W ProjectDescriptor::_pftable \
-	    prj-names.gperf | sed 's/^static  *//' > prj-names.h-t
+	    prj-names.gperf | sed 's/^static  *//' > $(@F)-t
 	test -s $@-t && mv $@-t $@
 
 prcs-keys.c: prcs-keys.gperf
