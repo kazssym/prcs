@@ -38,7 +38,7 @@ $(srcdir)/prj-names.h: $(srcdir)/prj-names.gperf
 	    prj-names.gperf | sed 's/^static  *//' > $(@F)-t
 	test -s $@-t && mv $@-t $@
 
-prcs-keys.c: prcs-keys.gperf
+$(srcdir)/prcs-keys.c: prcs-keys.gperf
 	@rm -f $@-t
 	cd $(srcdir) && test -n "$(GPERF)" \
 	  && $(GPERF) -L ANSI-C -C -k '1,9' \
