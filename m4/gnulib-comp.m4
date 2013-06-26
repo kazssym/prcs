@@ -45,6 +45,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module float:
   # Code from module include_next:
   # Code from module memchr:
+  # Code from module memcmp:
   # Code from module multiarch:
   # Code from module size_max:
   # Code from module snippet/arg-nonnull:
@@ -93,6 +94,11 @@ if test $HAVE_MEMCHR = 0 || test $REPLACE_MEMCHR = 1; then
   gl_PREREQ_MEMCHR
 fi
 gl_STRING_MODULE_INDICATOR([memchr])
+gl_FUNC_MEMCMP
+if test $gl_func_memcmp = no; then
+  AC_LIBOBJ([memcmp])
+  gl_PREREQ_MEMCMP
+fi
 gl_MULTIARCH
 gl_SIZE_MAX
 gt_TYPE_SSIZE_T
@@ -262,6 +268,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/itold.c
   lib/memchr.c
   lib/memchr.valgrind
+  lib/memcmp.c
   lib/printf-args.c
   lib/printf-args.h
   lib/printf-parse.c
@@ -290,6 +297,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/longlong.m4
   m4/math_h.m4
   m4/memchr.m4
+  m4/memcmp.m4
   m4/mmap-anon.m4
   m4/multiarch.m4
   m4/printf.m4
