@@ -414,7 +414,8 @@ AC_SUBST(SYS_GZIP_COMMAND_PATH)
 
 PRCS_DEFAULT_ENV_VARS
 
-AC_OUTPUT(Makefile libgnu/Makefile src/Makefile doc/Makefile src/include/Makefile contrib/Makefile emacs/Makefile be/Makefile src/docs.cc)
+AC_OUTPUT(Makefile libgnu/Makefile src/Makefile test/Makefile doc/Makefile \
+src/include/Makefile contrib/Makefile emacs/Makefile be/Makefile src/docs.cc)
 
 if test $WARNED = yes; then
 echo ""
