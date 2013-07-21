@@ -38,12 +38,19 @@ AC_DEFUN([gl_EARLY],
   m4_pattern_allow([^gl_LIBOBJS$])dnl a variable
   m4_pattern_allow([^gl_LTLIBOBJS$])dnl a variable
   AC_REQUIRE([gl_PROG_AR_RANLIB])
+  # Code from module alloca:
   # Code from module alloca-opt:
+  # Code from module configmake:
   # Code from module errno:
   # Code from module extensions:
   AC_REQUIRE([gl_USE_SYSTEM_EXTENSIONS])
   # Code from module float:
+  # Code from module fnmatch:
   # Code from module include_next:
+  # Code from module localcharset:
+  # Code from module mbrtowc:
+  # Code from module mbsinit:
+  # Code from module mbsrtowcs:
   # Code from module memchr:
   # Code from module memcmp:
   # Code from module multiarch:
@@ -52,14 +59,18 @@ AC_DEFUN([gl_EARLY],
   # Code from module snippet/c++defs:
   # Code from module snippet/warn-on-use:
   # Code from module ssize_t:
+  # Code from module stdbool:
   # Code from module stddef:
   # Code from module stdint:
   # Code from module stdio:
+  # Code from module streq:
   # Code from module string:
+  # Code from module strnlen1:
   # Code from module vasnprintf:
   # Code from module vasprintf:
   # Code from module verify:
   # Code from module wchar:
+  # Code from module wctype-h:
   # Code from module xsize:
 ])
 
@@ -80,6 +91,7 @@ AC_DEFUN([gl_INIT],
   gl_COMMON
   gl_source_base='libgnu'
 gl_FUNC_ALLOCA
+gl_CONFIGMAKE_PREP
 gl_HEADER_ERRNO_H
 gl_FLOAT_H
 if test $REPLACE_FLOAT_LDBL = 1; then
@@ -88,6 +100,33 @@ fi
 if test $REPLACE_ITOLD = 1; then
   AC_LIBOBJ([itold])
 fi
+gl_FUNC_FNMATCH_POSIX
+if test -n "$FNMATCH_H"; then
+  AC_LIBOBJ([fnmatch])
+  gl_PREREQ_FNMATCH
+fi
+gl_LOCALCHARSET
+LOCALCHARSET_TESTS_ENVIRONMENT="CHARSETALIASDIR=\"\$(abs_top_builddir)/$gl_source_base\""
+AC_SUBST([LOCALCHARSET_TESTS_ENVIRONMENT])
+gl_FUNC_MBRTOWC
+if test $HAVE_MBRTOWC = 0 || test $REPLACE_MBRTOWC = 1; then
+  AC_LIBOBJ([mbrtowc])
+  gl_PREREQ_MBRTOWC
+fi
+gl_WCHAR_MODULE_INDICATOR([mbrtowc])
+gl_FUNC_MBSINIT
+if test $HAVE_MBSINIT = 0 || test $REPLACE_MBSINIT = 1; then
+  AC_LIBOBJ([mbsinit])
+  gl_PREREQ_MBSINIT
+fi
+gl_WCHAR_MODULE_INDICATOR([mbsinit])
+gl_FUNC_MBSRTOWCS
+if test $HAVE_MBSRTOWCS = 0 || test $REPLACE_MBSRTOWCS = 1; then
+  AC_LIBOBJ([mbsrtowcs])
+  AC_LIBOBJ([mbsrtowcs-state])
+  gl_PREREQ_MBSRTOWCS
+fi
+gl_WCHAR_MODULE_INDICATOR([mbsrtowcs])
 gl_FUNC_MEMCHR
 if test $HAVE_MEMCHR = 0 || test $REPLACE_MEMCHR = 1; then
   AC_LIBOBJ([memchr])
@@ -102,6 +141,7 @@ fi
 gl_MULTIARCH
 gl_SIZE_MAX
 gt_TYPE_SSIZE_T
+AM_STDBOOL_H
 gl_STDDEF_H
 gl_STDINT_H
 gl_STDIO_H
@@ -113,6 +153,7 @@ m4_ifdef([AM_XGETTEXT_OPTION],
   [AM_][XGETTEXT_OPTION([--flag=asprintf:2:c-format])
    AM_][XGETTEXT_OPTION([--flag=vasprintf:2:c-format])])
 gl_WCHAR_H
+gl_WCTYPE_H
 gl_XSIZE
   # End of code from modules
   m4_ifval(gl_LIBSOURCES_LIST, [
@@ -257,15 +298,26 @@ AC_DEFUN([gl_FILE_LIST], [
   build-aux/snippet/arg-nonnull.h
   build-aux/snippet/c++defs.h
   build-aux/snippet/warn-on-use.h
+  lib/alloca.c
   lib/alloca.in.h
   lib/asnprintf.c
   lib/asprintf.c
-  lib/dummy.c
+  lib/config.charset
   lib/errno.in.h
   lib/float+.h
   lib/float.c
   lib/float.in.h
+  lib/fnmatch.c
+  lib/fnmatch.in.h
+  lib/fnmatch_loop.c
   lib/itold.c
+  lib/localcharset.c
+  lib/localcharset.h
+  lib/mbrtowc.c
+  lib/mbsinit.c
+  lib/mbsrtowcs-impl.h
+  lib/mbsrtowcs-state.c
+  lib/mbsrtowcs.c
   lib/memchr.c
   lib/memchr.valgrind
   lib/memcmp.c
@@ -273,29 +325,49 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/printf-args.h
   lib/printf-parse.c
   lib/printf-parse.h
+  lib/ref-add.sin
+  lib/ref-del.sin
   lib/size_max.h
+  lib/stdbool.in.h
   lib/stddef.in.h
   lib/stdint.in.h
   lib/stdio.in.h
+  lib/streq.h
   lib/string.in.h
+  lib/strnlen1.c
+  lib/strnlen1.h
   lib/vasnprintf.c
   lib/vasnprintf.h
   lib/vasprintf.c
   lib/verify.h
   lib/wchar.in.h
+  lib/wctype.in.h
   lib/xsize.h
   m4/00gnulib.m4
   m4/alloca.m4
+  m4/codeset.m4
+  m4/configmake.m4
   m4/errno_h.m4
   m4/exponentd.m4
   m4/extensions.m4
+  m4/fcntl-o.m4
   m4/float_h.m4
+  m4/fnmatch.m4
+  m4/glibc21.m4
   m4/gnulib-common.m4
   m4/include_next.m4
   m4/intmax_t.m4
   m4/inttypes_h.m4
+  m4/localcharset.m4
+  m4/locale-fr.m4
+  m4/locale-ja.m4
+  m4/locale-zh.m4
   m4/longlong.m4
   m4/math_h.m4
+  m4/mbrtowc.m4
+  m4/mbsinit.m4
+  m4/mbsrtowcs.m4
+  m4/mbstate_t.m4
   m4/memchr.m4
   m4/memcmp.m4
   m4/mmap-anon.m4
@@ -303,6 +375,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/printf.m4
   m4/size_max.m4
   m4/ssize_t.m4
+  m4/stdbool.m4
   m4/stddef_h.m4
   m4/stdint.m4
   m4/stdint_h.m4
@@ -313,6 +386,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/warn-on-use.m4
   m4/wchar_h.m4
   m4/wchar_t.m4
+  m4/wctype_h.m4
   m4/wint_t.m4
   m4/xsize.m4
 ])
