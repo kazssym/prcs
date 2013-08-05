@@ -1,7 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 ## $Id: Makefile.am 1.9.1.29 Sun, 09 May 2004 19:20:56 -0700 jmacd $
 
-ACLOCAL_AMFLAGS = -Im4
+ACLOCAL_AMFLAGS = -Im4 -Im4gnu
 
 SUBDIRS = libgnu src test doc contrib emacs be
 

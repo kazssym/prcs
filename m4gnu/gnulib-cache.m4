@@ -27,7 +27,7 @@
 
 
 # Specification in the form of a command-line invocation:
-#   gnulib-tool --import --dir=. --lib=libgnu --source-base=libgnu --m4-base=m4 --doc-base=doc --tests-base=tests --aux-dir=. --no-conditional-dependencies --no-libtool --macro-prefix=gl fnmatch memcmp vasprintf
+#   gnulib-tool --import --dir=. --lib=libgnu --source-base=libgnu --m4-base=m4gnu --doc-base=doc --tests-base=tests --aux-dir=. --no-conditional-dependencies --no-libtool --macro-prefix=gl fnmatch memcmp vasprintf
 
 # Specification in the form of a few gnulib-tool.m4 macro invocations:
 gl_LOCAL_DIR([])
@@ -38,7 +38,7 @@ gl_MODULES([
 ])
 gl_AVOID([])
 gl_SOURCE_BASE([libgnu])
-gl_M4_BASE([m4])
+gl_M4_BASE([m4gnu])
 gl_PO_BASE([])
 gl_DOC_BASE([doc])
 gl_TESTS_BASE([tests])
