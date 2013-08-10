@@ -1,13 +1,9 @@
-The GNU sources in this directory, getopt and fnmatch, have all
-been slightly modified.
+The GNU sources in this directory, getopt and regex, have all been
+slightly modified.
 
 The getopt sources in this directory ARE MODIFIED from the GNU getopt
 sources.  They handle "--" differently.  As a result, these source
 files no longer have the __GNU_LIBRARY__ logic.
-
-The fnmatch modifications were only to the header files to account for
-their lack of C++ "support", meaning to prevent it from not declaring
-things properly.
 
 The regex modifications are to rename all symbols, preventing any
 possible confusion.  Taken from glibc-2.2.4.

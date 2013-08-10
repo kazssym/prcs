@@ -1,9 +1,16 @@
 PRCS NEWS -- history of user-visible changes. -*- Text -*-
-$Date: Sat, 27 Jan 2007 17:11:23 -0800 $
-$ReleaseVersion: 1.3.4 $
+For version 1.3.4k1
 
-Please send bug reports to prcs-bugs@XCF.Berkeley.EDU.  See the file
-`README' for a description of how to report bugs.
+** Changes since version 1.3.4 
+
+* Forked from the upstream.  Bugs should be reported now on the Bitbucket
+  Issue Tracker <https://bitbucket.org/kazssym/prcs/issues>. 
+
+* Changed the version check of GNU RCS for version 5.8 and later (but
+  earlier than 6.0).
+
+* Updated the build scripts with newer autoconf and automake, and with
+  portability function from gnulib.
 
 
 ** Changes since version 1.3.3
@@ -506,7 +513,7 @@ Please send bug reports to prcs-bugs@XCF.Berkeley.EDU.  See the file
 * Update a greatly improved prcs.el from Jesse Glick.  See the new
   documentation at the top of prcs.el.
 
-* Fixed a few documentation typos.  Thanks to François Pinard and
+* Fixed a few documentation typos.  Thanks to FranÃ§ois Pinard and
   Daniel Villeneuve.
 
 * Change the output of the "Index: " line in diff output so that the

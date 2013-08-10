@@ -5,11 +5,11 @@
 setup
 trap 'teardown' 0
 
-if ! ../src/prcs config > /dev/null; then
+if ! ../src/prcs config -f > /dev/null; then
     exit 1
 fi
 
-if ! ../src/prcs config | head -1 | fgrep " $VERSION" > /dev/null; then
+if ! ../src/prcs config -f | head -1 | fgrep " $VERSION" > /dev/null; then
     exit 1
 fi
 

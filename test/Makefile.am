@@ -11,5 +11,7 @@ EXTRA_DIST = $(TESTS) init.sh.in
 
 TEST_LOG_COMPILER = $(SHELL)
 
-init.sh: $(srcdir)/init.sh.in
-	sed -e 's/[@]VERSION[@]/$(VERSION)/g' $(srcdir)/init.sh.in > $@
+init.sh: $(srcdir)/init.sh.in Makefile
+	@rm -f $@-t $@
+	sed -e 's/[@]VERSION[@]/$(VERSION)/g' $(srcdir)/init.sh.in > $@-t
+	mv $@-t $@

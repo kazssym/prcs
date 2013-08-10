@@ -1,4 +1,8 @@
-This directory contains the modified source code for the Project Revision
-Control System (PRCS) that works with newer GCC and GNU RCS versions.
+This directory contains the source code for the Project Revision Control
+System (PRCS) with changes for modern C++ compilers and GNU RCS version 5.8
+and later (but earlier than 6.0).
+
+Bugs in this package should be reported on the Bitbucket Issue Tracker
+<https://bitbucket.org/kazssym/prcs/issues>.
 
 For the original README content, see the README-original file.
