@@ -20,8 +20,8 @@
  */
 
 
-#include "hash.h"
 #include "config.h"
+#include "hash.h"
 #include <string.h>
 #include <stdint.h>
 
