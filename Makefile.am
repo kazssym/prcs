@@ -9,8 +9,7 @@ EXTRA_DIST = \
 	FAQ \
 	README.BE \
 	config-be \
-	README-original \
-	m4gnu/gnulib-cache.m4
+	README-original
 
 #if GCC3PATCH
 #PATCHFILE = prcs-1.3gcc3.diffs
