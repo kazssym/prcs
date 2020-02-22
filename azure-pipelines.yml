@@ -1,0 +1,70 @@
+# azure-pipelines.yml - configuration for Azure Pipelines
+# Copyright (C) 2020 Kaz Nishimura
+#
+# Copying and distribution of this file, with or without modification, are
+# permitted in any medium without royalty provided the copyright notice and
+# this notice are preserved.  This file is offered as-is, without any warranty.
+---
+trigger:
+  - master
+  - feature/**
+stages:
+  - stage: Default
+    jobs:
+      - job: Build
+        pool:
+          vmImage: ubuntu-16.04
+        steps:
+          - bash: |
+              sudo apt-get install --no-install-recommends rcs flex texinfo
+            displayName: Install build dependencies
+          - bash: |
+              autoreconf --install
+            displayName: Bootstrap
+          - bash: |
+              mkdir -p _build
+              cd _build
+              ../configure
+            displayName: Configure
+          - bash: |
+              cd _build
+              make
+            displayName: Build
+          - bash: |
+              cd _build
+              make dist
+              mkdir -p ../dist
+              mv prcs-*.tar.* ../dist
+            displayName: Make source archive
+          - publish: dist
+            artifact: dist
+      - job: Test
+        dependsOn: Build
+        strategy:
+          matrix:
+            Ubuntu:
+              VM_IMAGE: ubuntu-latest
+              CXX: g++
+            macOS:
+              VM_IMAGE: macOS-latest
+              CXX: clang++ -std=c++11
+        continueOnError: true
+        pool:
+          vmImage: $(VM_IMAGE)
+        steps:
+          - download: current
+            artifact: dist
+          - bash: |
+              $CXX --version
+            displayName: Show versions
+          - bash: |
+              gzip -dc $(Pipeline.Workspace)/dist/prcs-*.tar.gz | tar -x
+            displayName: Unpack
+          - bash: |
+              cd prcs-*
+              ./configure
+            displayName: Configure
+          - bash: |
+              cd prcs-*
+              make
+            displayName: Build
