@@ -59,6 +59,7 @@ stages:
         pool:
           vmImage: $(VM_IMAGE)
         steps:
+          - checkout: none
           - download: current
             artifact: dist
           - bash: |
