@@ -76,3 +76,25 @@ stages:
               cd prcs-*
               make
             displayName: Build
+  - stage: Publish
+    dependsOn: Default
+    condition: >-
+      and(succeeded(),
+          eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    jobs:
+      - job: Publish
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - checkout: none
+          - download: current
+            artifact: dist
+          - task: UniversalPackages@0
+            inputs:
+              command: publish
+              publishDirectory: $(Pipeline.Workspace)/dist
+              vstsFeedPublish: $(System.TeamProject)/prcs
+              vstsFeedPackagePublish: prcs
+              versionOption: patch
+              packagePublishDescription: >
+                This program is a modified version of PRCS.
