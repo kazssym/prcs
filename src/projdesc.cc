@@ -1628,7 +1628,7 @@ int attrs_hash(const PrcsAttrs*const & s, int M)
 
     for (int i = 0; i < s->_vals.length(); i += 1) {
 	p = s->_vals.index(i)->cast();
-	h += hash (p, M);
+	h += ::hash (p, M);
     }
 
     return h % M;
