@@ -67,16 +67,21 @@ stages:
               $CXX --version
             displayName: Show versions
           - bash: |
-              gzip -dc $(Pipeline.Workspace)/dist/prcs-*.tar.gz | tar -x
+              gzip -dc '$(Pipeline.Workspace)/dist/prcs-$(package.version).tar.gz' | \
+              tar -x
             displayName: Unpack
           - bash: |
-              cd prcs-*
-              ./configure
+              ./configure --prefix='$(Build.BinariesDirectory)'
             displayName: Configure
+            workingDirectory: prcs-$(package.version)
           - bash: |
-              cd prcs-*
               make
             displayName: Build
+            workingDirectory: prcs-$(package.version)
+          - bash: |
+              make install
+            displayName: Install
+            workingDirectory: prcs-$(package.version)
   - stage: Publish
     dependsOn: Default
     condition: >-
