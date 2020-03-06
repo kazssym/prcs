@@ -32,15 +32,15 @@ stages:
               ../configure
             displayName: Configure
           - bash: |
-              cd _build
               make
             displayName: Build
+            workingDirectory: _build
           - bash: |
-              cd _build
               make VERSION='$(package.version)' dist || exit $?
               mkdir -p ../dist
               mv -f prcs-'$(package.version)'.tar.* ../dist
             displayName: Make source archive
+            workingDirectory: _build
           - publish: dist
             artifact: dist
   - stage: Test
