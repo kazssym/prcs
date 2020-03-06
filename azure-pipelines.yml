@@ -28,19 +28,16 @@ stages:
               autoreconf --install
             displayName: Bootstrap
           - bash: |
-              ../configure
+              ./configure
             displayName: Configure
-            workingDirectory: _build
           - bash: |
               make
             displayName: Build
-            workingDirectory: _build
           - bash: |
               make VERSION='$(package.version)' dist || exit $?
-              mkdir -p ../dist
-              mv -f 'prcs-$(package.version)'.* ../dist
+              mkdir -p dist
+              mv -f 'prcs-$(package.version)'.* dist/
             displayName: Make source archive
-            workingDirectory: _build
           - publish: dist
             artifact: dist
   - stage: Test
