@@ -38,7 +38,7 @@ stages:
           - bash: |
               make VERSION='$(package.version)' dist || exit $?
               mkdir -p ../dist
-              mv -f prcs-'$(package.version)'.tar.* ../dist
+              mv -f 'prcs-$(package.version)'.tar.* ../dist
             displayName: Make source archive
             workingDirectory: _build
           - publish: dist
@@ -67,7 +67,7 @@ stages:
               $CXX --version
             displayName: Show versions
           - bash: |
-              gzip -dc '$(Pipeline.Workspace)/dist/prcs-$(package.version).tar.gz' | \
+              gzip -dc $(Pipeline.Workspace)/dist/'prcs-$(package.version)'.tar.gz | \
               tar -x
             displayName: Unpack
           - bash: |
