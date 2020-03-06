@@ -28,10 +28,9 @@ stages:
               autoreconf --install
             displayName: Bootstrap
           - bash: |
-              mkdir -p _build
-              cd _build
               ../configure
             displayName: Configure
+            workingDirectory: _build
           - bash: |
               make
             displayName: Build
