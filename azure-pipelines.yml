@@ -38,7 +38,7 @@ stages:
           - bash: |
               make VERSION='$(package.version)' dist || exit $?
               mkdir -p ../dist
-              mv -f 'prcs-$(package.version)'.tar.* ../dist
+              mv -f 'prcs-$(package.version)'.* ../dist
             displayName: Make source archive
             workingDirectory: _build
           - publish: dist
