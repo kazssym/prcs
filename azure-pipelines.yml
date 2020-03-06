@@ -67,7 +67,7 @@ stages:
               $CXX --version
             displayName: Show versions
           - bash: |
-              gzip -dc $(Pipeline.Workspace)/dist/'prcs-$(package.version)'.tar.gz | \
+              gzip -dc '$(Pipeline.Workspace)/dist/prcs-$(package.version).tar.gz' | \
               tar -x
             displayName: Unpack
           - bash: |
@@ -88,6 +88,26 @@ stages:
       and(succeeded(),
         startsWith(variables['Build.SourceBranch'], 'refs/heads/'))
     jobs:
+      - job: UploadToBitbucket
+        displayName: Upload snapshot to Bitbucket
+        condition: >-
+          in(variables['Build.SourceBranch'], 'refs/heads/master')
+        pool:
+          vmImage: ubuntu-latest
+        variables:
+          - group: bitbucket
+          - name: repository
+            value: kazssym/prcs
+        steps:
+          - checkout: none
+          - download: current
+            artifact: dist
+          - bash: |
+              curl --fail --user '$(bitbucket.username):$(bitbucket.password)' \
+                  --form 'files=@"$(Pipeline.Workspace)/dist/prcs-$(package.version).tar.gz";
+              filename="prcs-$(package.version)-snapshot$(Build.BuildNumber).tar.gz"' \
+                  https://api.bitbucket.org/2.0/repositories/$(repository)/downloads
+            displayName: Upload
       - job: Publish
         condition: >-
           startsWith(variables['Build.SourceBranch'], 'refs/heads/release/')
