@@ -18,7 +18,7 @@ stages:
           vmImage: ubuntu-latest
         steps:
           - bash: |
-              sudo apt-get install --no-install-recommends --quiet \
+              sudo apt-get install -q --no-install-recommends \
                   rcs \
                   flex \
                   texinfo
