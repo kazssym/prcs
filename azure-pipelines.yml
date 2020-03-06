@@ -103,7 +103,7 @@ stages:
               command: publish
               publishDirectory: $(Pipeline.Workspace)/dist
               vstsFeedPublish: $(System.TeamProject)/prcs
-              vstsFeedPackagePublish: prcs
+              vstsFeedPackagePublish: prcs-$(package.version)
               versionOption: patch
               packagePublishDescription: >
                 This program is a modified version of PRCS.
