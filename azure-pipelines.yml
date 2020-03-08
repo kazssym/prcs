@@ -103,7 +103,7 @@ stages:
               curl --fail --user '$(bitbucket.username):$(bitbucket.password)' \
                   --form 'files=@"$(Pipeline.Workspace)/dist/prcs-$(package.version).tar.gz";
               filename="prcs-$(package.version)-snapshot$(Build.BuildNumber).tar.gz"' \
-                  https://api.bitbucket.org/2.0/repositories/$(repository)/downloads
+                  'https://api.bitbucket.org/2.0/repositories/$(repository)/downloads'
             displayName: Upload
       - job: Publish
         condition: >-
