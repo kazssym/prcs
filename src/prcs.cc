@@ -121,8 +121,8 @@ static bool illegal_option = false;
 static struct CleanupHandler *cleanup_handler_list = NULL;
 static struct CleanupHandler *alarm_handler_list = NULL;
 
-static const char check_rcs_arg[] = "-V";
-static const char check_rcs_expected[] = "*GNU RCS* 5.*";
+static const char check_rcs_arg[] = "--version";
+static const char check_rcs_expected[] = "*GNU RCS*";
 static const CommandNamePair check_rcs = { &rcs_command, "rcs" };
 
 static const char check_diff_arg[] = "-v";
@@ -1326,7 +1326,7 @@ int main(int argc, char** argv)
 
     if(subcommand == NULL) {
 	exitval = invoke_command(command);
-    } else { 
+    } else {
 	exitval = invoke_command(subcommand);
     }
 
