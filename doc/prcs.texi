@@ -2179,7 +2179,7 @@ the standard attribute entries that may appear in it.
 @end menu
 @node Descriptor entry syntax, Project-Version attribute, Descriptors, Descriptors
 @c 2
-@unnumberedsubsec Descriptor entry syntax
+@unnumberedsec Descriptor entry syntax
 
 The syntax of the project descriptor file is a slight variant on Lisp.  It
 consists of `S-expressions' (this is the terminology established by
@@ -2414,10 +2414,8 @@ in subdirectory @file{doc}, Emacs backup files, and the executable file @file{a.
 @c 2
 @unnumberedsubsec Merge-Parents attribute
 
-@deffn Attribute Merge-Parents (@var{merged-against-version}
-@var{effective-working-version} @var{complete} (@var{file-action}) @dots{}) @dots{}
-@deffnx Attribute New-Merge-Parents (@var{merged-against-version}
-@var{effective-working-version} @var{complete} (@var{file-action}) @dots{}) @dots{}
+@deffn Attribute Merge-Parents (@var{merged-against-version} @var{effective-working-version} @var{complete} (@var{file-action}) @dots{}) @dots{}
+@deffnx Attribute New-Merge-Parents (@var{merged-against-version} @var{effective-working-version} @var{complete} (@var{file-action}) @dots{}) @dots{}
 
 The @code{prcs merge} command uses the New-Merge-Parents attribute to
 record the history of updates to each file.

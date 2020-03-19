@@ -255,7 +255,7 @@ const char* strip_leading_path(const char* P)
 {
     const char* s = strrchr(P, '/');
 
-    if ( s == '\0' )
+    if ( s == 0 )
         return P;
     else
         return s+1;

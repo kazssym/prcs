@@ -1,0 +1,103 @@
+# azure-pipelines.yml - configuration for Azure Pipelines
+# Copyright (C) 2020 Kaz Nishimura
+#
+# Copying and distribution of this file, with or without modification, are
+# permitted in any medium without royalty provided the copyright notice and
+# this notice are preserved.  This file is offered as-is, without any warranty.
+---
+variables:
+  package.distName: prcs-1.3.4.k2
+trigger:
+  - master
+  - release/**
+  - feature/**
+stages:
+  - stage: Default
+    jobs:
+      - job: Build
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - bash: |
+              sudo apt-get install -q --no-install-recommends \
+                  rcs \
+                  flex \
+                  texinfo
+            displayName: Install build dependencies
+          - bash: |
+              autoreconf --install
+            displayName: Bootstrap
+          - bash: |
+              ./configure
+            displayName: Configure
+          - bash: |
+              make
+            displayName: Build
+          - bash: |
+              make dist || exit $?
+              mkdir -p dist
+              mv -f '$(package.distName)'.* dist/
+            displayName: Make source archive
+          - publish: dist
+            artifact: dist
+  - stage: Test
+    jobs:
+      - job: Test
+        strategy:
+          matrix:
+            Ubuntu:
+              VM_IMAGE: ubuntu-latest
+              CC: gcc
+              CXX: g++
+            macOS:
+              VM_IMAGE: macOS-latest
+              CC: clang
+              CXX: clang++ -std=c++11
+        continueOnError: true
+        pool:
+          vmImage: $(VM_IMAGE)
+        steps:
+          - checkout: none
+          - download: current
+            artifact: dist
+          - bash: |
+              gzip -dc '$(Pipeline.Workspace)/dist/$(package.distName).tar.gz' | \
+              tar -x
+            displayName: Unpack
+          - bash: |
+              $CC --version
+              $CXX --version
+              ./configure --prefix='$(Build.BinariesDirectory)'
+            displayName: Configure
+            workingDirectory: $(package.distName)
+          - bash: |
+              make
+            displayName: Build
+            workingDirectory: $(package.distName)
+          - bash: |
+              make install
+            displayName: Install
+            workingDirectory: $(package.distName)
+  - stage: Release
+    dependsOn: Default
+    condition: >-
+      and(succeeded(),
+        startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'))
+    jobs:
+      - job: UploadToBitbucket
+        displayName: Upload to Bitbucket
+        pool:
+          vmImage: ubuntu-latest
+        variables:
+          - group: bitbucket
+          - name: repository
+            value: kazssym/prcs
+        steps:
+          - checkout: none
+          - download: current
+            artifact: dist
+          - bash: |
+              curl --fail --user '$(bitbucket.username):$(bitbucket.password)' \
+                  --form 'files=@"$(Pipeline.Workspace)/dist/$(package.distName).tar.gz"' \
+                  'https://api.bitbucket.org/2.0/repositories/$(repository)/downloads'
+            displayName: Upload

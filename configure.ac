@@ -1,8 +1,9 @@
 dnl -*-Mode: C; comment-start: "dnl "-*-
 dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ([2.69])
-AC_INIT([PRCS], [1.3.4k1],, [prcs])
+AC_INIT([PRCS], [1.3.4.k2],, [prcs])
 AC_CONFIG_SRCDIR([src/prcs.cc])
+AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
 AC_CANONICAL_HOST
 
@@ -57,7 +58,7 @@ AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_CPP
 gl_EARLY
-	  
+
 dnl Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
@@ -237,31 +238,6 @@ dnl end select check.
 AC_DEFINE(EXPLICIT_TEMPLATES, 1, [Used with -fno-implicit-templates.])
 
 dnl
-dnl Test working fnmatch.  Solaris 5.4's doesn't work.
-dnl
-
-AC_CACHE_CHECK([for working fnmatch function], ac_cv_sys_working_fnmatch,
-[AC_TRY_RUN([
-#include <stdlib.h>
-#include <fnmatch.h>
-int
-main ()
-{
-  exit ((fnmatch ("a", "a", FNM_PATHNAME) == 0
-	 && fnmatch ("a", "b", FNM_PATHNAME) == FNM_NOMATCH
-	 && fnmatch ("*", "Solaris Sucks", FNM_NOESCAPE) == 0)
-	? 0 : 1);
-}],
-ac_cv_sys_working_fnmatch=yes,
-ac_cv_sys_working_fnmatch=no,
-ac_cv_sys_working_fnmatch=no)])
-
-if test $ac_cv_sys_working_fnmatch = no; then
-  AC_LIBOBJ([fnmatch])
-  AC_DEFINE(USE_SYS_FNMATCH, 1, [System has fnmatch.])
-fi
-
-dnl
 dnl Need to know for c++ the arg type to signal handlers.
 dnl
 
@@ -414,7 +390,8 @@ AC_SUBST(SYS_GZIP_COMMAND_PATH)
 
 PRCS_DEFAULT_ENV_VARS
 
-AC_OUTPUT(Makefile libgnu/Makefile src/Makefile doc/Makefile src/include/Makefile contrib/Makefile emacs/Makefile be/Makefile src/docs.cc)
+AC_OUTPUT(Makefile libgnu/Makefile src/Makefile test/Makefile doc/Makefile \
+src/include/Makefile contrib/Makefile emacs/Makefile be/Makefile src/docs.cc)
 
 if test $WARNED = yes; then
 echo ""

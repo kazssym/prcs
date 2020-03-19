@@ -1,0 +1,11 @@
+#
+
+VERSION='@VERSION@'
+
+setup() {
+    :
+}
+
+teardown() {
+    :
+}

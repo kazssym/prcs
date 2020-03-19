@@ -1,16 +1,15 @@
 ## Process this file with automake to produce Makefile.in
 ## $Id: Makefile.am 1.9.1.29 Sun, 09 May 2004 19:20:56 -0700 jmacd $
 
-ACLOCAL_AMFLAGS = -Im4
+ACLOCAL_AMFLAGS = -Im4 -Ilibgnu/m4
 
-SUBDIRS = libgnu src doc contrib emacs be
+SUBDIRS = libgnu src test doc contrib emacs be
 
 EXTRA_DIST = \
 	FAQ \
 	README.BE \
 	config-be \
-	README-original \
-	m4/gnulib-cache.m4
+	README-original
 
 #if GCC3PATCH
 #PATCHFILE = prcs-1.3gcc3.diffs
