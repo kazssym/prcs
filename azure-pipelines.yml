@@ -6,7 +6,7 @@
 # this notice are preserved.  This file is offered as-is, without any warranty.
 ---
 variables:
-  package.distName: prcs-1.3.4.k2
+  package.distName: prcs-1.3.4.k3
 trigger:
   - master
   - release/**
