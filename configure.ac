@@ -1,7 +1,7 @@
 dnl -*-Mode: C; comment-start: "dnl "-*-
 dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ([2.69])
-AC_INIT([PRCS], [1.3.4k2],, [prcs])
+AC_INIT([PRCS], [1.3.4.k2],, [prcs])
 AC_CONFIG_SRCDIR([src/prcs.cc])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -58,7 +58,7 @@ AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_CPP
 gl_EARLY
-	  
+
 dnl Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
