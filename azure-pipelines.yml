@@ -9,8 +9,8 @@ variables:
   package.distName: prcs-1.3.4.k3
 trigger:
   - master
-  - release/**
-  - feature/**
+  - release/*
+  - feature/*
 stages:
   - stage: Default
     jobs:
